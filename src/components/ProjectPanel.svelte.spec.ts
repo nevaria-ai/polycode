@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import ProjectSelector from './ProjectSelector.svelte';
+import ProjectPanel from './ProjectPanel.svelte';
 import type { StoredProject } from '$lib/projects';
 
 // Mock SvelteKit's goto
@@ -21,14 +21,14 @@ vi.mock('$app/state', () => ({
 	}
 }));
 
-describe('ProjectSelector', () => {
+describe('ProjectPanel', () => {
 	const mockProjects: StoredProject[] = [
 		{ name: 'polycode', path: '/tmp/polycode', color: '#d4850a' },
 		{ name: 'svelte', path: '/tmp/svelte', color: '#3b82f6' }
 	];
 
 	it('renders new project button with Plus icon', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
@@ -37,7 +37,7 @@ describe('ProjectSelector', () => {
 	});
 
 	it('renders project button with initial letter', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
@@ -47,7 +47,7 @@ describe('ProjectSelector', () => {
 	});
 
 	it('fills background with dimmed project color and text uses full project color', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
@@ -61,7 +61,7 @@ describe('ProjectSelector', () => {
 	});
 
 	it('has minor rounded corners', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
@@ -71,7 +71,7 @@ describe('ProjectSelector', () => {
 	});
 
 	it('has darker background on hover', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
@@ -83,7 +83,7 @@ describe('ProjectSelector', () => {
 	});
 
 	it('selected state has dimmed white background and larger text', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
@@ -94,7 +94,7 @@ describe('ProjectSelector', () => {
 	});
 
 	it('renders project buttons from loaded server data', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
@@ -108,7 +108,7 @@ describe('ProjectSelector', () => {
 	});
 
 	it('renders open project dialog button', async () => {
-		const screen = render(ProjectSelector, {
+		const screen = render(ProjectPanel, {
 			projects: mockProjects
 		});
 
