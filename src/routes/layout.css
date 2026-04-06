@@ -38,11 +38,18 @@
 	--sidebar-accent-foreground: oklch(0.205 0 0);
 	--sidebar-border: oklch(0.922 0 0);
 	--sidebar-ring: oklch(0.708 0 0);
+
+	/* Polycode app shell theme */
+	--surface-0: #141417;
+	--surface-1: #1c1c21;
+	--surface-2: #242429;
+	--accent-claude: #d4850a;
+	--accent-gemini: #3b82f6;
 }
 
 .dark {
-	--background: oklch(0.145 0 0);
-	--foreground: oklch(0.985 0 0);
+	--background: #0c0c0e;
+	--foreground: #e2e2e8;
 	--card: oklch(0.205 0 0);
 	--card-foreground: oklch(0.985 0 0);
 	--popover: oklch(0.205 0 0);
@@ -121,9 +128,11 @@
 		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply bg-background text-foreground;
+		font-family: 'JetBrains Mono Variable', monospace;
+		@apply text-foreground;
 	}
 	html {
 		@apply font-mono;
+		overscroll-behavior: none;
 	}
 }
