@@ -129,9 +129,9 @@ describe('WorkspaceView', () => {
 			const deleteButton = page.getByRole('button', { name: 'Delete worktree', exact: true });
 			await deleteButton.click();
 
-			// Confirmation dialog should appear without warning
+			// Confirmation dialog should appear with caution message
 			await expect
-				.element(page.getByText('Are you sure you want to delete this worktree?'))
+				.element(page.getByText('This worktree may contain unpushed or unrecoverable changes.'))
 				.toBeInTheDocument();
 			await expect.element(page.getByRole('dialog')).toBeInTheDocument();
 		});
@@ -151,9 +151,9 @@ describe('WorkspaceView', () => {
 			const deleteButton = page.getByRole('button', { name: 'Delete worktree', exact: true });
 			await deleteButton.click();
 
-			// Dialog should show branch is merged
+			// Dialog should show branch appears merged
 			await expect
-				.element(page.getByText(/This branch has been merged into main/i))
+				.element(page.getByText(/This branch appears to be fully merged/i))
 				.toBeInTheDocument();
 			await expect.element(page.getByRole('dialog')).toBeInTheDocument();
 		});

@@ -4,7 +4,8 @@ import {
 	getWorktreeStatus,
 	isBranchMerged,
 	getDefaultBranch,
-	createWorktree
+	createWorktree,
+	deleteWorktree
 } from './git';
 import { mkdir } from 'node:fs/promises';
 
@@ -205,39 +206,112 @@ describe('createWorktree', () => {
 		// Check for suffix (base36 timestamp)
 		expect(result.path.split('-').pop()).toMatch(/^[a-z0-9]+$/);
 	});
+	describe('deleteWorktree', () => {
+		it('removes worktree and deletes the branch', async () => {
+			const calls: Array<{ file: string; args: string[] }> = [];
+			const mockExec = async (file: string, args: string[]) => {
+				calls.push({ file, args });
+				return { stdout: '', stderr: '' };
+			};
 
-	it('creates a new branch when adding a worktree', async () => {
-		const calls: Array<{ file: string; args: string[] }> = [];
-		const mockExec = async (file: string, args: string[]) => {
-			calls.push({ file, args });
-			return { stdout: '', stderr: '' };
-		};
-		const mockMkdir: typeof mkdir = async () => {};
+			await deleteWorktree(
+				'/Users/test/myproject',
+				'/.polycode/worktrees/myproject/feature-abc123',
+				'feature-branch',
+				mockExec
+			);
 
-		const result = await createWorktree('/Users/test/myproject', 'new-branch', mockExec, mockMkdir);
+			// Should call git worktree remove
+			expect(calls).toHaveLength(2);
+			expect(calls[0]).toEqual({
+				file: 'git',
+				args: [
+					'-C',
+					'/Users/test/myproject',
+					'worktree',
+					'remove',
+					'/.polycode/worktrees/myproject/feature-abc123'
+				]
+			});
+			// Should delete the branch
+			expect(calls[1]).toEqual({
+				file: 'git',
+				args: ['-C', '/Users/test/myproject', 'branch', '-D', 'feature-branch']
+			});
+		});
 
-		expect(result.branch).toBe('new-branch');
-		expect(calls).toHaveLength(1);
-		expect(calls[0]?.file).toBe('git');
-		expect(calls[0]?.args).toEqual([
-			'-C',
-			'/Users/test/myproject',
-			'worktree',
-			'add',
-			'-b',
-			'new-branch',
-			result.path
-		]);
-	});
+		it('removes worktree without deleting branch when branch is null (detached)', async () => {
+			const calls: Array<{ file: string; args: string[] }> = [];
+			const mockExec = async (file: string, args: string[]) => {
+				calls.push({ file, args });
+				return { stdout: '', stderr: '' };
+			};
 
-	it('handles git command errors', async () => {
-		const mockExec = async () => {
-			throw new Error('git worktree add failed');
-		};
-		const mockMkdir: typeof mkdir = async () => {};
+			await deleteWorktree(
+				'/Users/test/myproject',
+				'/.polycode/worktrees/myproject/detached-xyz',
+				null,
+				mockExec
+			);
 
-		await expect(
-			createWorktree('/Users/test/myproject', 'feature-branch', mockExec, mockMkdir)
-		).rejects.toThrow();
+			// Only worktree remove, no branch delete
+			expect(calls).toHaveLength(1);
+			expect(calls[0]).toEqual({
+				file: 'git',
+				args: [
+					'-C',
+					'/Users/test/myproject',
+					'worktree',
+					'remove',
+					'/.polycode/worktrees/myproject/detached-xyz'
+				]
+			});
+		});
+
+		it('skips branch deletion when deleteBranch is false', async () => {
+			const calls: Array<{ file: string; args: string[] }> = [];
+			const mockExec = async (file: string, args: string[]) => {
+				calls.push({ file, args });
+				return { stdout: '', stderr: '' };
+			};
+
+			await deleteWorktree(
+				'/Users/test/myproject',
+				'/.polycode/worktrees/myproject/feature-abc123',
+				'feature-branch',
+				mockExec,
+				false
+			);
+
+			// Only worktree remove, no branch delete
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.args).toContain('remove');
+		});
+
+		it('throws on worktree remove failure', async () => {
+			const mockExec = async () => {
+				throw new Error('git worktree remove failed');
+			};
+
+			await expect(
+				deleteWorktree('/Users/test/myproject', '/path/to/worktree', 'feature', mockExec)
+			).rejects.toThrow('git worktree remove failed');
+		});
+
+		it('still succeeds when branch deletion fails after worktree removal', async () => {
+			let callCount = 0;
+			const mockExec = async () => {
+				callCount++;
+				if (callCount === 2) {
+					throw new Error('branch delete failed');
+				}
+				return { stdout: '', stderr: '' };
+			};
+
+			// Should NOT throw — worktree was removed, branch deletion is best-effort
+			await expect(
+				deleteWorktree('/Users/test/myproject', '/path/to/worktree', 'feature', mockExec)
+			).resolves.toBeUndefined();
+		});
 	});
 });

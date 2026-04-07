@@ -129,6 +129,26 @@ export async function getDefaultBranch(
 	}
 }
 
+export async function deleteWorktree(
+	repoPath: string,
+	worktreePath: string,
+	branch: string | null,
+	run: ExecFileLike = execFile,
+	deleteBranch: boolean = true
+): Promise<void> {
+	// Remove the worktree
+	await run('git', ['-C', repoPath, 'worktree', 'remove', worktreePath]);
+
+	// Delete the associated branch (best-effort)
+	if (deleteBranch && branch) {
+		try {
+			await run('git', ['-C', repoPath, 'branch', '-D', branch]);
+		} catch {
+			// Branch deletion failure is non-fatal — worktree was already removed
+		}
+	}
+}
+
 export async function createWorktree(
 	repoPath: string,
 	branchName: string,

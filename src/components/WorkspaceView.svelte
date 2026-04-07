@@ -6,6 +6,7 @@
 	import { browser } from '$app/environment';
 	import { encodeProjectId } from '$lib/projects';
 	import { openNewSession } from '$lib/session';
+	import { enhance } from '$app/forms';
 
 	let {
 		worktrees,
@@ -34,6 +35,7 @@
 	// Delete dialog state
 	let deleteDialogOpen = $state(false);
 	let worktreeToDelete = $state<WorktreeEntry | null>(null);
+	let deleteError = $state('');
 
 	// Save to localStorage whenever expanded state changes
 	$effect(() => {
@@ -49,6 +51,13 @@
 	function isExpanded(path: string): boolean {
 		return expanded[path] === true;
 	}
+
+	// Clear delete error on dialog close
+	$effect(() => {
+		if (!deleteDialogOpen) {
+			deleteError = '';
+		}
+	});
 
 	function openDeleteWorktreeDialog(worktree: WorktreeEntry) {
 		worktreeToDelete = worktree;
@@ -139,28 +148,57 @@
 
 <!-- Delete Confirmation Dialog -->
 <Dialog.Root bind:open={deleteDialogOpen}>
-	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title>Delete Worktree</Dialog.Title>
-			{#if worktreeToDelete?.status === 'unmerged'}
-				<Dialog.Description class="text-destructive">
-					Warning: unmerge changes detected in worktree. Are you sure you want to continue?
-				</Dialog.Description>
-			{:else if worktreeToDelete?.status === 'uncommitted'}
-				<Dialog.Description class="text-destructive">
-					Warning: uncommitted changes detected in worktree. Are you sure you want to continue?
-				</Dialog.Description>
-			{:else if worktreeToDelete?.isMerged}
-				<Dialog.Description>
-					This branch has been merged into main. Do you want to delete this worktree?
-				</Dialog.Description>
-			{:else}
-				<Dialog.Description>Are you sure you want to delete this worktree?</Dialog.Description>
+	<Dialog.Content class="overflow-hidden sm:max-w-md">
+		<form
+			method="POST"
+			action="?/deleteWorktree"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'success') {
+						const data = result.data as Record<string, string | undefined>;
+						if (data?.error) {
+							deleteError = data.error;
+						} else {
+							await update({ reset: false });
+							deleteDialogOpen = false;
+						}
+					}
+				};
+			}}
+			class="grid gap-4"
+		>
+			<Dialog.Header>
+				<Dialog.Title>Delete Worktree</Dialog.Title>
+				{#if worktreeToDelete?.status === 'unmerged'}
+					<Dialog.Description class="text-destructive">
+						Warning: unmerge changes detected in worktree. Are you sure you want to continue?
+					</Dialog.Description>
+				{:else if worktreeToDelete?.status === 'uncommitted'}
+					<Dialog.Description class="text-destructive">
+						Warning: uncommitted changes detected in worktree. Are you sure you want to continue?
+					</Dialog.Description>
+				{:else if worktreeToDelete?.isMerged}
+					<Dialog.Description>
+						This branch appears to be fully merged. Delete this worktree?
+					</Dialog.Description>
+				{:else}
+					<Dialog.Description>This worktree may contain unpushed or unrecoverable changes. Delete anyway?</Dialog.Description>
+				{/if}
+			</Dialog.Header>
+
+			{#if deleteError}
+				<p class="text-sm break-words text-red-400">{deleteError}</p>
 			{/if}
-		</Dialog.Header>
-		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (deleteDialogOpen = false)}>Cancel</Button>
-			<Button variant="destructive" onclick={() => (deleteDialogOpen = false)}>Delete</Button>
-		</Dialog.Footer>
+
+			<input type="hidden" name="worktreePath" value={worktreeToDelete?.path} />
+			<input type="hidden" name="branch" value={worktreeToDelete?.branch ?? ''} />
+
+			<Dialog.Footer>
+				<Button type="button" variant="outline" onclick={() => (deleteDialogOpen = false)}
+					>Cancel</Button
+				>
+				<Button type="submit" variant="destructive">Delete</Button>
+			</Dialog.Footer>
+		</form>
 	</Dialog.Content>
 </Dialog.Root>
