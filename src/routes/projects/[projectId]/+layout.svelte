@@ -2,10 +2,15 @@
 	import type { LayoutData } from './$types';
 	import WorkspaceView from '$components/WorkspaceView.svelte';
 	import { activityPanel } from '$lib/activitypanel.svelte';
+	import { Button } from '$components/ui/button';
 	import { buttonVariants } from '$components/ui/button';
+	import { Input } from '$components/ui/input';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
+	import * as Dialog from '$components/ui/dialog';
 	import { MoreHorizontal } from '@lucide/svelte';
-	import { page } from '$app/state';
+	import { enhance } from '$app/forms';
+	import { page } from '$app/stores';
+	import { openNewSession } from '$lib/session';
 
 	let { data, children } = $props<{
 		data: LayoutData;
@@ -14,6 +19,19 @@
 
 	const project = $derived(data.project);
 	const projectPath = $derived(project?.path ?? '');
+
+	// Create worktree dialog state
+	let createDialogOpen = $state(false);
+	let branchName = $state('');
+	let createError = $state('');
+
+	// Clear dialog state on close
+	$effect(() => {
+		if (!createDialogOpen) {
+			branchName = '';
+			createError = '';
+		}
+	});
 </script>
 
 {#if project}
@@ -40,10 +58,14 @@
 						<MoreHorizontal class="size-3.5" />
 					</DropdownMenu.Trigger>
 					<DropdownMenu.Content>
-						<DropdownMenu.Item>Create new worktree</DropdownMenu.Item>
+						<DropdownMenu.Item>
+							<button onclick={() => (createDialogOpen = true)} class="w-full text-left">
+								Create new worktree
+							</button>
+						</DropdownMenu.Item>
 						<DropdownMenu.Item>
 							<form method="POST" action="/projects/?/close" class="w-full">
-								<input type="hidden" name="projectId" value={page.params.projectId} />
+								<input type="hidden" name="projectId" value={$page.params.projectId} />
 								<button type="submit" class="w-full text-left">Close Project</button>
 							</form>
 						</DropdownMenu.Item>
@@ -53,7 +75,11 @@
 
 			<!-- Activity Panel Content Area -->
 			<div class="flex-1 overflow-y-auto p-4">
-				<WorkspaceView worktrees={data.worktrees} {projectPath} />
+				<WorkspaceView
+					worktrees={data.worktrees}
+					{projectPath}
+					projectId={$page.params.projectId!}
+				/>
 			</div>
 		</aside>
 
@@ -67,8 +93,57 @@
 	{@render children()}
 {/if}
 
+<!-- Create Worktree Dialog -->
+<Dialog.Root bind:open={createDialogOpen}>
+	<Dialog.Content class="overflow-hidden sm:max-w-md">
+		<form
+			method="POST"
+			action="?/createWorktree"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'success') {
+						const data = result.data as Record<string, string | undefined>;
+						if (data?.error) {
+							createError = data.error;
+						} else {
+							await update({ reset: false });
+							createDialogOpen = false;
+							openNewSession($page.params.projectId!);
+						}
+					}
+				};
+			}}
+			class="grid gap-4"
+		>
+			<Dialog.Header>
+				<Dialog.Title>Create New Worktree</Dialog.Title>
+				<Dialog.Description>Enter the branch name for the new worktree</Dialog.Description>
+			</Dialog.Header>
+
+			<div class="py-4">
+				<Input
+					bind:value={branchName}
+					name="branchName"
+					placeholder="Branch name (e.g., feature/new-feature)"
+					required
+				/>
+				{#if createError}
+					<p class="mt-2 text-sm break-words text-red-400">{createError}</p>
+				{/if}
+			</div>
+
+			<Dialog.Footer>
+				<Button type="button" variant="outline" onclick={() => (createDialogOpen = false)}>
+					Cancel
+				</Button>
+				<Button type="submit" disabled={!branchName.trim()}>Create</Button>
+			</Dialog.Footer>
+		</form>
+	</Dialog.Content>
+</Dialog.Root>
+
 <svelte:window
-	on:keydown={(e) => {
+	onkeydown={(e) => {
 		if (e.key === 'Escape' && activityPanel.isOpen) {
 			activityPanel.close();
 		}

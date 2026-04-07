@@ -5,8 +5,13 @@
 	import * as Dialog from '$components/ui/dialog';
 	import { browser } from '$app/environment';
 	import { encodeProjectId } from '$lib/projects';
+	import { openNewSession } from '$lib/session';
 
-	let { worktrees, projectPath }: { worktrees: WorktreeEntry[]; projectPath: string } = $props();
+	let {
+		worktrees,
+		projectPath,
+		projectId
+	}: { worktrees: WorktreeEntry[]; projectPath: string; projectId: string } = $props();
 
 	// Storage key for this project's expanded worktrees
 	const storageKey = $derived(`expanded-worktrees-${encodeProjectId(projectPath)}`);
@@ -118,6 +123,7 @@
 						<Button
 							variant="ghost"
 							class="mt-2 w-full cursor-pointer justify-start gap-1.5 rounded text-zinc-300 hover:!bg-white/6 hover:!text-zinc-100"
+							onclick={() => openNewSession(projectId)}
 						>
 							<Plus class="size-4" />
 							New session
@@ -136,9 +142,21 @@
 	<Dialog.Content>
 		<Dialog.Header>
 			<Dialog.Title>Delete Worktree</Dialog.Title>
-			<Dialog.Description class="text-destructive">
-				Warning: unmerge changes detected in worktree. Are you sure you want to continue?
-			</Dialog.Description>
+			{#if worktreeToDelete?.status === 'unmerged'}
+				<Dialog.Description class="text-destructive">
+					Warning: unmerge changes detected in worktree. Are you sure you want to continue?
+				</Dialog.Description>
+			{:else if worktreeToDelete?.status === 'uncommitted'}
+				<Dialog.Description class="text-destructive">
+					Warning: uncommitted changes detected in worktree. Are you sure you want to continue?
+				</Dialog.Description>
+			{:else if worktreeToDelete?.isMerged}
+				<Dialog.Description>
+					This branch has been merged into main. Do you want to delete this worktree?
+				</Dialog.Description>
+			{:else}
+				<Dialog.Description>Are you sure you want to delete this worktree?</Dialog.Description>
+			{/if}
 		</Dialog.Header>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (deleteDialogOpen = false)}>Cancel</Button>
