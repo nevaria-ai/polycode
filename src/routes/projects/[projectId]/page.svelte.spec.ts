@@ -20,6 +20,7 @@ describe('projects/[projectId]/+page.svelte', () => {
 		const screen = render(ProjectPage, {
 			data: {
 				projects: [],
+				worktrees: [],
 				project: {
 					name: 'polycode',
 					path: '/Projects/opensource-projects/polycode',
@@ -37,6 +38,7 @@ describe('projects/[projectId]/+page.svelte', () => {
 		const screen = render(ProjectPage, {
 			data: {
 				projects: [],
+				worktrees: [],
 				project: {
 					name: 'polycode',
 					path: '/Projects/opensource-projects/polycode',
@@ -57,6 +59,7 @@ describe('projects/[projectId]/+page.svelte', () => {
 		const screen = render(ProjectPage, {
 			data: {
 				projects: [],
+				worktrees: [],
 				project: null
 			}
 		});

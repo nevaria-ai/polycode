@@ -10,11 +10,11 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-<div class="flex h-svh flex-col overflow-hidden bg-(--surface-1)">
+<div class="flex h-svh flex-col overflow-hidden">
 	<AppHeader />
 	<div class="flex min-h-0 flex-1">
 		<ProjectPanel projects={data.projects} />
-		<main class="w-full overflow-y-auto rounded-tl-xl bg-(--surface-0)">
+		<main class="flex-1 overflow-y-auto rounded-tl-xl bg-surface">
 			{@render children()}
 		</main>
 	</div>
