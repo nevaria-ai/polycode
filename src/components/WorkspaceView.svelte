@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { ChevronRight, ChevronDown, Plus } from '@lucide/svelte';
+	import { ChevronRight, ChevronDown, Plus, Trash2 } from '@lucide/svelte';
 	import type { WorktreeEntry } from '$lib/server/git';
 	import { Button } from '$components/ui/button';
+	import * as Dialog from '$components/ui/dialog';
 	import { browser } from '$app/environment';
 	import { encodeProjectId } from '$lib/projects';
 
@@ -25,6 +26,10 @@
 	// Track which worktrees are expanded
 	const expanded = $state<Record<string, boolean>>(loadExpandedState());
 
+	// Delete dialog state
+	let deleteDialogOpen = $state(false);
+	let worktreeToDelete = $state<WorktreeEntry | null>(null);
+
 	// Save to localStorage whenever expanded state changes
 	$effect(() => {
 		if (browser) {
@@ -39,6 +44,11 @@
 	function isExpanded(path: string): boolean {
 		return expanded[path] === true;
 	}
+
+	function openDeleteWorktreeDialog(worktree: WorktreeEntry) {
+		worktreeToDelete = worktree;
+		deleteDialogOpen = true;
+	}
 </script>
 
 {#if worktrees && worktrees.length === 0}
@@ -49,7 +59,11 @@
 			<div class="border-b border-white/8">
 				<!-- Worktree Header (Clickable) -->
 				<div
-					onclick={() => toggleWorktree(worktree.path)}
+					onclick={(e) => {
+						// Prevent toggling if delete button was clicked
+						if ((e.target as HTMLElement).closest('button')) return;
+						toggleWorktree(worktree.path);
+					}}
 					onkeydown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
@@ -58,14 +72,25 @@
 					}}
 					role="button"
 					tabindex="0"
-					class="flex items-center gap-2 p-3 transition-colors hover:bg-white/6"
+					class="group flex w-full items-center gap-2 p-3 transition-colors hover:bg-white/6"
 				>
 					{#if isExpanded(worktree.path)}
 						<ChevronDown class="size-4 shrink-0 text-zinc-400" />
 					{:else}
 						<ChevronRight class="size-4 shrink-0 text-zinc-400" />
 					{/if}
-					<span class="text-sm text-zinc-300">{worktree.branch || '(detached)'}</span>
+					<span class="flex-1 text-sm text-zinc-300">{worktree.branch || '(detached)'}</span>
+
+					<!-- Delete Button (visible on hover) -->
+					<Button
+						variant="ghost"
+						size="icon"
+						aria-label="Delete worktree"
+						onclick={() => openDeleteWorktreeDialog(worktree)}
+						class="size-4 cursor-pointer opacity-0 transition-opacity group-hover:opacity-60"
+					>
+						<Trash2 class="size-3.5" />
+					</Button>
 				</div>
 
 				<!-- Expandable Content: Sessions List -->
@@ -105,3 +130,19 @@
 {:else}
 	<div class="p-4 text-sm text-zinc-400">Loading worktrees...</div>
 {/if}
+
+<!-- Delete Confirmation Dialog -->
+<Dialog.Root bind:open={deleteDialogOpen}>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Delete Worktree</Dialog.Title>
+			<Dialog.Description class="text-destructive">
+				Warning: unmerge changes detected in worktree. Are you sure you want to continue?
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (deleteDialogOpen = false)}>Cancel</Button>
+			<Button variant="destructive" onclick={() => (deleteDialogOpen = false)}>Delete</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
