@@ -7,10 +7,13 @@
 	import { Input } from '$components/ui/input';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
 	import * as Dialog from '$components/ui/dialog';
+	import CliPickerDialog from '$components/CliPickerDialog.svelte';
+	import CliConfigDialog from '$components/CliConfigDialog.svelte';
 	import { MoreHorizontal } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
 	import { openNewSession } from '$lib/session';
+	import type { CliProfile } from '$lib/cli-profiles';
 
 	let { data, children } = $props<{
 		data: LayoutData;
@@ -25,6 +28,11 @@
 	let branchName = $state('');
 	let createError = $state('');
 
+	// CLI picker / config dialog state
+	let pickerOpen = $state(false);
+	let configOpen = $state(false);
+	let editingProfile = $state<CliProfile | null>(null);
+
 	// Clear dialog state on close
 	$effect(() => {
 		if (!createDialogOpen) {
@@ -32,6 +40,24 @@
 			createError = '';
 		}
 	});
+
+	function handleNewSession() {
+		pickerOpen = true;
+	}
+
+	function handleCliSelect() {
+		// For now just navigate — PTY session will be wired in Part 2
+		openNewSession($page.params.projectId!);
+	}
+
+	function handleCliEdit(profile?: CliProfile) {
+		editingProfile = profile ?? null;
+		configOpen = true;
+	}
+
+	function handleCliSaved() {
+		configOpen = false;
+	}
 </script>
 
 {#if project}
@@ -79,6 +105,7 @@
 					worktrees={data.worktrees}
 					{projectPath}
 					projectId={$page.params.projectId!}
+					onNewSession={handleNewSession}
 				/>
 			</div>
 		</aside>
@@ -141,6 +168,17 @@
 		</form>
 	</Dialog.Content>
 </Dialog.Root>
+
+<!-- CLI Picker Dialog -->
+<CliPickerDialog
+	bind:open={pickerOpen}
+	profiles={data.cliProfiles}
+	onSelect={handleCliSelect}
+	onEdit={handleCliEdit}
+/>
+
+<!-- CLI Config Dialog -->
+<CliConfigDialog bind:open={configOpen} profile={editingProfile} onsaved={handleCliSaved} />
 
 <svelte:window
 	onkeydown={(e) => {

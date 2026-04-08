@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 
 export const APP_DIR = normalize(`${homedir()}/.polycode`);
 
+export * from './cli-profiles';
 export * from './git';
 export * from './projects';
 

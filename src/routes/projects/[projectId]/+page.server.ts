@@ -6,7 +6,6 @@ import type { Actions, PageServerLoad } from './$types';
 const projectStore = createProjectStore();
 
 export const load: PageServerLoad = async () => {
-	// Page load function - can be used for page-specific data
 	return {};
 };
 

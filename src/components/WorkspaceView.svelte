@@ -5,14 +5,20 @@
 	import * as Dialog from '$components/ui/dialog';
 	import { browser } from '$app/environment';
 	import { encodeProjectId } from '$lib/projects';
-	import { openNewSession } from '$lib/session';
 	import { enhance } from '$app/forms';
 
 	let {
 		worktrees,
 		projectPath,
-		projectId
-	}: { worktrees: WorktreeEntry[]; projectPath: string; projectId: string } = $props();
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		projectId,
+		onNewSession
+	}: {
+		worktrees: WorktreeEntry[];
+		projectPath: string;
+		projectId: string;
+		onNewSession?: () => void;
+	} = $props();
 
 	// Storage key for this project's expanded worktrees
 	const storageKey = $derived(`expanded-worktrees-${encodeProjectId(projectPath)}`);
@@ -132,7 +138,7 @@
 						<Button
 							variant="ghost"
 							class="mt-2 w-full cursor-pointer justify-start gap-1.5 rounded text-zinc-300 hover:!bg-white/6 hover:!text-zinc-100"
-							onclick={() => openNewSession(projectId)}
+							onclick={() => onNewSession?.()}
 						>
 							<Plus class="size-4" />
 							New session
@@ -182,7 +188,9 @@
 						This branch appears to be fully merged. Delete this worktree?
 					</Dialog.Description>
 				{:else}
-					<Dialog.Description>This worktree may contain unpushed or unrecoverable changes. Delete anyway?</Dialog.Description>
+					<Dialog.Description
+						>This worktree may contain unpushed or unrecoverable changes. Delete anyway?</Dialog.Description
+					>
 				{/if}
 			</Dialog.Header>
 
