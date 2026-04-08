@@ -12,6 +12,7 @@ type ProjectStore = {
 	upsert(project: StoredProject): Promise<StoredProject>;
 	remove(projectPath: string): Promise<void>;
 	findByPath(projectPath: string): Promise<StoredProject | undefined>;
+	updateLastSession(projectPath: string, sessionId: string): Promise<void>;
 };
 
 async function readProjects(filePath: string): Promise<StoredProject[]> {
@@ -53,6 +54,13 @@ export function createProjectStore(filePath = DEFAULT_PROJECTS_FILE): ProjectSto
 				(project) => project.path !== projectPath
 			);
 			await writeProjects(filePath, nextProjects);
+		},
+		async updateLastSession(projectPath, sessionId) {
+			const projects = await readProjects(filePath);
+			const next = projects.map((p) =>
+				p.path === projectPath ? { ...p, lastSessionId: sessionId } : p
+			);
+			await writeProjects(filePath, next);
 		}
 	};
 }

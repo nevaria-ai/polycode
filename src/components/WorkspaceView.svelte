@@ -6,11 +6,11 @@
 	import { browser } from '$app/environment';
 	import { encodeProjectId } from '$lib/projects';
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 
 	let {
 		worktrees,
 		projectPath,
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		projectId,
 		onNewSession
 	}: {
@@ -151,7 +151,7 @@
 									{#if editingSessionId === session.id}
 										<form
 											method="POST"
-											action="?/renameSession"
+											action={resolve('/projects/[projectId]', { projectId }) + '?/renameSession'}
 											use:enhance={() => {
 												return async ({ result, update }) => {
 													if (result.type === 'success') {
@@ -179,7 +179,13 @@
 											/>
 										</form>
 									{:else}
-										<a href="" onclick={(e) => e.preventDefault()} class="flex-1 cursor-pointer">
+										<a
+											href={resolve('/projects/[projectId]/session/[sessionId]', {
+												projectId,
+												sessionId: session.id
+											})}
+											class="flex-1 cursor-pointer"
+										>
 											{getSessionDisplayName(session, index)}
 										</a>
 										<button
@@ -226,7 +232,7 @@
 	<Dialog.Content class="overflow-hidden sm:max-w-md">
 		<form
 			method="POST"
-			action="?/deleteWorktree"
+			action={resolve('/projects/[projectId]', { projectId }) + '?/deleteWorktree'}
 			use:enhance={() => {
 				return async ({ result, update }) => {
 					if (result.type === 'success') {
@@ -285,13 +291,17 @@
 	<Dialog.Content class="overflow-hidden sm:max-w-md">
 		<form
 			method="POST"
-			action="?/removeSessionEntry"
+			action={resolve('/projects/[projectId]', { projectId }) + '?/removeSessionEntry'}
 			use:enhance={() => {
 				return async ({ result, update }) => {
 					if (result.type === 'success') {
-						await update({ reset: false });
-						removeSessionDialogOpen = false;
+						const data = result.data as Record<string, string | undefined>;
+						if (data?.error) {
+							return;
+						}
 					}
+					removeSessionDialogOpen = false;
+					await update({ reset: false });
 				};
 			}}
 			class="grid gap-4"

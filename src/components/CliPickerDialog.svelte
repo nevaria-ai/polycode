@@ -6,6 +6,7 @@
 	import { cn } from '$lib/utils';
 	import type { CliProfile } from '$lib/cli-profiles';
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 
 	const NEW_CARD_ID = '__new__';
 
@@ -17,13 +18,13 @@
 		open = $bindable(false),
 		profiles = [],
 		worktreePath = null,
-		onSuccess = () => {},
+		projectId = '',
 		onEdit = () => {}
 	}: {
 		open?: boolean;
 		profiles?: CliProfile[];
 		worktreePath?: string | null;
-		onSuccess?: () => void;
+		projectId?: string;
 		onEdit?: (profile?: CliProfile) => void;
 	} = $props();
 
@@ -35,19 +36,18 @@
 	<Dialog.Content class="sm:max-w-lg">
 		<form
 			method="POST"
-			action="?/createSession"
+			action={resolve('/projects/[projectId]', { projectId }) + '?/createSession'}
 			use:enhance={() => {
 				return async ({ result, update }) => {
 					if (result.type === 'success') {
 						const data = result.data as Record<string, string | undefined>;
 						if (data?.error) {
 							console.error('Session creation failed:', data.error);
-						} else {
-							await update({ reset: false });
-							open = false;
-							onSuccess();
+							return;
 						}
 					}
+					open = false;
+					await update({ reset: false });
 				};
 			}}
 		>

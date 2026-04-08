@@ -11,8 +11,8 @@
 	import CliConfigDialog from '$components/CliConfigDialog.svelte';
 	import { MoreHorizontal } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
-	import { openNewSession } from '$lib/session';
 	import type { CliProfile } from '$lib/cli-profiles';
 
 	let { data, children } = $props<{
@@ -47,11 +47,6 @@
 	function handleNewSession(worktreePath: string) {
 		pendingWorktreePath = worktreePath;
 		pickerOpen = true;
-	}
-
-	function handleSessionCreated() {
-		pendingWorktreePath = null;
-		openNewSession($page.params.projectId!);
 	}
 
 	function handleCliEdit(profile?: CliProfile) {
@@ -129,18 +124,18 @@
 	<Dialog.Content class="overflow-hidden sm:max-w-md">
 		<form
 			method="POST"
-			action="?/createWorktree"
+			action={resolve('/projects/[projectId]', { projectId: $page.params.projectId! }) +
+				'?/createWorktree'}
 			use:enhance={() => {
 				return async ({ result, update }) => {
 					if (result.type === 'success') {
 						const data = result.data as Record<string, string | undefined>;
 						if (data?.error) {
 							createError = data.error;
-						} else {
-							await update({ reset: false });
-							createDialogOpen = false;
-							openNewSession($page.params.projectId!);
+							return;
 						}
+						await update({ reset: false });
+						createDialogOpen = false;
 					}
 				};
 			}}
@@ -178,7 +173,7 @@
 	bind:open={pickerOpen}
 	profiles={data.cliProfiles}
 	worktreePath={pendingWorktreePath}
-	onSuccess={handleSessionCreated}
+	projectId={$page.params.projectId!}
 	onEdit={handleCliEdit}
 />
 

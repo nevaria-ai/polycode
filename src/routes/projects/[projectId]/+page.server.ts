@@ -2,12 +2,23 @@ import { createProjectStore } from '$lib/server/projects';
 import { createSessionStore } from '$lib/server/sessions';
 import { createWorktree, deleteWorktree } from '$lib/server/git';
 import { decodeProjectId } from '$lib/projects';
+import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 const projectStore = createProjectStore();
 const sessionStore = createSessionStore();
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ params }) => {
+	const projectPath = decodeProjectId(params.projectId);
+	const project = await projectStore.findByPath(projectPath);
+
+	if (project?.lastSessionId) {
+		const session = await sessionStore.findById(project.lastSessionId);
+		if (session && session.projectId === params.projectId) {
+			throw redirect(302, `/projects/${params.projectId}/session/${session.id}`);
+		}
+	}
+
 	return {};
 };
 
@@ -81,7 +92,7 @@ export const actions: Actions = {
 		}
 
 		const now = new Date().toISOString();
-		await sessionStore.upsert({
+		const newSession = await sessionStore.upsert({
 			id: '',
 			cliProfileId,
 			projectId: params.projectId,
@@ -92,7 +103,10 @@ export const actions: Actions = {
 			lastActiveAt: now
 		});
 
-		return { success: true };
+		// Set as last session and redirect
+		const projectPath = decodeProjectId(params.projectId);
+		await projectStore.updateLastSession(projectPath, newSession.id);
+		throw redirect(303, `/projects/${params.projectId}/session/${newSession.id}`);
 	},
 
 	renameSession: async ({ request }) => {
@@ -117,7 +131,7 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	removeSessionEntry: async ({ request }) => {
+	removeSessionEntry: async ({ request, params }) => {
 		const formData = await request.formData();
 		const sessionId = formData.get('sessionId') as string | null;
 
@@ -126,6 +140,14 @@ export const actions: Actions = {
 		}
 
 		await sessionStore.remove(sessionId);
-		return { success: true };
+
+		// Clear lastSessionId if it was this session
+		const projectPath = decodeProjectId(params.projectId);
+		const project = await projectStore.findByPath(projectPath);
+		if (project?.lastSessionId === sessionId) {
+			await projectStore.updateLastSession(projectPath, '');
+		}
+
+		throw redirect(303, `/projects/${params.projectId}`);
 	}
 };
