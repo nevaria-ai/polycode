@@ -33,6 +33,9 @@
 	let configOpen = $state(false);
 	let editingProfile = $state<CliProfile | null>(null);
 
+	// Session creation state
+	let pendingWorktreePath = $state<string | null>(null);
+
 	// Clear dialog state on close
 	$effect(() => {
 		if (!createDialogOpen) {
@@ -41,12 +44,13 @@
 		}
 	});
 
-	function handleNewSession() {
+	function handleNewSession(worktreePath: string) {
+		pendingWorktreePath = worktreePath;
 		pickerOpen = true;
 	}
 
-	function handleCliSelect() {
-		// For now just navigate — PTY session will be wired in Part 2
+	function handleSessionCreated() {
+		pendingWorktreePath = null;
 		openNewSession($page.params.projectId!);
 	}
 
@@ -173,7 +177,8 @@
 <CliPickerDialog
 	bind:open={pickerOpen}
 	profiles={data.cliProfiles}
-	onSelect={handleCliSelect}
+	worktreePath={pendingWorktreePath}
+	onSuccess={handleSessionCreated}
 	onEdit={handleCliEdit}
 />
 

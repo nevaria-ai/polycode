@@ -5,4 +5,5 @@ export type CliProfile = {
 	args: string[];
 	env: Record<string, string>;
 	predefined: boolean;
+	resumeFlag: string;
 };

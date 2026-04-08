@@ -6,6 +6,7 @@ export const APP_DIR = normalize(`${homedir()}/.polycode`);
 export * from './cli-profiles';
 export * from './git';
 export * from './projects';
+export * from './sessions';
 
 // Ensure APP_DIR is created
 import { mkdir } from 'node:fs/promises';

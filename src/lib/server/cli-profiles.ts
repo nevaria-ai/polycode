@@ -11,7 +11,8 @@ export const DEFAULT_CLI_PROFILES: Omit<CliProfile, 'id'>[] = [
 		command: 'claude',
 		args: [],
 		env: {},
-		predefined: true
+		predefined: true,
+		resumeFlag: '--resume'
 	}
 ];
 

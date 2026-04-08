@@ -34,7 +34,8 @@ describe('createCliProfileStore', () => {
 			command: 'chatgpt',
 			args: ['--model', 'gpt-4'],
 			env: { OPENAI_API_KEY: 'sk-test' },
-			predefined: false
+			predefined: false,
+			resumeFlag: '--resume'
 		});
 
 		expect(newProfile.id).toBeDefined();
@@ -57,7 +58,8 @@ describe('createCliProfileStore', () => {
 			command: 'claude',
 			args: ['--version', '3'],
 			env: {},
-			predefined: true
+			predefined: true,
+			resumeFlag: '--resume'
 		});
 
 		expect(updated.id).toBe(existingId);

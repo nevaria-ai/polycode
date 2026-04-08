@@ -19,6 +19,7 @@
 	let name = $state('');
 	let command = $state('');
 	let argsStr = $state('');
+	let resumeFlag = $state('');
 	let envEntries = $state<{ key: string; value: string }[]>([]);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
@@ -29,11 +30,13 @@
 				name = profile.name;
 				command = profile.command;
 				argsStr = profile.args.join(', ');
+				resumeFlag = profile.resumeFlag;
 				envEntries = Object.entries(profile.env).map(([key, value]) => ({ key, value }));
 			} else {
 				name = '';
 				command = '';
 				argsStr = '';
+				resumeFlag = '';
 				envEntries = [];
 			}
 			error = null;
@@ -132,6 +135,18 @@
 						required
 						disabled={saving}
 					/>
+				</div>
+
+				<div class="grid gap-2">
+					<label for="cli-resume-flag" class="text-xs font-medium">Resume Flag</label>
+					<Input
+						bind:value={resumeFlag}
+						id="cli-resume-flag"
+						name="resumeFlag"
+						placeholder="e.g. --resume, --continue"
+						disabled={saving}
+					/>
+					<p class="text-xs text-muted-foreground">Flag to resume an existing session by ID</p>
 				</div>
 
 				<div class="grid gap-2">

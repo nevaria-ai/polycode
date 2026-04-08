@@ -11,6 +11,7 @@ export const actions: Actions = {
 		const command = formData.get('command') as string | null;
 		const argsRaw = formData.get('args') as string | null;
 		const envRaw = formData.get('env') as string | null;
+		const resumeFlag = formData.get('resumeFlag') as string | null;
 		const predefined = formData.get('predefined') === 'true';
 
 		if (!name || !command) {
@@ -39,7 +40,8 @@ export const actions: Actions = {
 			command: command.trim(),
 			args,
 			env,
-			predefined
+			predefined,
+			resumeFlag: resumeFlag?.trim() || ''
 		});
 
 		return { success: true };
