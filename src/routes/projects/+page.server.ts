@@ -1,13 +1,9 @@
+import { projectStore } from '$lib/server/stores';
+import { generateProjectColor, resolveProjectInput } from '$lib/server/projects';
 import { redirect } from '@sveltejs/kit';
-import {
-	createProjectStore,
-	generateProjectColor,
-	resolveProjectInput
-} from '$lib/server/projects';
+
 import { decodeProjectId, encodeProjectId } from '$lib/projects';
 import type { Actions } from './$types';
-
-const projectStore = createProjectStore();
 
 export const actions: Actions = {
 	add: async ({ request }) => {

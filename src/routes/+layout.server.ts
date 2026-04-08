@@ -1,9 +1,6 @@
-import { createProjectStore } from '$lib/server/projects';
-import { createCliProfileStore } from '$lib/server/cli-profiles';
-import type { LayoutServerLoad } from './$types';
+import { projectStore, cliProfileStore } from '$lib/server/stores';
 
-const projectStore = createProjectStore();
-const cliProfileStore = createCliProfileStore();
+import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async () => {
 	const projects = await projectStore.list();

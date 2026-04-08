@@ -1,7 +1,6 @@
-import { createCliProfileStore } from '$lib/server/cli-profiles';
-import type { Actions } from './$types';
+import { cliProfileStore } from '$lib/server/stores';
 
-const cliProfileStore = createCliProfileStore();
+import type { Actions } from './$types';
 
 export const actions: Actions = {
 	saveCliProfile: async ({ request }) => {

@@ -1,5 +1,5 @@
-import { createProjectStore } from '$lib/server/projects';
-import { createSessionStore } from '$lib/server/sessions';
+import { projectStore, sessionStore } from '$lib/server/stores';
+
 import {
 	listGitWorktrees,
 	getWorktreeStatus,
@@ -9,9 +9,6 @@ import {
 import { decodeProjectId } from '$lib/projects';
 import type { LayoutServerLoad } from './$types';
 import type { WorktreeWithSessions, Session } from '$lib/sessions';
-
-const projectStore = createProjectStore();
-const sessionStore = createSessionStore();
 
 export const load: LayoutServerLoad = async ({ params }) => {
 	const projectPath = decodeProjectId(params.projectId);

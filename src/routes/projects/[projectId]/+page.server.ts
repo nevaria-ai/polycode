@@ -1,12 +1,9 @@
-import { createProjectStore } from '$lib/server/projects';
-import { createSessionStore } from '$lib/server/sessions';
+import { projectStore, sessionStore } from '$lib/server/stores';
+
 import { createWorktree, deleteWorktree } from '$lib/server/git';
 import { decodeProjectId } from '$lib/projects';
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-
-const projectStore = createProjectStore();
-const sessionStore = createSessionStore();
 
 export const load: PageServerLoad = async ({ params }) => {
 	const projectPath = decodeProjectId(params.projectId);
