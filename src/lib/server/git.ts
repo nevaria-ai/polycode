@@ -129,6 +129,41 @@ export async function getDefaultBranch(
 	}
 }
 
+export function parseRemoteDisplayName(remoteUrl: string): string | null {
+	const trimmed = remoteUrl.trim().replace(/\.git$/, '');
+	if (!trimmed) return null;
+
+	const scpPath = trimmed.match(/^[^@]+@[^:]+:(.+)$/)?.[1];
+	const rawPath =
+		scpPath ??
+		(() => {
+			try {
+				return new URL(trimmed).pathname;
+			} catch {
+				return null;
+			}
+		})();
+
+	if (!rawPath) return null;
+
+	const segments = rawPath.split('/').filter(Boolean);
+	if (segments.length < 2) return null;
+
+	return `${segments.at(-2)}/${segments.at(-1)}`;
+}
+
+export async function getRemoteDisplayName(
+	repoPath: string,
+	run: ExecFileLike = execFile
+): Promise<string | null> {
+	try {
+		const result = await run('git', ['-C', repoPath, 'remote', 'get-url', 'origin']);
+		return parseRemoteDisplayName(result.stdout);
+	} catch {
+		return null;
+	}
+}
+
 export async function deleteWorktree(
 	repoPath: string,
 	worktreePath: string,

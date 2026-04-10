@@ -4,6 +4,8 @@ import {
 	getWorktreeStatus,
 	isBranchMerged,
 	getDefaultBranch,
+	getRemoteDisplayName,
+	parseRemoteDisplayName,
 	createWorktree,
 	deleteWorktree
 } from './git';
@@ -185,6 +187,40 @@ describe('getDefaultBranch', () => {
 
 		const branch = await getDefaultBranch('/test/path', mockExec);
 		expect(branch).toBe('main');
+	});
+});
+
+describe('parseRemoteDisplayName', () => {
+	it('parses owner/repo from an https remote', () => {
+		expect(parseRemoteDisplayName('https://github.com/acme/repo.git')).toBe('acme/repo');
+	});
+
+	it('parses owner/repo from an ssh remote', () => {
+		expect(parseRemoteDisplayName('git@github.com:acme/repo.git')).toBe('acme/repo');
+	});
+
+	it('returns null when the remote path has no owner segment', () => {
+		expect(parseRemoteDisplayName('https://github.com/repo.git')).toBeNull();
+	});
+});
+
+describe('getRemoteDisplayName', () => {
+	it('reads origin and returns owner/repo when available', async () => {
+		const mockExec = async () => ({ stdout: 'git@github.com:acme/repo.git\n', stderr: '' });
+
+		const displayName = await getRemoteDisplayName('/test/path', mockExec);
+
+		expect(displayName).toBe('acme/repo');
+	});
+
+	it('returns null when origin is unavailable', async () => {
+		const mockExec = async () => {
+			throw new Error('git failed');
+		};
+
+		const displayName = await getRemoteDisplayName('/test/path', mockExec);
+
+		expect(displayName).toBeNull();
 	});
 });
 
