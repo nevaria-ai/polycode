@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	if (project?.lastSessionId) {
 		const session = await sessionStore.findById(project.lastSessionId);
 		if (session && session.projectId === params.projectId) {
-			throw redirect(302, `/projects/${params.projectId}/session/${session.id}`);
+			throw redirect(302, `/sessions/${session.id}`);
 		}
 	}
 
@@ -103,7 +103,7 @@ export const actions: Actions = {
 		// Set as last session and redirect
 		const projectPath = decodeProjectId(params.projectId);
 		await projectStore.updateLastSession(projectPath, newSession.id);
-		throw redirect(303, `/projects/${params.projectId}/session/${newSession.id}`);
+		throw redirect(303, `/sessions/${newSession.id}`);
 	},
 
 	renameSession: async ({ request }) => {
