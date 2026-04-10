@@ -6,16 +6,16 @@
 @custom-variant dark (&:is(.dark *));
 
 .dark {
-	--overflow: #010101;
-	--base: #202025;
-	--surface: #141417;
-	--overlay-dark: #24262a;
-	--overlay-light: #2a2c30;
+	--radius: 0.625rem;
+
+	--background: #1b1b1d;
+	/*Custom*/
+	--overlay-dark: #2d2f34;
+	--overlay-light: #383b40;
 	--accent-claude: #d4850a;
 	--accent-gemini: #3b82f6;
 
-	--background: var(--base);
-	--foreground: #e2e2e8;
+	--foreground: #f4f4f5;
 	--card: oklch(0.205 0 0);
 	--card-foreground: oklch(0.985 0 0);
 	--popover: oklch(0.205 0 0);
@@ -37,19 +37,17 @@
 	--chart-3: oklch(0.439 0 0);
 	--chart-4: oklch(0.371 0 0);
 	--chart-5: oklch(0.269 0 0);
-	--sidebar: oklch(0.205 0 0);
-	--sidebar-foreground: oklch(0.985 0 0);
-	--sidebar-primary: oklch(0.488 0.243 264.376);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.269 0 0);
-	--sidebar-accent-foreground: oklch(0.985 0 0);
+	--sidebar: #1e1e21;
+	--sidebar-foreground: var(--foreground);
+	--sidebar-active: var(--overlay-dark);
+	--sidebar-active-foreground: var(--primary);
+	--sidebar-accent: var(--overlay-light);
+	--sidebar-accent-foreground: var(--primary-light);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.556 0 0);
 }
 
 @theme inline {
-	--color-overflow: var(--overflow);
-	--color-surface: var(--surface);
 	--color-overlay-dark: var(--overlay-dark);
 	--color-overlay-light: var(--overlay-light);
 
