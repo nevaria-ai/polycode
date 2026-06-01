@@ -3,7 +3,7 @@ use rust_embed::Embed;
 
 #[cfg(not(debug_assertions))]
 #[derive(Embed)]
-#[folder = "ui/web/build/"]
+#[folder = "ui/build/"]
 pub struct Assets;
 
 #[cfg(debug_assertions)]

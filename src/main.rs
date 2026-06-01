@@ -59,6 +59,6 @@ async fn serve_spa(path: &str) -> Result<impl IntoResponse, StatusCode> {
 async fn dev_spa_disabled() -> impl IntoResponse {
     (
         StatusCode::NOT_FOUND,
-        "Frontend assets are not embedded in debug mode. Run ui/web with `bun run dev`.",
+        "Frontend assets are not embedded in debug mode. Run `just dev` or `cd ui && bun run dev`.",
     )
 }

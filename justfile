@@ -17,7 +17,7 @@ go-sqlc:
 [default]
 dev:
     #!/usr/bin/env bash
-    ( cd ui/web && bun run dev ) &
+    ( cd ui && bun run dev ) &
     WEB_PID=$!
     cargo run &
     API_PID=$!
@@ -26,7 +26,7 @@ dev:
 
 # SvelteKit static build + release binary (embedded frontend)
 build:
-    ( cd ui/web && bun run build )
+    ( cd ui && bun run build )
     cargo build --release
 
 # Go tests in cgo/, then Rust tests
@@ -35,7 +35,7 @@ test:
     cargo test
 
 web-validate:
-    ( cd ui/web && bun run test && bun run lint && bun run check )
+    ( cd ui && bun run test && bun run lint && bun run check )
 
 
 # Rust target/ (includes Go archive in OUT_DIR)
