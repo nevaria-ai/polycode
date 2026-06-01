@@ -1,7 +1,9 @@
+#[cfg(not(debug_assertions))]
 use axum::body::Body;
-use axum::http::{header, StatusCode};
+#[cfg(not(debug_assertions))]
+use axum::http::header;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::get;
 use axum::Router;
 use polycode::api::AppState;
 use polycode::db::DbHandle;
@@ -22,14 +24,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 pub fn web_app(db: DbHandle) -> Router {
-    let app = Router::new()
-        .route("/api/health", get(|| async { "ok" }))
-        .merge(polycode::api::projects::router())
-        .merge(polycode::api::sessions::router())
-        .merge(polycode::api::messages::router())
-        .merge(polycode::api::directories::router())
-        .merge(polycode::api::worktrees::router())
-        .with_state(AppState { db });
+    let app = polycode::api::routes().with_state(AppState { db });
 
     #[cfg(debug_assertions)]
     let app = app.fallback_service(axum::routing::get(dev_spa_disabled));
