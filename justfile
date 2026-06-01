@@ -19,7 +19,7 @@ dev:
     #!/usr/bin/env bash
     ( cd ui/web && bun run dev ) &
     WEB_PID=$!
-    cargo run --bin polycode &
+    cargo run &
     API_PID=$!
     trap 'kill $WEB_PID $API_PID 2>/dev/null || true' INT TERM EXIT
     wait $WEB_PID $API_PID
@@ -27,7 +27,7 @@ dev:
 # SvelteKit static build + release binary (embedded frontend)
 build:
     ( cd ui/web && bun run build )
-    cargo build --release --bin polycode
+    cargo build --release
 
 # Go tests in cgo/, then Rust tests
 test:
