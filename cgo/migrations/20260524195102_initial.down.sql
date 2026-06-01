@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS session_events;
+DROP TABLE IF EXISTS artifacts;
+DROP TABLE IF EXISTS summaries;
+DROP TABLE IF EXISTS provider_runs;
+DROP TABLE IF EXISTS pinned_context;
+DROP TABLE IF EXISTS message_context_items;
+DROP TABLE IF EXISTS context_items;
+DROP TABLE IF EXISTS parts;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS worktrees;
+DROP TABLE IF EXISTS projects;
