@@ -27,7 +27,7 @@ describe('AppSidebar', () => {
 	});
 
 	it('renders in the root layout with no legacy project rail', async () => {
-		render(AppSidebarTestWrapper, { sidebarProjects: [] });
+		render(AppSidebarTestWrapper, { projectTree: [] });
 		await expect.element(page.getByText('New Session')).toBeInTheDocument();
 		await expect.element(page.getByText('Open Project')).toBeInTheDocument();
 		await expect.element(page.getByText('Settings')).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('AppSidebar', () => {
 	it('marks New Session as active on the home route', async () => {
 		setPathname('/');
 
-		const { container } = render(AppSidebarTestWrapper, { sidebarProjects: [] });
+		const { container } = render(AppSidebarTestWrapper, { projectTree: [] });
 
 		const newSessionButton = container.querySelector('[data-sidebar="menu-button"]');
 		expect(newSessionButton).toBeInTheDocument();
@@ -45,26 +45,27 @@ describe('AppSidebar', () => {
 		expect(newSessionButton?.className).toContain('data-active:text-sidebar-active-foreground');
 	});
 
-	it('keeps Open Project outside the scrollable tree region', async () => {
-		render(AppSidebarTestWrapper, { sidebarProjects: [] });
+	it('places Open Project in the scrollable tree region header', async () => {
+		render(AppSidebarTestWrapper, { projectTree: [] });
 		const groups = document.querySelectorAll('[data-sidebar="group"]');
 		expect(groups).toHaveLength(2);
-		expect(groups[1]?.textContent).not.toContain('Open Project');
+		expect(groups[1]?.textContent).toContain('Open Project');
 	});
 
 	it('toggles project expansion on row click', async () => {
-		const sidebarProjects = [
+		const projectTree = [
 			{
 				name: 'repo',
 				displayName: 'acme/repo',
 				path: '/repo',
 				projectId: 'repo-id',
-				color: '#fff',
-				worktrees: [{ path: '/repo', branch: 'main', sessions: [] }]
+				worktrees: [
+					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
+				]
 			}
 		];
 
-		render(AppSidebarTestWrapper, { sidebarProjects });
+		render(AppSidebarTestWrapper, { projectTree });
 
 		await expect.element(page.getByText('acme/repo')).toBeInTheDocument();
 
@@ -74,16 +75,38 @@ describe('AppSidebar', () => {
 		await expect.element(page.getByText('main')).toBeInTheDocument();
 	});
 
+	it('does not leave the project row focused after a mouse click', async () => {
+		render(AppSidebarTestWrapper, {
+			projectTree: [
+				{
+					name: 'repo',
+					path: '/repo',
+					projectId: 'repo-id',
+
+					worktrees: [
+						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
+					]
+				}
+			]
+		});
+
+		await page.getByRole('button', { name: /repo/i }).click();
+
+		expect(document.activeElement?.getAttribute('aria-label')).not.toBe('Expand repo');
+	});
+
 	it('keeps project and worktree chevrons hidden until hover/focus styling reveals them', async () => {
 		render(AppSidebarTestWrapper, {
-			sidebarProjects: [
+			projectTree: [
 				{
 					name: 'repo',
 					displayName: 'acme/repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
-					worktrees: [{ path: '/repo', branch: 'main', sessions: [] }]
+
+					worktrees: [
+						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
+					]
 				}
 			]
 		});
@@ -97,24 +120,27 @@ describe('AppSidebar', () => {
 
 	it('shows session rows with two-line titles and smaller styling', async () => {
 		render(AppSidebarTestWrapper, {
-			sidebarProjects: [
+			projectTree: [
 				{
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
+
 					worktrees: [
 						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
 							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
 									id: 'session-1',
+									worktreeId: 'wt-1',
 									title: 'A very long session title that should wrap to a second line',
 									projectId: 'repo-id',
 									worktreePath: '/repo',
 									status: 'active',
-									cliProfileId: 'p1',
+
 									createdAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
@@ -134,17 +160,31 @@ describe('AppSidebar', () => {
 
 	it('worktree actions show on hover', async () => {
 		render(AppSidebarTestWrapper, {
-			sidebarProjects: [
+			projectTree: [
 				{
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
+
 					worktrees: [
 						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
 							path: '/repo',
 							branch: 'main',
-							sessions: []
+							sessions: [
+								{
+									id: 'session-1',
+									worktreeId: 'wt-1',
+									title: 'Active Session',
+									projectId: 'repo-id',
+									worktreePath: '/repo',
+									status: 'active',
+
+									createdAt: '2026-04-09T10:00:00.000Z',
+									lastActiveAt: '2026-04-09T10:00:00.000Z'
+								}
+							]
 						}
 					]
 				}
@@ -155,16 +195,111 @@ describe('AppSidebar', () => {
 		await expect.element(page.getByText('main')).toBeInTheDocument();
 	});
 
-	it('keeps row hover styling independent from project and worktree action zones', async () => {
+	it('shows project actions in a MoreHorizontal dropdown', async () => {
 		render(AppSidebarTestWrapper, {
-			sidebarProjects: [
+			projectTree: [
 				{
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
+					sessions: [],
+					defaultBranchLabel: 'develop',
+					worktrees: [
+						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
+					]
+				}
+			]
+		});
+
+		await page.getByRole('button', { name: /repo/i }).click();
+		await page.getByRole('button', { name: 'Project actions' }).click();
+
+		await expect.element(page.getByText('Create permanent worktree')).toBeVisible();
+		await expect.element(page.getByText('Remove Project From workspace')).toBeVisible();
+
+		const firstProjectMenuItem = document.querySelector('[data-slot="dropdown-menu-item"]');
+		expect(firstProjectMenuItem?.className).toContain('text-[11px]');
+		expect(document.querySelector('[data-slot="dropdown-menu-content"]')?.className).toContain(
+			'w-48'
+		);
+		expect(document.querySelector('.project-main')?.className).toContain(
+			'group-has-[.project-actions_[data-state=open]]/menu-item:text-sidebar-accent-foreground'
+		);
+	});
+
+	it('renders default branch as a sub-heading inside expanded content above sessions', async () => {
+		render(AppSidebarTestWrapper, {
+			projectTree: [
+				{
+					name: 'repo',
+					displayName: 'acme/repo',
+					path: '/repo',
+					projectId: 'repo-id',
+
+					defaultBranchLabel: 'develop',
+					sessions: [
+						{
+							id: 'session-1',
+							worktreeId: 'wt-1',
+							title: 'Default branch session',
+							projectId: 'repo-id',
+							worktreePath: '/repo',
+							status: 'active',
+
+							createdAt: '2026-04-09T10:00:00.000Z',
+							lastActiveAt: '2026-04-09T10:00:00.000Z'
+						}
+					],
 					worktrees: [
 						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
+							path: '/repo-feature',
+							branch: 'feature/auth',
+							sessions: []
+						}
+					]
+				}
+			]
+		});
+
+		await page.getByRole('button', { name: /repo/i }).click();
+
+		const projectMain = document.querySelector('.project-main');
+		expect(projectMain?.textContent).not.toContain('develop');
+
+		const branchBadge = document.querySelector('.project-default-branch');
+		expect(branchBadge?.textContent).toContain(':develop');
+		expect(branchBadge?.className).toContain('text-[11px]');
+		expect(branchBadge?.className).toContain('text-sidebar-foreground/90');
+		expect(branchBadge?.className).toContain('mb-1');
+		expect(branchBadge?.querySelector('svg')).toBeNull();
+
+		await expect
+			.element(page.getByRole('link', { name: /default branch session/i }))
+			.toBeInTheDocument();
+		await expect.element(page.getByText('feature/auth')).toBeInTheDocument();
+
+		const contentText = document.body.textContent ?? '';
+		const branchPos = contentText.indexOf(':develop');
+		const sessionPos = contentText.indexOf('Default branch session');
+		const worktreePos = contentText.indexOf('feature/auth');
+		expect(branchPos).toBeLessThan(sessionPos);
+		expect(sessionPos).toBeLessThan(worktreePos);
+	});
+
+	it('keeps row hover styling independent from project and worktree action zones', async () => {
+		render(AppSidebarTestWrapper, {
+			projectTree: [
+				{
+					name: 'repo',
+					path: '/repo',
+					projectId: 'repo-id',
+
+					worktrees: [
+						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
 							path: '/repo',
 							branch: 'main',
 							sessions: []
@@ -195,6 +330,9 @@ describe('AppSidebar', () => {
 		expect(projectMain?.className).toContain(
 			'group-has-[.project-actions:hover]/menu-item:text-sidebar-foreground/90'
 		);
+		expect(projectMain?.className).toContain(
+			'group-has-[.project-actions_[data-state=open]]/menu-item:text-sidebar-accent-foreground'
+		);
 		expect(projectActions?.className).toContain('project-actions');
 		expect(projectActions?.className).toContain('text-sidebar-foreground/90');
 		expect(projectButton?.className).toContain('hover:text-sidebar-accent-foreground');
@@ -221,13 +359,14 @@ describe('AppSidebar', () => {
 	});
 
 	it('project rows and worktree rows are not link-styled', async () => {
-		render(AppSidebarTestWrapper, { sidebarProjects: [] });
+		render(AppSidebarTestWrapper, { projectTree: [] });
 		const sessionLinks = document.querySelectorAll('a');
-		expect(sessionLinks.length).toBe(0);
+		expect(sessionLinks.length).toBe(1);
+		expect(sessionLinks[0]?.getAttribute('href')).toBe('/');
 	});
 
 	it('shows the hide-sidebar tooltip with the shared tooltip styling', async () => {
-		render(AppSidebarTestWrapper, { sidebarProjects: [] });
+		render(AppSidebarTestWrapper, { projectTree: [] });
 
 		await page.getByRole('button', { name: 'Hide sidebar' }).nth(1).hover();
 		await expect.element(page.getByText('Hide sidebar')).toBeVisible();
@@ -241,7 +380,7 @@ describe('AppSidebar', () => {
 	});
 
 	it('delays the hide-sidebar tooltip so it does not appear immediately on hover', async () => {
-		render(AppSidebarTestWrapper, { sidebarProjects: [] });
+		render(AppSidebarTestWrapper, { projectTree: [] });
 
 		await page.getByRole('button', { name: 'Hide sidebar' }).nth(1).hover();
 		expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull();
@@ -252,24 +391,27 @@ describe('AppSidebar', () => {
 
 	it('has sidebar session rows in the tree', async () => {
 		render(AppSidebarTestWrapper, {
-			sidebarProjects: [
+			projectTree: [
 				{
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
+
 					worktrees: [
 						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
 							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
 									id: 's1',
+									worktreeId: 'wt-1',
 									title: 'Test Session',
 									projectId: 'repo-id',
 									worktreePath: '/repo',
 									status: 'active',
-									cliProfileId: 'p1',
+
 									createdAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
@@ -288,24 +430,27 @@ describe('AppSidebar', () => {
 		setPathname('/sessions/session-1');
 
 		const { container } = render(AppSidebarTestWrapper, {
-			sidebarProjects: [
+			projectTree: [
 				{
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
+
 					worktrees: [
 						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
 							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
 									id: 'session-1',
+									worktreeId: 'wt-1',
 									title: 'Active Session',
 									projectId: 'repo-id',
 									worktreePath: '/repo',
 									status: 'active',
-									cliProfileId: 'p1',
+
 									createdAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
@@ -324,28 +469,179 @@ describe('AppSidebar', () => {
 		expect(sessionLink?.closest('[data-active="true"]')).toBeInTheDocument();
 	});
 
-	it('does not mark nested paths under a session route as active', async () => {
-		setPathname('/sessions/session-1/thread');
+	it('remove project fires fetch without a confirmation dialog', async () => {
+		const fetchCalls: { url: string; method: string; body: string }[] = [];
+		const originalFetch = window.fetch;
+		window.fetch = async (input, init) => {
+			fetchCalls.push({
+				url: typeof input === 'string' ? input : String(input),
+				method: init?.method ?? 'GET',
+				body: ((init?.body as FormData)?.get('projectId') as string) ?? ''
+			});
+			return new Response(null, { status: 200 });
+		};
 
-		const { container } = render(AppSidebarTestWrapper, {
-			sidebarProjects: [
+		render(AppSidebarTestWrapper, {
+			projectTree: [
 				{
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
+					sessions: [],
+					defaultBranchLabel: 'develop',
+					worktrees: []
+				}
+			]
+		});
+
+		await page.getByRole('button', { name: /repo/i }).click();
+		await page.getByRole('button', { name: 'Project actions' }).click();
+
+		await page.getByText('Remove Project From workspace').click();
+
+		expect(document.querySelector('[data-slot="dialog-content"]')).toBeNull();
+
+		expect(fetchCalls).toHaveLength(1);
+		expect(fetchCalls[0].url).toBe('/?/closeProject');
+		expect(fetchCalls[0].method).toBe('POST');
+		expect(fetchCalls[0].body).toBe('repo-id');
+
+		window.fetch = originalFetch;
+	});
+
+	it('create worktree opens branch name dialog without native form', async () => {
+		render(AppSidebarTestWrapper, {
+			projectTree: [
+				{
+					name: 'repo',
+					path: '/repo',
+					projectId: 'repo-id',
+					sessions: [],
+					defaultBranchLabel: 'develop',
+					worktrees: []
+				}
+			]
+		});
+
+		await page.getByRole('button', { name: /repo/i }).click();
+		await page.getByRole('button', { name: 'Project actions' }).click();
+
+		await page.getByText('Create permanent worktree').click();
+
+		await expect.element(page.getByRole('dialog')).toBeInTheDocument();
+		await expect.element(page.getByText('Create Worktree')).toBeVisible();
+
+		const branchInput = document.querySelector(
+			'input[name="branchName"]'
+		) as HTMLInputElement | null;
+		expect(branchInput).toBeInTheDocument();
+		expect(branchInput?.value).toBe('');
+
+		expect(document.querySelector('form[action="/?/createWorktree"]')).toBeNull();
+	});
+
+	it('delete worktree opens confirmation dialog', async () => {
+		render(AppSidebarTestWrapper, {
+			projectTree: [
+				{
+					name: 'repo',
+					path: '/repo',
+					projectId: 'repo-id',
+					sessions: [],
 					worktrees: [
 						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
+							path: '/repo-feature',
+							branch: 'feature/auth',
+							sessions: []
+						}
+					]
+				}
+			]
+		});
+
+		await page.getByRole('button', { name: /repo/i }).click();
+		await expect.element(page.getByText('feature/auth')).toBeInTheDocument();
+
+		(
+			document.querySelector('[aria-label="Expand feature/auth branch"]') as HTMLElement | null
+		)?.click();
+
+		await page.getByRole('button', { name: 'Worktree actions' }).click();
+
+		await page.getByText('Delete').click();
+
+		await expect.element(page.getByRole('dialog')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /cancel/i })).toBeVisible();
+		await expect.element(page.getByRole('button', { name: /delete/i })).toBeVisible();
+
+		expect(document.querySelector('form[action="/?/deleteWorktree"]')).toBeNull();
+	});
+
+	it('rename worktree reuses worktree dialog with prefilled input', async () => {
+		render(AppSidebarTestWrapper, {
+			projectTree: [
+				{
+					name: 'repo',
+					path: '/repo',
+					projectId: 'repo-id',
+					sessions: [],
+					worktrees: [
+						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
+							path: '/repo-feature',
+							branch: 'feature/auth',
+							sessions: []
+						}
+					]
+				}
+			]
+		});
+
+		await page.getByRole('button', { name: /repo/i }).click();
+
+		(
+			document.querySelector('[aria-label="Expand feature/auth branch"]') as HTMLElement | null
+		)?.click();
+
+		await page.getByRole('button', { name: 'Worktree actions' }).click();
+		await page.getByText('Rename').click();
+
+		await expect.element(page.getByRole('dialog')).toBeInTheDocument();
+		await expect.element(page.getByText('Rename Branch')).toBeVisible();
+
+		const nameInput = document.querySelector('input[name="branchName"]') as HTMLInputElement | null;
+		expect(nameInput).toBeInTheDocument();
+		expect(nameInput?.value).toBe('feature/auth');
+	});
+
+	it('does not mark nested paths under a session route as active', async () => {
+		setPathname('/sessions/session-1/thread');
+
+		const { container } = render(AppSidebarTestWrapper, {
+			projectTree: [
+				{
+					name: 'repo',
+					path: '/repo',
+					projectId: 'repo-id',
+
+					worktrees: [
+						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
 							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
 									id: 'session-1',
+									worktreeId: 'wt-1',
 									title: 'Active Session',
 									projectId: 'repo-id',
 									worktreePath: '/repo',
 									status: 'active',
-									cliProfileId: 'p1',
+
 									createdAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}

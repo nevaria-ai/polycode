@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { materializeSidebarTree } from './sidebar-tree';
+import { materializeProjectTree } from './project-tree';
 
-describe('materializeSidebarTree', () => {
+describe('materializeProjectTree', () => {
 	it('adds collapsed UI state by default', () => {
-		const tree = materializeSidebarTree([
+		const tree = materializeProjectTree([
 			{
 				name: 'repo',
 				displayName: 'acme/repo',
 				path: '/repo',
 				projectId: 'repo-id',
-				color: '#fff',
-				worktrees: [{ path: '/repo', branch: 'main', sessions: [] }]
+				expandedState: false,
+				worktrees: [
+					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
+				]
 			}
 		]);
 
@@ -18,41 +20,62 @@ describe('materializeSidebarTree', () => {
 		expect(tree[0]?.worktrees[0]?.isExpanded).toBe(false);
 	});
 
-	it('preserves prior expansion state when sidebar data refreshes', () => {
-		const previous = materializeSidebarTree([
+	it('hydrates project expansion from persisted expandedState', () => {
+		const tree = materializeProjectTree([
 			{
 				name: 'repo',
 				displayName: 'acme/repo',
 				path: '/repo',
 				projectId: 'repo-id',
-				color: '#fff',
-				worktrees: [{ path: '/repo', branch: 'main', sessions: [] }]
+				expandedState: true,
+				worktrees: [
+					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
+				]
+			}
+		]);
+
+		expect(tree[0]?.isExpanded).toBe(true);
+	});
+
+	it('preserves prior expansion state when project data refreshes', () => {
+		const previous = materializeProjectTree([
+			{
+				name: 'repo',
+				displayName: 'acme/repo',
+				path: '/repo',
+				projectId: 'repo-id',
+				expandedState: false,
+				worktrees: [
+					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
+				]
 			}
 		]);
 
 		previous[0]!.isExpanded = true;
 		previous[0]!.worktrees[0]!.isExpanded = true;
 
-		const next = materializeSidebarTree(
+		const next = materializeProjectTree(
 			[
 				{
 					name: 'repo',
 					displayName: 'acme/repo',
 					path: '/repo',
 					projectId: 'repo-id',
-					color: '#fff',
+					expandedState: false,
 					worktrees: [
 						{
+							id: 'test-wt-id',
+							name: 'test-wt-name',
 							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
 									id: 'session-1',
+									worktreeId: 'wt-1',
 									title: 'Session',
 									projectId: 'repo-id',
 									worktreePath: '/repo',
 									status: 'active',
-									cliProfileId: 'profile-1',
 									createdAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}

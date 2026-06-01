@@ -3,8 +3,6 @@ import path from 'node:path';
 export type StoredProject = {
 	name: string;
 	path: string;
-	color: string;
-	lastSessionId?: string;
 };
 
 export type ResolvedProjectInput = {

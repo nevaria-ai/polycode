@@ -5,7 +5,11 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			initSessionFields?: {
+				prompt: string;
+			} | null;
+		}
 		// interface Platform {}
 	}
 }

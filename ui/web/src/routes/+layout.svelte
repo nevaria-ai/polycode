@@ -5,25 +5,25 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { Button } from '$components/ui/button';
 	import { SidebarProvider } from '$components/ui/sidebar';
-	import { SIDEBAR_COOKIE_NAME } from '$components/ui/sidebar/constants';
+	import { SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME } from '$components/ui/sidebar/constants';
 	import * as Resizable from '$components/ui/resizable';
 	import * as Tooltip from '$components/ui/tooltip';
 	import type { Pane } from 'paneforge';
 	import AppSidebar from '$components/AppSidebar.svelte';
 
 	let { children, data } = $props();
-	const initialSidebarOpen = data.initialSidebarOpen;
-	let sidebarOpen = $state(initialSidebarOpen);
+	const initialSidebarOpen = () => data.initialSidebarOpen;
+	let sidebarOpen = $state(initialSidebarOpen());
 	let sidebarPane = $state<Pane | null>(null);
 	let savedSidebarSize = $state(14);
 	let isSidebarAnimating = $state(false);
-	let showSidebarContent = $state(initialSidebarOpen);
-	let showClosedTrigger = $state(!initialSidebarOpen);
-	let showResizeHandle = $state(initialSidebarOpen);
+	let showSidebarContent = $state(initialSidebarOpen());
+	let showClosedTrigger = $state(!initialSidebarOpen());
+	let showResizeHandle = $state(initialSidebarOpen());
 	let animationId = 0;
 	let hasHydrated = $state(false);
 	let hasSyncedInitialPane = $state(false);
-	let lastSidebarOpen = initialSidebarOpen;
+	let lastSidebarOpen = initialSidebarOpen();
 
 	async function animateSidebarPane(targetSize: number, currentAnimationId: number) {
 		if (!sidebarPane) return;
@@ -57,7 +57,7 @@
 		hasSyncedInitialPane = true;
 
 		const size = sidebarPane.getSize();
-		if (initialSidebarOpen) {
+		if (initialSidebarOpen()) {
 			if (size > 0) {
 				savedSidebarSize = size;
 			} else {
@@ -104,7 +104,7 @@
 		<Resizable.Pane
 			bind:this={sidebarPane}
 			class="min-w-0 overflow-hidden"
-			defaultSize={initialSidebarOpen ? 14 : 0}
+			defaultSize={initialSidebarOpen() ? 14 : 0}
 			minSize={0}
 			maxSize={24}
 			onResize={(size) => {
@@ -115,13 +115,13 @@
 				class:hidden={!showSidebarContent}
 				class={`h-svh ${showSidebarContent ? 'translate-x-0 opacity-100' : 'pointer-events-none opacity-0'}`}
 			>
-				<AppSidebar sidebarProjects={data.sidebarProjects} />
+				<AppSidebar projectTree={data.projectTree} />
 			</div>
 		</Resizable.Pane>
 		{#if showResizeHandle}
 			<Resizable.Handle />
 		{/if}
-		<Resizable.Pane class="min-w-0" defaultSize={initialSidebarOpen ? 86 : 100}>
+		<Resizable.Pane class="min-w-0" defaultSize={initialSidebarOpen() ? 86 : 100}>
 			<main class="h-svh w-full">
 				{#if showClosedTrigger}
 					<div class="flex p-2">
@@ -129,11 +129,11 @@
 							<Tooltip.Trigger>
 								<Button
 									variant="ghost"
-									size="icon-lg"
+									size="icon"
 									aria-label="Show sidebar"
 									onclick={() => {
 										sidebarOpen = true;
-										document.cookie = `${SIDEBAR_COOKIE_NAME}=true; path=/; max-age=${60 * 60 * 24 * 7}`;
+										document.cookie = `${SIDEBAR_COOKIE_NAME}=true; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
 									}}
 								>
 									<ArrowRightFromLine class="size-5" />

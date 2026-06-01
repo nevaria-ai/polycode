@@ -14,7 +14,7 @@ describe('root layout sidebar shell', () => {
 		const children = (() => '') as unknown as Snippet;
 
 		render(RootLayout, {
-			data: { projects: [], cliProfiles: [], initialSidebarOpen: true, sidebarProjects: [] },
+			data: { projects: [], initialSidebarOpen: true, projectTree: [] },
 			children
 		});
 
@@ -23,7 +23,9 @@ describe('root layout sidebar shell', () => {
 
 		await page.getByRole('button', { name: 'Hide sidebar' }).nth(1).click();
 
-		await expect.element(page.getByRole('button', { name: 'Show sidebar' })).toBeInTheDocument();
+		await expect
+			.poll(() => document.querySelector('[data-slot="button"][aria-label="Show sidebar"]'))
+			.not.toBeNull();
 		expect(document.querySelector('[data-slot="resizable-pane-group"]')).toBe(paneGroup);
 	});
 });
