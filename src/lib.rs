@@ -12,6 +12,3 @@ pub mod error;
 pub mod git;
 pub mod paths;
 pub mod utils;
-
-#[path = "bin/web.rs"]
-pub mod web;

@@ -1,10 +1,11 @@
 //! Shared helpers for integration tests (`tests/*.rs`).
 //!
-//! Integration tests use only the crate's public API (`web::web_app`, `init_memory`).
+//! Integration tests use only the crate's public API (`api::routes`, `init_memory`).
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::Router;
+use polycode::api::AppState;
 use polycode::db::DbHandle;
 use serde_json::{json, Value};
 use tower::ServiceExt;
@@ -18,7 +19,7 @@ pub fn app() -> Router {
 }
 
 pub fn app_with(db: DbHandle) -> Router {
-    polycode::web::web_app(db)
+    polycode::api::routes().with_state(AppState { db })
 }
 
 pub fn json_request(method: &str, uri: &str, body: Option<Value>) -> Request<Body> {
