@@ -4,7 +4,10 @@ import { relative, sep } from 'node:path';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	compilerOptions: {
-		// defaults to rune mode for the project, except for `node_modules`. Can be removed in svelte 6.
+		// Force runes mode for all project files; node_modules falls back to autodetect
+		// so legacy-mode deps keep compiling. Needed on Svelte 5 (which supports both
+		// modes and auto-detects per-file). Remove once a Svelte release makes runes
+		// the only mode.
 		runes: ({ filename }) => {
 			const relativePath = relative(import.meta.dirname, filename);
 			const pathSegments = relativePath.toLowerCase().split(sep);
