@@ -1,5 +1,3 @@
-# https://github.com/casey/just — `cargo install just`
-#
 set shell := ["/bin/bash", "-euo", "pipefail", "-c"]
 set dotenv-load := true
 
