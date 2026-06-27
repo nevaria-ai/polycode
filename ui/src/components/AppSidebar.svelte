@@ -22,6 +22,7 @@
 		type ProjectTreeProjectInput,
 		type ProjectTreeWorktree
 	} from '$lib/project-tree';
+	import { APP_NAME } from '$lib/config';
 	import ProjectSelectorDialog from '$components/ProjectSelectorDialog.svelte';
 	import WorktreeBranchDialog from '$components/WorktreeBranchDialog.svelte';
 	import DeleteWorktreeDialog from '$components/DeleteWorktreeDialog.svelte';
@@ -131,7 +132,8 @@
 </script>
 
 <Sidebar.Root collapsible="none" class="w-full">
-	<Sidebar.Header class="flex flex-row items-center justify-start">
+	<Sidebar.Header class="flex flex-row items-center justify-between py-2">
+		<h1 class="px-1 font-semibold tracking-wider">{APP_NAME}</h1>
 		<Tooltip.Root delayDuration={400}>
 			<Tooltip.Trigger>
 				<Button
