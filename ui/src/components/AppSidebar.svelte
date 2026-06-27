@@ -132,7 +132,7 @@
 </script>
 
 <Sidebar.Root collapsible="none" class="w-full">
-	<Sidebar.Header class="flex flex-row items-center justify-between py-2">
+	<Sidebar.Header class="flex h-12 flex-row items-center justify-between">
 		<h1 class="px-1 font-semibold tracking-wider">{APP_NAME}</h1>
 		<Tooltip.Root delayDuration={400}>
 			<Tooltip.Trigger>

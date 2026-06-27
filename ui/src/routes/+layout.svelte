@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { ArrowRightFromLine } from '@lucide/svelte';
+	import { ArrowRightFromLine, File } from '@lucide/svelte';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Button } from '$components/ui/button';
@@ -122,9 +122,9 @@
 			<Resizable.Handle />
 		{/if}
 		<Resizable.Pane class="min-w-0" defaultSize={initialSidebarOpen() ? 86 : 100}>
-			<main class="h-svh w-full">
-				{#if showClosedTrigger}
-					<div class="flex p-2">
+			<main class="flex h-svh w-full flex-col">
+				<div class="flex h-12 shrink-0 items-center gap-1 px-2">
+					{#if showClosedTrigger}
 						<Tooltip.Root delayDuration={400}>
 							<Tooltip.Trigger>
 								<Button
@@ -141,9 +141,14 @@
 							</Tooltip.Trigger>
 							<Tooltip.Content class="opacity-90">Show sidebar</Tooltip.Content>
 						</Tooltip.Root>
+					{/if}
+					<div class="flex size-8 items-center justify-center text-muted-foreground">
+						<File class="size-5" />
 					</div>
-				{/if}
-				{@render children()}
+				</div>
+				<div class="min-h-0 flex-1">
+					{@render children()}
+				</div>
 			</main>
 		</Resizable.Pane>
 	</Resizable.PaneGroup>
