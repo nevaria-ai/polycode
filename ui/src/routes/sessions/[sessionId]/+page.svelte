@@ -37,7 +37,7 @@
 		if (!init || consumedInitSubmit || !session) return;
 
 		consumedInitSubmit = true;
-		replaceState(page.url, { ...page.state, initSessionFields: null });
+		replaceState('', { ...page.state, initSessionFields: null });
 		void submitPrompt(init.prompt);
 	});
 
@@ -53,8 +53,8 @@
 			});
 			messageText = '';
 			await invalidateAll();
-		} catch (err: any) {
-			submitError = err?.message ?? 'Failed to send message';
+		} catch (err: unknown) {
+			submitError = err instanceof Error ? err.message : 'Failed to send message';
 		}
 
 		submitting = false;
@@ -87,8 +87,8 @@
 			});
 			isEditingTitle = false;
 			await invalidateAll();
-		} catch (err: any) {
-			renameError = err?.message ?? 'Failed to rename session';
+		} catch (err: unknown) {
+			renameError = err instanceof Error ? err.message : 'Failed to rename session';
 		}
 	}
 

@@ -133,7 +133,9 @@
 
 <Sidebar.Root collapsible="none" class="w-full">
 	<Sidebar.Header class="flex h-12 flex-row items-center justify-between">
-		<h1 class="px-1 font-semibold tracking-wider">{APP_NAME}</h1>
+		<h1 data-testid="sidebar-app-name" class="px-1 font-semibold tracking-wider">
+			{APP_NAME}
+		</h1>
 		<Tooltip.Root delayDuration={400}>
 			<Tooltip.Trigger>
 				<Button

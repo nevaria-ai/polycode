@@ -80,6 +80,7 @@ describe('font rendering', () => {
 
 		const lexendFaces = loadedFonts.filter((f) => f.family.includes('Lexend'));
 		expect(lexendFaces.length).toBe(0);
+		expect(customFonts.length).toBe(0);
 	});
 
 	it('body text renders using the system font stack, not a serif fallback', async () => {
@@ -98,6 +99,7 @@ describe('font rendering', () => {
 					displayName: 'acme/repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 					worktrees: [
 						{
 							id: 'test-wt-id',
@@ -141,6 +143,7 @@ describe('font rendering', () => {
 					displayName: 'acme/repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 					worktrees: [
 						{
 							id: 'test-wt-id',

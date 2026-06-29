@@ -104,8 +104,6 @@ export interface RenameSessionApiInput {
 	title: string;
 }
 
-export interface ArchiveSessionApiInput {}
-
 export interface SubmitMessageApiInput {
 	content: string;
 	mentions?: { type: string; ref: string }[];

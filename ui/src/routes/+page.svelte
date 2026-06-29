@@ -71,8 +71,8 @@
 				worktreeId: data.selectedWorktreeId ?? null,
 				worktreePath: data.selectedWorktreePath
 			});
-		} catch (err: any) {
-			submitError = err?.message ?? 'Failed to create session';
+		} catch (err: unknown) {
+			submitError = err instanceof Error ? err.message : 'Failed to create session';
 			submitting = false;
 			return;
 		}

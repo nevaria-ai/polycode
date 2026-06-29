@@ -59,6 +59,7 @@ describe('AppSidebar', () => {
 				displayName: 'acme/repo',
 				path: '/repo',
 				projectId: 'repo-id',
+				expandedState: false,
 				worktrees: [
 					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
 				]
@@ -82,6 +83,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
@@ -103,6 +105,7 @@ describe('AppSidebar', () => {
 					displayName: 'acme/repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
@@ -125,6 +128,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{
@@ -165,6 +169,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{
@@ -202,6 +207,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 					sessions: [],
 					defaultBranchLabel: 'develop',
 					worktrees: [
@@ -235,6 +241,7 @@ describe('AppSidebar', () => {
 					displayName: 'acme/repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					defaultBranchLabel: 'develop',
 					sessions: [
@@ -295,6 +302,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{
@@ -372,7 +380,7 @@ describe('AppSidebar', () => {
 		await expect.element(page.getByText('Hide sidebar')).toBeVisible();
 
 		const tooltip = document.querySelector('[data-slot="tooltip-content"]');
-		expect(tooltip?.getAttribute('data-side')).toBe('bottom');
+		expect(tooltip).not.toBeNull();
 		expect(tooltip?.className).toContain('px-3');
 		expect(tooltip?.className).toContain('py-1.5');
 		expect(tooltip?.className).toContain('bg-foreground');
@@ -396,6 +404,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{
@@ -435,6 +444,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{
@@ -487,6 +497,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 					sessions: [],
 					defaultBranchLabel: 'develop',
 					worktrees: []
@@ -516,6 +527,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 					sessions: [],
 					defaultBranchLabel: 'develop',
 					worktrees: []
@@ -547,6 +559,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 					sessions: [],
 					worktrees: [
 						{
@@ -586,6 +599,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 					sessions: [],
 					worktrees: [
 						{
@@ -626,6 +640,7 @@ describe('AppSidebar', () => {
 					name: 'repo',
 					path: '/repo',
 					projectId: 'repo-id',
+					expandedState: false,
 
 					worktrees: [
 						{

@@ -123,7 +123,7 @@
 		{/if}
 		<Resizable.Pane class="min-w-0" defaultSize={initialSidebarOpen() ? 86 : 100}>
 			<main class="flex h-svh w-full flex-col">
-				<div class="flex h-12 shrink-0 items-center gap-1 px-2">
+				<div data-testid="content-header" class="flex h-12 shrink-0 items-center gap-1 px-2">
 					{#if showClosedTrigger}
 						<Tooltip.Root delayDuration={400}>
 							<Tooltip.Trigger>
@@ -142,7 +142,10 @@
 							<Tooltip.Content class="opacity-90">Show sidebar</Tooltip.Content>
 						</Tooltip.Root>
 					{/if}
-					<div class="flex size-8 items-center justify-center text-muted-foreground">
+					<div
+						data-testid="content-header-placeholder"
+						class="flex size-8 items-center justify-center text-muted-foreground"
+					>
 						<File class="size-5" />
 					</div>
 				</div>

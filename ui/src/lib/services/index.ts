@@ -27,6 +27,5 @@ export type {
 	SidebarProject,
 	CreateSessionApiInput,
 	RenameSessionApiInput,
-	ArchiveSessionApiInput,
 	SubmitMessageApiInput
 } from '$lib/types/api';

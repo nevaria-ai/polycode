@@ -3,8 +3,7 @@ import type {
 	Session,
 	SessionViewData,
 	CreateSessionApiInput,
-	RenameSessionApiInput,
-	ArchiveSessionApiInput
+	RenameSessionApiInput
 } from '$lib/types/api';
 
 export async function listAllSessions(): Promise<Session[]> {
@@ -40,8 +39,7 @@ export async function updateSessionTitle(
 
 export async function archiveSession(
 	projectId: string,
-	sessionId: string,
-	input: ArchiveSessionApiInput
+	sessionId: string
 ): Promise<{ session: Session }> {
-	return api.post(`projects/${projectId}/sessions/${sessionId}/archive`, { json: input }).json();
+	return api.post(`projects/${projectId}/sessions/${sessionId}/archive`, { json: {} }).json();
 }
