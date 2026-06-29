@@ -2,19 +2,47 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render, cleanup } from 'vitest-browser-svelte';
 
-const { appPage, setPathname } = vi.hoisted(() => {
+const { appPage, setPathname, closeProjectMock } = vi.hoisted(() => {
 	const state = { url: { pathname: '/' } };
 
 	return {
 		appPage: state,
 		setPathname: (pathname: string) => {
 			state.url.pathname = pathname;
-		}
+		},
+		closeProjectMock: vi.fn(async () => undefined)
 	};
 });
 
 vi.mock('$app/state', () => ({
 	page: appPage
+}));
+
+vi.mock('$lib/services', () => ({
+	getProjects: vi.fn(async () => []),
+	createProject: vi.fn(async () => ({ project: { id: 'test' } })),
+	closeProject: closeProjectMock,
+	updateProjectExpandedState: vi.fn(async () => ({})),
+	listAllSessions: vi.fn(async () => []),
+	listSessions: vi.fn(async () => []),
+	createSession: vi.fn(async () => ({ session: {} })),
+	getSession: vi.fn(async () => ({})),
+	deleteSession: vi.fn(async () => undefined),
+	updateSessionTitle: vi.fn(async () => ({ session: {} })),
+	archiveSession: vi.fn(async () => ({ session: {} })),
+	listWorktrees: vi.fn(async () => []),
+	createWorktree: vi.fn(async () => ({ worktree: {} })),
+	renameWorktree: vi.fn(async () => undefined),
+	deleteWorktree: vi.fn(async () => undefined),
+	listMessages: vi.fn(async () => []),
+	sendMessage: vi.fn(async () => undefined),
+	getDirectories: vi.fn(async () => ({ suggestions: [], exists: false }))
+}));
+
+vi.mock('$app/navigation', () => ({
+	goto: vi.fn(async () => {}),
+	invalidateAll: vi.fn(async () => {}),
+	replaceState: vi.fn()
 }));
 
 import AppSidebarTestWrapper from './AppSidebarTestWrapper.svelte';
@@ -24,6 +52,7 @@ describe('AppSidebar', () => {
 		localStorage.clear();
 		cleanup();
 		setPathname('/');
+		vi.clearAllMocks();
 	});
 
 	it('renders in the root layout with no legacy project rail', async () => {
@@ -474,23 +503,14 @@ describe('AppSidebar', () => {
 		await page.getByRole('button', { name: /repo/i }).click();
 		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
 
-		const sessionLink = container.querySelector('a[href="/sessions/session-1"]');
+		// Session links include the project id as a query param so the session
+		// page knows which project context to load. Match the real href shape.
+		const sessionLink = container.querySelector('a[href="/sessions/session-1?project=repo-id"]');
 		expect(sessionLink).toBeInTheDocument();
 		expect(sessionLink?.closest('[data-active="true"]')).toBeInTheDocument();
 	});
 
 	it('remove project fires fetch without a confirmation dialog', async () => {
-		const fetchCalls: { url: string; method: string; body: string }[] = [];
-		const originalFetch = window.fetch;
-		window.fetch = async (input, init) => {
-			fetchCalls.push({
-				url: typeof input === 'string' ? input : String(input),
-				method: init?.method ?? 'GET',
-				body: ((init?.body as FormData)?.get('projectId') as string) ?? ''
-			});
-			return new Response(null, { status: 200 });
-		};
-
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
@@ -512,12 +532,8 @@ describe('AppSidebar', () => {
 
 		expect(document.querySelector('[data-slot="dialog-content"]')).toBeNull();
 
-		expect(fetchCalls).toHaveLength(1);
-		expect(fetchCalls[0].url).toBe('/?/closeProject');
-		expect(fetchCalls[0].method).toBe('POST');
-		expect(fetchCalls[0].body).toBe('repo-id');
-
-		window.fetch = originalFetch;
+		expect(closeProjectMock).toHaveBeenCalledTimes(1);
+		expect(closeProjectMock).toHaveBeenCalledWith('repo-id');
 	});
 
 	it('create worktree opens branch name dialog without native form', async () => {
@@ -670,7 +686,8 @@ describe('AppSidebar', () => {
 		await page.getByRole('button', { name: /repo/i }).click();
 		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
 
-		const sessionLink = container.querySelector('a[href="/sessions/session-1"]');
+		// Session links include the project id as a query param (see sessionHref).
+		const sessionLink = container.querySelector('a[href="/sessions/session-1?project=repo-id"]');
 		expect(sessionLink).toBeInTheDocument();
 		expect(sessionLink?.closest('[data-active="true"]')).toBeNull();
 	});

@@ -3,20 +3,33 @@ import { render, cleanup } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import SessionPage from './+page.svelte';
 
-const { appPage, setInitSessionFields, clearInitSessionFields } = vi.hoisted(() => {
+const {
+	appPage,
+	setInitSessionFields,
+	clearInitSessionFields,
+	replaceStateMock,
+	sendMessageMock,
+	invalidateAllMock
+} = vi.hoisted(() => {
+	// Component reads page.state.initSessionFields and spreads page.state into
+	// replaceState, so the mock must expose a `state` object that survives
+	// across reads and writes within a test.
 	const state = {
 		url: { pathname: '/sessions/session-12345678' },
-		initSessionFields: null as { prompt: string } | null
+		state: { initSessionFields: null as { prompt: string } | null }
 	};
 
 	return {
 		appPage: state,
 		setInitSessionFields: (fields: { prompt: string } | null) => {
-			state.initSessionFields = fields;
+			state.state.initSessionFields = fields;
 		},
 		clearInitSessionFields: () => {
-			state.initSessionFields = null;
-		}
+			state.state.initSessionFields = null;
+		},
+		replaceStateMock: vi.fn(),
+		sendMessageMock: vi.fn(),
+		invalidateAllMock: vi.fn(async () => {})
 	};
 });
 
@@ -24,13 +37,11 @@ vi.mock('$app/state', () => ({
 	page: appPage
 }));
 
-const replaceStateMock = vi.fn();
 vi.mock('$app/navigation', () => ({
 	replaceState: replaceStateMock,
-	invalidateAll: vi.fn()
+	invalidateAll: invalidateAllMock
 }));
 
-const sendMessageMock = vi.fn();
 vi.mock('$lib/services', () => ({
 	sendMessage: sendMessageMock,
 	updateSessionTitle: vi.fn()
@@ -133,12 +144,21 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 		expect(sendMessageMock).not.toHaveBeenCalled();
 	});
 
-	it('shows the submitted message in the conversation after init submit', async () => {
+	it('submits the init prompt and invalidates data so the message renders', async () => {
 		setInitSessionFields({ prompt: 'Build a login form' });
 		sendMessageMock.mockResolvedValue({ messageId: 'msg-1', artifacts: [] });
 
 		render(SessionPage, { data: baseData });
 
-		await expect.poll(() => document.body.textContent).toContain('Build a login form');
+		// In production, invalidateAll() reloads data.messages, which is what
+		// surfaces the submitted message in the conversation. With invalidateAll
+		// mocked, we verify the contract at that boundary instead of asserting
+		// DOM text that the mock environment cannot produce.
+		await expect.poll(() => sendMessageMock.mock.calls.length).toBeGreaterThan(0);
+		await expect.poll(() => invalidateAllMock.mock.calls.length).toBeGreaterThan(0);
+
+		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
+			content: 'Build a login form'
+		});
 	});
 });
