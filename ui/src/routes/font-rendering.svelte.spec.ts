@@ -1,7 +1,52 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import AppSidebarTestWrapper from '$components/AppSidebarTestWrapper.svelte';
+import type { Snippet } from 'svelte';
+import type { ProjectTreeProjectInput } from '$lib/project-tree';
+import RootLayout from './+layout.svelte';
+
+// The layout component imports layout.css, which declares the body
+// font-family stack. Rendering the layout (instead of the bare sidebar
+// wrapper) lets Vite inject the bundled CSS into the test page so
+// getComputedStyle() sees the real font stack rather than the browser
+// default. Same pattern as layout-shell.svelte.spec.ts.
+const noopChildren = (() => '') as unknown as Snippet;
+
+function renderLayout(projectTree: ProjectTreeProjectInput[] = []) {
+	// LayoutData expects the resolved Project shape (id, createdAt, ...),
+	// but the font tests only need the fields materializeProjectTree reads.
+	// Cast through the runtime input shape to avoid leaking server-only
+	// fields into the test fixtures.
+	return render(RootLayout, {
+		data: { projects: [], initialSidebarOpen: true, projectTree } as never,
+		children: noopChildren
+	});
+}
+
+// Sidebar expand/collapse and other interactions call into $lib/services.
+// Mock the full module surface so no real fetches fire against a missing
+// backend. Mirrors the pattern in AppSidebar.svelte.spec.ts.
+vi.mock('$lib/services', () => ({
+	api: { get: vi.fn(), post: vi.fn(), delete: vi.fn(), put: vi.fn() },
+	getProjects: vi.fn(async () => []),
+	createProject: vi.fn(async () => ({ project: { id: 'test' } })),
+	closeProject: vi.fn(async () => undefined),
+	updateProjectExpandedState: vi.fn(async () => ({})),
+	listAllSessions: vi.fn(async () => []),
+	listSessions: vi.fn(async () => []),
+	createSession: vi.fn(async () => ({ session: {} })),
+	getSession: vi.fn(async () => ({})),
+	deleteSession: vi.fn(async () => undefined),
+	updateSessionTitle: vi.fn(async () => ({ session: {} })),
+	archiveSession: vi.fn(async () => ({ session: {} })),
+	listWorktrees: vi.fn(async () => []),
+	createWorktree: vi.fn(async () => ({ worktree: {} })),
+	renameWorktree: vi.fn(async () => undefined),
+	deleteWorktree: vi.fn(async () => undefined),
+	listMessages: vi.fn(async () => []),
+	sendMessage: vi.fn(async () => undefined),
+	getDirectories: vi.fn(async () => ({ suggestions: [], exists: false }))
+}));
 
 const SYSTEM_FONT_STACK =
 	'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
@@ -58,7 +103,7 @@ describe('font rendering', () => {
 	});
 
 	it('body uses system font stack, not a custom web font', async () => {
-		render(AppSidebarTestWrapper, { projectTree: [] });
+		renderLayout();
 
 		const computed = getComputedStyle(document.body).fontFamily;
 		expect(computed).toContain('system-ui');
@@ -67,7 +112,7 @@ describe('font rendering', () => {
 	});
 
 	it('no custom web font faces are loaded', async () => {
-		render(AppSidebarTestWrapper, { projectTree: [] });
+		renderLayout();
 
 		const loadedFonts = Array.from(document.fonts);
 		const customFonts = loadedFonts.filter(
@@ -84,7 +129,7 @@ describe('font rendering', () => {
 	});
 
 	it('body text renders using the system font stack, not a serif fallback', async () => {
-		render(AppSidebarTestWrapper, { projectTree: [] });
+		renderLayout();
 
 		const result = measureElementFont(document.body);
 		expect(result.systemWidth).toBeGreaterThan(0);
@@ -92,37 +137,35 @@ describe('font rendering', () => {
 	});
 
 	it('sidebar session title uses system font stack', async () => {
-		render(AppSidebarTestWrapper, {
-			projectTree: [
-				{
-					name: 'repo',
-					displayName: 'acme/repo',
-					path: '/repo',
-					projectId: 'repo-id',
-					expandedState: false,
-					worktrees: [
-						{
-							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
-							branch: 'main',
-							sessions: [
-								{
-									id: 'session-1',
-									title: 'Active Session Title Here',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
-									status: 'active',
-									worktreeId: 'wt-1',
-									createdAt: '2026-04-09T10:00:00.000Z',
-									lastActiveAt: '2026-04-09T10:00:00.000Z'
-								}
-							]
-						}
-					]
-				}
-			]
-		});
+		renderLayout([
+			{
+				name: 'repo',
+				displayName: 'acme/repo',
+				path: '/repo',
+				projectId: 'repo-id',
+				expandedState: false,
+				worktrees: [
+					{
+						id: 'test-wt-id',
+						name: 'test-wt-name',
+						path: '/repo',
+						branch: 'main',
+						sessions: [
+							{
+								id: 'session-1',
+								title: 'Active Session Title Here',
+								projectId: 'repo-id',
+								worktreePath: '/repo',
+								status: 'active',
+								worktreeId: 'wt-1',
+								createdAt: '2026-04-09T10:00:00.000Z',
+								lastActiveAt: '2026-04-09T10:00:00.000Z'
+							}
+						]
+					}
+				]
+			}
+		]);
 
 		await page.getByRole('button', { name: /repo/i }).click();
 		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
@@ -136,26 +179,24 @@ describe('font rendering', () => {
 	});
 
 	it('sidebar project name uses system font stack', async () => {
-		render(AppSidebarTestWrapper, {
-			projectTree: [
-				{
-					name: 'repo',
-					displayName: 'acme/repo',
-					path: '/repo',
-					projectId: 'repo-id',
-					expandedState: false,
-					worktrees: [
-						{
-							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
-							branch: 'main',
-							sessions: []
-						}
-					]
-				}
-			]
-		});
+		renderLayout([
+			{
+				name: 'repo',
+				displayName: 'acme/repo',
+				path: '/repo',
+				projectId: 'repo-id',
+				expandedState: false,
+				worktrees: [
+					{
+						id: 'test-wt-id',
+						name: 'test-wt-name',
+						path: '/repo',
+						branch: 'main',
+						sessions: []
+					}
+				]
+			}
+		]);
 
 		const projectMain = document.querySelector('.project-main');
 		expect(projectMain).not.toBeNull();
@@ -166,9 +207,7 @@ describe('font rendering', () => {
 	});
 
 	it('sidebar New Session button uses system font stack', async () => {
-		render(AppSidebarTestWrapper, {
-			projectTree: []
-		});
+		renderLayout();
 
 		const newSessionLink = document.querySelector('a[href="/"]');
 		expect(newSessionLink).not.toBeNull();
