@@ -175,11 +175,13 @@
 		}
 	}
 
-	function handleFormKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' && !suggestionsOpen) {
-			event.preventDefault();
-			void handleSubmit();
-		}
+	// Browser handles Enter-to-submit natively via the <form>; we only need to
+	// gate it when the suggestion popover is open so Enter selects a suggestion
+	// instead of submitting.
+	function handleFormSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		if (suggestionsOpen) return;
+		void handleSubmit();
 	}
 </script>
 
@@ -194,7 +196,7 @@
 			<p class="text-sm break-words text-red-400">{error}</p>
 		{/if}
 
-		<div class="grid gap-4 py-4" onkeydown={handleFormKeydown}>
+		<form id="open-project-form" class="grid gap-4 py-4" onsubmit={handleFormSubmit}>
 			<Popover.Root bind:open={suggestionsOpen}>
 				<div class="relative grid gap-2">
 					<Input
@@ -244,14 +246,14 @@
 					{/if}
 				</div>
 			</Popover.Root>
-		</div>
+		</form>
 
 		<Dialog.Footer>
 			<Button type="button" variant="outline" onclick={() => (open = false)}>Cancel</Button>
 			<Button
-				type="button"
-				disabled={!searchQuery.trim() || !pathExists || submitting}
-				onclick={handleSubmit}>Open</Button
+				type="submit"
+				form="open-project-form"
+				disabled={!searchQuery.trim() || !pathExists || submitting}>Open</Button
 			>
 		</Dialog.Footer>
 	</Dialog.Content>

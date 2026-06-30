@@ -23,30 +23,16 @@ function renderLayout(projectTree: ProjectTreeProjectInput[] = []) {
 	});
 }
 
-// Sidebar expand/collapse and other interactions call into $lib/services.
-// Mock the full module surface so no real fetches fire against a missing
-// backend. Mirrors the pattern in AppSidebar.svelte.spec.ts.
-vi.mock('$lib/services', () => ({
-	api: { get: vi.fn(), post: vi.fn(), delete: vi.fn(), put: vi.fn() },
-	getProjects: vi.fn(async () => []),
-	createProject: vi.fn(async () => ({ project: { id: 'test' } })),
-	closeProject: vi.fn(async () => undefined),
-	updateProjectExpandedState: vi.fn(async () => ({})),
-	listAllSessions: vi.fn(async () => []),
-	listSessions: vi.fn(async () => []),
-	createSession: vi.fn(async () => ({ session: {} })),
-	getSession: vi.fn(async () => ({})),
-	deleteSession: vi.fn(async () => undefined),
-	updateSessionTitle: vi.fn(async () => ({ session: {} })),
-	archiveSession: vi.fn(async () => ({ session: {} })),
-	listWorktrees: vi.fn(async () => []),
-	createWorktree: vi.fn(async () => ({ worktree: {} })),
-	renameWorktree: vi.fn(async () => undefined),
-	deleteWorktree: vi.fn(async () => undefined),
-	listMessages: vi.fn(async () => []),
-	sendMessage: vi.fn(async () => undefined),
-	getDirectories: vi.fn(async () => ({ suggestions: [], exists: false }))
-}));
+// Sidebar expand calls updateProjectExpandedState; pass everything else
+// through to the real implementations. Using importOriginal keeps the mock
+// self-maintaining as $lib/services grows.
+vi.mock('$lib/services', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('$lib/services')>();
+	return {
+		...actual,
+		updateProjectExpandedState: vi.fn(async () => ({}))
+	};
+});
 
 const SYSTEM_FONT_STACK =
 	'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
