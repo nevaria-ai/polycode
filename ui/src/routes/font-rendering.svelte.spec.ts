@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import type { Snippet } from 'svelte';
-import type { ProjectTreeProjectInput } from '$lib/project-tree';
+// LayoutData is the generated SvelteKit type for the layout's data prop.
+// Using it here types the test fixtures against the real contract instead
+// of the narrower ProjectTreeProjectInput, which avoids an unsafe cast.
+import type { LayoutData } from './$types';
 import RootLayout from './+layout.svelte';
 
 // The layout component imports layout.css, which declares the body
@@ -12,13 +15,15 @@ import RootLayout from './+layout.svelte';
 // default. Same pattern as layout-shell.svelte.spec.ts.
 const noopChildren = (() => '') as unknown as Snippet;
 
-function renderLayout(projectTree: ProjectTreeProjectInput[] = []) {
+type LayoutProjectTree = NonNullable<LayoutData['projectTree']>;
+
+function renderLayout(projectTree: LayoutProjectTree = []) {
 	// LayoutData expects the resolved Project shape (id, createdAt, ...),
-	// but the font tests only need the fields materializeProjectTree reads.
-	// Cast through the runtime input shape to avoid leaking server-only
-	// fields into the test fixtures.
+	// even though the font tests only exercise the fields
+	// materializeProjectTree reads. Type the fixtures against LayoutData so
+	// they satisfy the real contract without an unsafe cast.
 	return render(RootLayout, {
-		data: { projects: [], initialSidebarOpen: true, projectTree } as never,
+		data: { projects: [], initialSidebarOpen: true, projectTree },
 		children: noopChildren
 	});
 }
@@ -125,11 +130,15 @@ describe('font rendering', () => {
 	it('sidebar session title uses system font stack', async () => {
 		renderLayout([
 			{
+				id: 'repo-id',
 				name: 'repo',
 				displayName: 'acme/repo',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
+				createdAt: '2026-04-09T10:00:00.000Z',
+				defaultBranchLabel: null,
+				sessions: [],
 				worktrees: [
 					{
 						id: 'test-wt-id',
@@ -167,11 +176,15 @@ describe('font rendering', () => {
 	it('sidebar project name uses system font stack', async () => {
 		renderLayout([
 			{
+				id: 'repo-id',
 				name: 'repo',
 				displayName: 'acme/repo',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
+				createdAt: '2026-04-09T10:00:00.000Z',
+				defaultBranchLabel: null,
+				sessions: [],
 				worktrees: [
 					{
 						id: 'test-wt-id',
