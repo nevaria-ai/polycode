@@ -15,6 +15,10 @@ type idArg struct {
 	ID string `json:"id"`
 }
 
+type pathArg struct {
+	Path string `json:"path"`
+}
+
 type projectIDArg struct {
 	ProjectID string `json:"project_id"`
 }
@@ -67,6 +71,13 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 			return "", err
 		}
 		row, err := q.GetProject(ctx, p.ID)
+		return jsonResult(row, err)
+	case "FindProjectByPath":
+		var p pathArg
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		row, err := q.FindProjectByPath(ctx, p.Path)
 		return jsonResult(row, err)
 	case "DeleteProject":
 		var p idArg

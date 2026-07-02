@@ -14,6 +14,7 @@ pub struct ApiProject {
     pub path: String,
     pub expanded_state: bool,
     pub created_at: String,
+    pub display_name: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -212,10 +213,11 @@ impl From<DbProject> for ApiProject {
     fn from(p: DbProject) -> Self {
         Self {
             id: p.id,
-            name: p.name,
+            name: p.name.clone(),
             path: p.path,
             expanded_state: p.expanded_state,
             created_at: format_iso8601(p.created_at),
+            display_name: p.name,
         }
     }
 }

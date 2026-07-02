@@ -4,6 +4,7 @@ export interface Project {
 	path: string;
 	expandedState: boolean;
 	createdAt: string;
+	displayName: string;
 }
 
 export interface Session {

@@ -123,6 +123,25 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 	return err
 }
 
+const findProjectByPath = `-- name: FindProjectByPath :one
+SELECT id, name, path, expanded_state, created_at
+FROM projects
+WHERE path = ?
+`
+
+func (q *Queries) FindProjectByPath(ctx context.Context, path string) (Project, error) {
+	row := q.db.QueryRowContext(ctx, findProjectByPath, path)
+	var i Project
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Path,
+		&i.ExpandedState,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getProject = `-- name: GetProject :one
 SELECT id, name, path, expanded_state, created_at
 FROM projects

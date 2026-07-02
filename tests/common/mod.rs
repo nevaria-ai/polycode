@@ -42,12 +42,16 @@ pub async fn json_body(resp: axum::http::Response<Body>) -> Value {
 }
 
 pub async fn seed_project(app: &Router) -> String {
+    seed_project_with(app, "/tmp/test-project").await
+}
+
+pub async fn seed_project_with(app: &Router, path: &str) -> String {
     let resp = app
         .clone()
         .oneshot(json_request(
             "POST",
             "/api/projects",
-            Some(json!({"path": "/tmp/test-project"})),
+            Some(json!({"path": path})),
         ))
         .await
         .unwrap();

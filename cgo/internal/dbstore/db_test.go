@@ -188,6 +188,18 @@ func TestQueriesWorkspace(t *testing.T) {
 		t.Fatalf("GetProject: %+v", got)
 	}
 
+	byPath, err := db.Q.FindProjectByPath(ctx, "/tmp/polycode")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byPath.ID != "proj-1" {
+		t.Fatalf("FindProjectByPath: %+v", byPath)
+	}
+
+	if _, err := db.Q.FindProjectByPath(ctx, "/does/not/exist"); err == nil {
+		t.Fatal("expected no rows error for missing path")
+	}
+
 	updated, err := db.Q.UpdateProjectExpandedState(ctx, polydb.UpdateProjectExpandedStateParams{
 		ExpandedState: 1,
 		ID:            "proj-1",

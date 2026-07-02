@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 
-const { createProjectMock, invalidateAllMock } = vi.hoisted(() => ({
-	createProjectMock: vi.fn(async () => ({ project: { id: 'test' } })),
-	invalidateAllMock: vi.fn(async () => {})
+const { createProjectMock, invalidateAllMock, gotoMock } = vi.hoisted(() => ({
+	createProjectMock: vi.fn(async () => ({ project: { id: 'test-project-id' } })),
+	invalidateAllMock: vi.fn(async () => {}),
+	gotoMock: vi.fn(async () => {})
 }));
 
 // Mock $lib/services but pass getDirectories through to the real impl so the
@@ -20,7 +21,14 @@ vi.mock('$lib/services', async (importOriginal) => {
 });
 
 vi.mock('$app/navigation', () => ({
-	invalidateAll: invalidateAllMock
+	invalidateAll: invalidateAllMock,
+	goto: gotoMock
+}));
+
+vi.mock('$app/paths', () => ({
+	// In tests, resolve() is the identity function — the app uses relative paths
+	// that already start with '/', so no real base-path resolution is needed.
+	resolve: (path: string) => path
 }));
 
 import ProjectSelectorDialog from './ProjectSelectorDialog.svelte';
@@ -58,8 +66,16 @@ async function pressInputKey(key: string) {
 describe('ProjectSelectorDialog', () => {
 	beforeEach(() => {
 		cleanup();
-		createProjectMock.mockClear();
-		invalidateAllMock.mockClear();
+		// mockReset (not just mockClear) so any lingering mockResolvedValueOnce /
+		// mockRejectedValueOnce from a prior test are dropped before re-establishing
+		// the default resolved value. Without this, one-shot handlers can leak
+		// across tests when the file runs alongside others in the same suite.
+		createProjectMock.mockReset();
+		createProjectMock.mockResolvedValue({ project: { id: 'test-project-id' } });
+		invalidateAllMock.mockReset();
+		invalidateAllMock.mockResolvedValue();
+		gotoMock.mockReset();
+		gotoMock.mockResolvedValue();
 		scrollIntoViewMock = vi.fn();
 		HTMLElement.prototype.scrollIntoView =
 			scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
@@ -248,6 +264,12 @@ describe('ProjectSelectorDialog', () => {
 		await expect.poll(() => createProjectMock.mock.calls.length).toBe(1);
 		expect(createProjectMock).toHaveBeenCalledWith('/workspace');
 		expect(invalidateAllMock).toHaveBeenCalledTimes(1);
+		expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
+		// invalidateAll must run before goto so the layout's projectTree refresh
+		// completes before the composer tries to resolve the selected project.
+		expect(invalidateAllMock.mock.invocationCallOrder[0]).toBeLessThan(
+			gotoMock.mock.invocationCallOrder[0]
+		);
 	});
 
 	it('does not submit on Enter when the suggestion popover is open', async () => {
@@ -282,6 +304,30 @@ describe('ProjectSelectorDialog', () => {
 		expect(createProjectMock).toHaveBeenCalledWith('/workspace');
 	});
 
+	it('navigates to a new session for the returned project id on submit (covers create-new and reuse)', async () => {
+		// The backend returns the existing project when the path is already added;
+		// since the response shape is identical to a fresh create, the frontend
+		// treats both cases the same way: navigate to /?project=<id>.
+		createProjectMock.mockResolvedValueOnce({ project: { id: 'reused-existing-id' } });
+
+		render(ProjectSelectorDialog, { open: true });
+
+		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
+		await input.fill('/workspace');
+		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
+
+		await pressInputKey('Tab');
+		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+
+		const form = document.querySelector('#open-project-form') as HTMLFormElement | null;
+		expect(form).not.toBeNull();
+		form?.requestSubmit();
+
+		await expect.poll(() => gotoMock.mock.calls.length).toBe(1);
+		expect(gotoMock).toHaveBeenCalledWith('/?project=reused-existing-id');
+		expect(invalidateAllMock).toHaveBeenCalledTimes(1);
+	});
+
 	it('does not trigger submit when the Cancel button is clicked', async () => {
 		render(ProjectSelectorDialog, { open: true });
 
@@ -295,5 +341,46 @@ describe('ProjectSelectorDialog', () => {
 		await page.getByRole('button', { name: 'Cancel' }).click();
 
 		expect(createProjectMock).not.toHaveBeenCalled();
+	});
+
+	it('URL-encodes the project id when navigating', async () => {
+		// Project ids are UUIDs so this is mostly belt-and-suspenders, but the
+		// dialog must not blindly concatenate the id into the URL.
+		createProjectMock.mockResolvedValueOnce({
+			project: { id: 'id with spaces & slashes' }
+		});
+
+		render(ProjectSelectorDialog, { open: true });
+
+		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
+		await input.fill('/workspace');
+		await pressInputKey('Tab');
+		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+
+		const form = document.querySelector('#open-project-form') as HTMLFormElement | null;
+		form?.requestSubmit();
+
+		await expect.poll(() => gotoMock.mock.calls.length).toBe(1);
+		expect(gotoMock).toHaveBeenCalledWith('/?project=id%20with%20spaces%20%26%20slashes');
+	});
+
+	it('does not navigate when createProject rejects', async () => {
+		// If the backend errors (e.g. permission denied), the dialog must stay
+		// open and surface the error rather than navigating to a phantom session.
+		createProjectMock.mockRejectedValueOnce(new Error('permission denied'));
+
+		render(ProjectSelectorDialog, { open: true });
+
+		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
+		await input.fill('/workspace');
+		await pressInputKey('Tab');
+		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+
+		const form = document.querySelector('#open-project-form') as HTMLFormElement | null;
+		form?.requestSubmit();
+
+		await expect.element(page.getByText('permission denied')).toBeVisible();
+		expect(gotoMock).not.toHaveBeenCalled();
+		expect(invalidateAllMock).not.toHaveBeenCalled();
 	});
 });

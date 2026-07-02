@@ -22,9 +22,7 @@ export const load: LayoutLoad = async () => {
 
 			return {
 				...project,
-				path: project.path,
 				projectId: project.id,
-				displayName: project.name,
 				defaultBranchLabel: defaultBranch,
 				sessions: projectSessions as Session[],
 				worktrees: worktrees

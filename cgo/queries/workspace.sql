@@ -13,6 +13,11 @@ SELECT id, name, path, expanded_state, created_at
 FROM projects
 WHERE id = ?;
 
+-- name: FindProjectByPath :one
+SELECT id, name, path, expanded_state, created_at
+FROM projects
+WHERE path = ?;
+
 -- name: DeleteProject :exec
 DELETE FROM projects WHERE id = ?;
 

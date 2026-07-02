@@ -30,12 +30,20 @@ impl Service {
     }
 
     pub async fn create(&self, input: CreateProject) -> Result<Project, AppError> {
-        let id = uuid::Uuid::new_v4().to_string();
-        let now = unix_now();
-
         let resolved = GitOps::resolve_repo_root(Path::new(&input.path))
             .unwrap_or_else(|_| Path::new(&input.path).to_path_buf());
         let resolved_str = resolved.to_string_lossy().to_string();
+
+        if let Some(existing) = self
+            .db
+            .workspace_optional::<Project>("FindProjectByPath", &serde_json::json!({ "path": resolved_str }))
+            .map_err(AppError::from)?
+        {
+            return Ok(existing);
+        }
+
+        let id = uuid::Uuid::new_v4().to_string();
+        let now = unix_now();
 
         let name = GitOps::get_remote_origin_name(Path::new(&resolved_str)).unwrap_or_else(|| {
             Path::new(&resolved_str)
@@ -179,5 +187,45 @@ mod tests {
         assert!(!created.expanded_state);
         let updated = svc.update_expanded_state(&created.id, true).await.unwrap();
         assert!(updated.expanded_state);
+    }
+
+    #[tokio::test]
+    async fn create_returns_existing_when_path_already_added() {
+        let svc = Service::new(memory_db());
+        let first = svc
+            .create(CreateProject {
+                path: "/tmp/duplicate-me".into(),
+            })
+            .await
+            .unwrap();
+        let second = svc
+            .create(CreateProject {
+                path: "/tmp/duplicate-me".into(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(second.id, first.id);
+        assert_eq!(svc.list().await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn create_allows_same_name_different_path() {
+        let svc = Service::new(memory_db());
+        let first = svc
+            .create(CreateProject {
+                path: "/tmp/alpha/repo".into(),
+            })
+            .await
+            .unwrap();
+        let second = svc
+            .create(CreateProject {
+                path: "/tmp/beta/repo".into(),
+            })
+            .await
+            .unwrap();
+        assert_ne!(second.id, first.id);
+        assert_eq!(first.name, "repo");
+        assert_eq!(second.name, "repo");
+        assert_eq!(svc.list().await.unwrap().len(), 2);
     }
 }
