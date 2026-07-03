@@ -93,7 +93,7 @@ async fn list(
                     }
 
                     let display = if starts_with_tilde && full_path_str.starts_with(&home) {
-                        format!("~{}", full_path_str[home.len()..].to_string())
+                        format!("~{}", &full_path_str[home.len()..])
                     } else {
                         full_path_str
                     };

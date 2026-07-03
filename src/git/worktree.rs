@@ -219,7 +219,7 @@ impl GitOps {
             .trim_start_matches("git@")
             .trim_start_matches("ssh://")
             .trim_end_matches(".git");
-        let separator_pos = stripped.find(|c: char| c == '/' || c == ':')?;
+        let separator_pos = stripped.find(['/', ':'])?;
         let name = &stripped[separator_pos + 1..];
         if name.contains('/') {
             Some(name.replace(':', "/"))

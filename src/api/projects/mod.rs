@@ -112,26 +112,21 @@ fn derive_base_label(path: &str) -> (String, Option<String>) {
     (folder_basename(path), None)
 }
 
-async fn derive_base_labels_parallel(
-    projects: &[Project],
-) -> HashMap<String, (String, Option<String>)> {
-    let mut tasks: JoinSet<(String, Option<(String, Option<String>)>)> = JoinSet::new();
+/// `(display label, optional git owner)`
+type ProjectLabel = (String, Option<String>);
+
+async fn derive_base_labels_parallel(projects: &[Project]) -> HashMap<String, ProjectLabel> {
+    let mut tasks: JoinSet<(String, ProjectLabel)> = JoinSet::new();
     for p in projects {
         let (id, path) = (p.id.clone(), p.path.clone());
-        tasks.spawn_blocking(move || {
-            let entry = Some(derive_base_label(&path));
-            (id, entry)
-        });
+        tasks.spawn_blocking(move || (id, derive_base_label(&path)));
     }
 
     let mut out = HashMap::new();
     while let Some(result) = tasks.join_next().await {
         match result {
-            Ok((id, Some((label, owner)))) => {
-                out.insert(id, (label, owner));
-            }
-            Ok((id, None)) => {
-                out.insert(id, (String::new(), None));
+            Ok((id, label)) => {
+                out.insert(id, label);
             }
             Err(e) => {
                 tracing::warn!("derive_base_labels_parallel task failed: {e}");

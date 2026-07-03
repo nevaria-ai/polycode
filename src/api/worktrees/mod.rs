@@ -76,8 +76,8 @@ fn resolve_worktree_path(project_path: &str, worktree_ref: &str) -> Result<Strin
         .map(|d| d.into_owned())
         .unwrap_or_else(|_| worktree_ref.to_string());
 
-    let worktrees = GitOps::list_worktrees(FsPath::new(project_path))
-        .map_err(|e| AppError::BadRequest(e.into()))?;
+    let worktrees =
+        GitOps::list_worktrees(FsPath::new(project_path)).map_err(AppError::BadRequest)?;
 
     if let Some(wt) = worktrees.iter().find(|wt| wt.path == decoded_ref) {
         return Ok(wt.path.clone());
@@ -132,8 +132,8 @@ async fn list(
 ) -> Result<Json<Vec<ApiWorktree>>, AppError> {
     let project = load_project(&state, &project_id).await?;
 
-    let worktrees = GitOps::list_worktrees(FsPath::new(&project.path))
-        .map_err(|e| AppError::BadRequest(e.into()))?;
+    let worktrees =
+        GitOps::list_worktrees(FsPath::new(&project.path)).map_err(AppError::BadRequest)?;
 
     let api_worktrees = worktrees
         .into_iter()
@@ -161,7 +161,7 @@ async fn create(
 
     let worktree_path = next_worktree_path(&project.path)?;
     let wt = GitOps::create_worktree(FsPath::new(&project.path), &worktree_path, &body.branch)
-        .map_err(|e| AppError::BadRequest(e.into()))?;
+        .map_err(AppError::BadRequest)?;
 
     Ok((
         StatusCode::CREATED,
@@ -191,7 +191,7 @@ async fn delete_one(
     let worktree_path_obj = FsPath::new(&resolved_path);
 
     GitOps::delete_worktree(FsPath::new(&project.path), worktree_path_obj, &body.branch)
-        .map_err(|e| AppError::BadRequest(e.into()))?;
+        .map_err(AppError::BadRequest)?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -212,7 +212,7 @@ async fn rename_one(
         &body.old_branch,
         &body.new_branch,
     )
-    .map_err(|e| AppError::BadRequest(e.into()))?;
+    .map_err(AppError::BadRequest)?;
 
     Ok(StatusCode::NO_CONTENT)
 }
