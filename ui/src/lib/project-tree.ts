@@ -7,8 +7,8 @@ export type ProjectTreeWorktree = WorktreeEntry & {
 
 export type ProjectTreeProject = {
 	path: string;
-	name: string;
-	displayName?: string;
+	displayName: string;
+	owner: string | null;
 	projectId: string;
 	defaultBranchLabel?: string | null;
 	sessions?: Session[];

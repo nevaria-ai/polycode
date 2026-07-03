@@ -5,8 +5,8 @@ describe('materializeProjectTree', () => {
 	it('adds collapsed UI state by default', () => {
 		const tree = materializeProjectTree([
 			{
-				name: 'repo',
 				displayName: 'acme/repo',
+				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
@@ -23,8 +23,8 @@ describe('materializeProjectTree', () => {
 	it('hydrates project expansion from persisted expandedState', () => {
 		const tree = materializeProjectTree([
 			{
-				name: 'repo',
 				displayName: 'acme/repo',
+				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: true,
@@ -40,8 +40,8 @@ describe('materializeProjectTree', () => {
 	it('preserves prior expansion state when project data refreshes', () => {
 		const previous = materializeProjectTree([
 			{
-				name: 'repo',
 				displayName: 'acme/repo',
+				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
@@ -57,8 +57,8 @@ describe('materializeProjectTree', () => {
 		const next = materializeProjectTree(
 			[
 				{
-					name: 'repo',
 					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,

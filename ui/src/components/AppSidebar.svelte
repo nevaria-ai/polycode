@@ -24,6 +24,7 @@
 	} from '$lib/project-tree';
 	import { APP_NAME } from '$lib/config';
 	import ProjectSelectorDialog from '$components/ProjectSelectorDialog.svelte';
+	import ProjectName from '$components/ProjectName.svelte';
 	import WorktreeBranchDialog from '$components/WorktreeBranchDialog.svelte';
 	import DeleteWorktreeDialog from '$components/DeleteWorktreeDialog.svelte';
 	import { SettingsDialog } from '$components/settings';
@@ -185,7 +186,7 @@
 							<Collapsible.Root bind:open={project.isExpanded} class="group/collapsible">
 								<Sidebar.MenuButton
 									class="h-auto w-full py-0 text-[12px] hover:bg-transparent active:bg-transparent"
-									aria-label={`Expand ${project.name}`}
+									aria-label={`Expand ${project.displayName}`}
 									onclick={(event) => {
 										toggleProject(project.projectId);
 										blurMouseClickTarget(event);
@@ -196,7 +197,11 @@
 										<div
 											class="project-main flex min-w-0 items-center gap-0.75 group-focus-within/menu-item:text-sidebar-accent-foreground group-hover/menu-item:text-sidebar-accent-foreground group-has-[.project-actions_[data-state=open]]/menu-item:text-sidebar-accent-foreground group-has-[.project-actions:hover]/menu-item:text-sidebar-foreground/90"
 										>
-											<span class="truncate">{project.displayName ?? project.name}</span>
+											<ProjectName
+												displayName={project.displayName}
+												owner={project.owner}
+												class="truncate"
+											/>
 											<ChevronRight
 												class="size-3.5 shrink-0 transition-transform duration-150 group-data-[state=open]/collapsible:rotate-90"
 											/>

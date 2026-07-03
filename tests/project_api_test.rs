@@ -45,7 +45,8 @@ async fn test_create_project() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let result: serde_json::Value = common::json_body(response).await;
-    assert_eq!(result["project"]["name"], "test-project");
+    assert_eq!(result["project"]["displayName"], "test-project");
+    assert!(result["project"]["name"].is_null() || result["project"].get("name").is_none());
 }
 
 #[tokio::test]
@@ -112,7 +113,8 @@ async fn test_create_project_dedupes_same_path() {
         )
         .await
         .unwrap();
-    let projects: Vec<serde_json::Value> = common::json_body(list).await.as_array().unwrap().clone();
+    let projects: Vec<serde_json::Value> =
+        common::json_body(list).await.as_array().unwrap().clone();
     assert_eq!(projects.len(), 1);
 }
 
@@ -169,9 +171,15 @@ async fn test_list_projects_display_name_unique_keeps_name() {
     let body = common::json_body(list).await;
     let projects = body.as_array().unwrap();
 
-    // Unique names → displayName matches name, no parent-prefix fallback.
+    // Unique names → displayName is the folder basename; `name` is not exposed.
+    let display_names: std::collections::HashSet<&str> = projects
+        .iter()
+        .map(|p| p["displayName"].as_str().unwrap())
+        .collect();
+    assert!(display_names.contains("alpha"));
+    assert!(display_names.contains("beta"));
     for p in projects {
-        assert_eq!(p["displayName"], p["name"]);
+        assert!(p.get("name").is_none());
     }
 }
 

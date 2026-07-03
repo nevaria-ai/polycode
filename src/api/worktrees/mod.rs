@@ -45,8 +45,11 @@ fn slugify_project_name(name: &str) -> String {
     }
 }
 
-fn next_worktree_path(project_name: &str) -> Result<std::path::PathBuf, AppError> {
-    let project_slug = slugify_project_name(project_name);
+fn next_worktree_path(project_path: &str) -> Result<std::path::PathBuf, AppError> {
+    let project_slug = std::path::Path::new(project_path)
+        .file_name()
+        .map(|f| slugify_project_name(&f.to_string_lossy()))
+        .unwrap_or_else(|| "project".to_string());
     let base = paths::data_dir().join("worktrees").join(project_slug);
     std::fs::create_dir_all(&base).map_err(|e| {
         AppError::BadRequest(format!(
@@ -156,7 +159,7 @@ async fn create(
 ) -> Result<(StatusCode, Json<CreateWorktreeResponse>), AppError> {
     let project = load_project(&state, &project_id).await?;
 
-    let worktree_path = next_worktree_path(&project.name)?;
+    let worktree_path = next_worktree_path(&project.path)?;
     let wt = GitOps::create_worktree(FsPath::new(&project.path), &worktree_path, &body.branch)
         .map_err(|e| AppError::BadRequest(e.into()))?;
 

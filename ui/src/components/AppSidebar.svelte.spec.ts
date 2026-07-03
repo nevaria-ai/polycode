@@ -84,8 +84,8 @@ describe('AppSidebar', () => {
 	it('toggles project expansion on row click', async () => {
 		const projectTree = [
 			{
-				name: 'repo',
 				displayName: 'acme/repo',
+				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
@@ -109,7 +109,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -123,15 +124,15 @@ describe('AppSidebar', () => {
 
 		await page.getByRole('button', { name: /repo/i }).click();
 
-		expect(document.activeElement?.getAttribute('aria-label')).not.toBe('Expand repo');
+		expect(document.activeElement?.getAttribute('aria-label')).not.toBe('Expand acme/repo');
 	});
 
 	it('keeps project and worktree chevrons hidden until hover/focus styling reveals them', async () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
 					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -154,7 +155,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -195,7 +197,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -233,7 +236,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -266,8 +270,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
 					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -328,7 +332,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -350,7 +355,7 @@ describe('AppSidebar', () => {
 
 		const projectMain = document.querySelector('.project-main');
 		const projectActions = document.querySelector('.project-actions');
-		const projectButton = document.querySelector('[aria-label="Expand repo"]');
+		const projectButton = document.querySelector('[aria-label="Expand acme/repo"]');
 		const worktreeMain = document.querySelector('.worktree-main');
 		const worktreeActions = document.querySelector('.worktree-actions');
 		const worktreeButton = document.querySelector('[aria-label="Expand main branch"]');
@@ -430,7 +435,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -470,7 +476,8 @@ describe('AppSidebar', () => {
 		const { container } = render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -514,7 +521,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -540,7 +548,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -572,7 +581,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -612,7 +622,8 @@ describe('AppSidebar', () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,
@@ -653,7 +664,8 @@ describe('AppSidebar', () => {
 		const { container } = render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
-					name: 'repo',
+					displayName: 'acme/repo',
+					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
 					expandedState: false,

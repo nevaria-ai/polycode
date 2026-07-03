@@ -26,14 +26,13 @@ func (q *Queries) ArchiveSession(ctx context.Context, arg ArchiveSessionParams) 
 }
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO projects (id, name, path, expanded_state, created_at)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, name, path, expanded_state, created_at
+INSERT INTO projects (id, path, expanded_state, created_at)
+VALUES (?, ?, ?, ?)
+RETURNING id, path, expanded_state, created_at
 `
 
 type CreateProjectParams struct {
 	ID            string `json:"id"`
-	Name          string `json:"name"`
 	Path          string `json:"path"`
 	ExpandedState int64  `json:"expanded_state"`
 	CreatedAt     int64  `json:"created_at"`
@@ -42,7 +41,6 @@ type CreateProjectParams struct {
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error) {
 	row := q.db.QueryRowContext(ctx, createProject,
 		arg.ID,
-		arg.Name,
 		arg.Path,
 		arg.ExpandedState,
 		arg.CreatedAt,
@@ -50,7 +48,6 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 	var i Project
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
 		&i.Path,
 		&i.ExpandedState,
 		&i.CreatedAt,
@@ -124,7 +121,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 }
 
 const findProjectByPath = `-- name: FindProjectByPath :one
-SELECT id, name, path, expanded_state, created_at
+SELECT id, path, expanded_state, created_at
 FROM projects
 WHERE path = ?
 `
@@ -134,7 +131,6 @@ func (q *Queries) FindProjectByPath(ctx context.Context, path string) (Project, 
 	var i Project
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
 		&i.Path,
 		&i.ExpandedState,
 		&i.CreatedAt,
@@ -143,7 +139,7 @@ func (q *Queries) FindProjectByPath(ctx context.Context, path string) (Project, 
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, name, path, expanded_state, created_at
+SELECT id, path, expanded_state, created_at
 FROM projects
 WHERE id = ?
 `
@@ -153,7 +149,6 @@ func (q *Queries) GetProject(ctx context.Context, id string) (Project, error) {
 	var i Project
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
 		&i.Path,
 		&i.ExpandedState,
 		&i.CreatedAt,
@@ -232,7 +227,7 @@ func (q *Queries) ListAllSessions(ctx context.Context) ([]Session, error) {
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, name, path, expanded_state, created_at
+SELECT id, path, expanded_state, created_at
 FROM projects
 ORDER BY created_at DESC, rowid DESC
 `
@@ -248,7 +243,6 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 		var i Project
 		if err := rows.Scan(
 			&i.ID,
-			&i.Name,
 			&i.Path,
 			&i.ExpandedState,
 			&i.CreatedAt,
@@ -314,7 +308,7 @@ const updateProjectExpandedState = `-- name: UpdateProjectExpandedState :one
 UPDATE projects
 SET expanded_state = ?
 WHERE id = ?
-RETURNING id, name, path, expanded_state, created_at
+RETURNING id, path, expanded_state, created_at
 `
 
 type UpdateProjectExpandedStateParams struct {
@@ -327,7 +321,6 @@ func (q *Queries) UpdateProjectExpandedState(ctx context.Context, arg UpdateProj
 	var i Project
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
 		&i.Path,
 		&i.ExpandedState,
 		&i.CreatedAt,

@@ -1,10 +1,11 @@
 export interface Project {
 	id: string;
-	name: string;
 	path: string;
 	expandedState: boolean;
 	createdAt: string;
 	displayName: string;
+	/** Git owner when name is in `owner/repo` form. Null for plain folders. */
+	owner: string | null;
 }
 
 export interface Session {
@@ -87,8 +88,8 @@ export interface DirectoryResponse {
 
 export interface SidebarProject {
 	path: string;
-	name: string;
-	displayName?: string;
+	displayName: string;
+	owner: string | null;
 	projectId: string;
 	defaultBranchLabel?: string | null;
 	sessions: Session[];

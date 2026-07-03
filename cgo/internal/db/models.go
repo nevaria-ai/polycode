@@ -62,7 +62,6 @@ type PinnedContext struct {
 
 type Project struct {
 	ID            string `json:"id"`
-	Name          string `json:"name"`
 	Path          string `json:"path"`
 	ExpandedState int64  `json:"expanded_state"`
 	CreatedAt     int64  `json:"created_at"`

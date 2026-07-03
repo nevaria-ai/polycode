@@ -36,7 +36,10 @@ impl Service {
 
         if let Some(existing) = self
             .db
-            .workspace_optional::<Project>("FindProjectByPath", &serde_json::json!({ "path": resolved_str }))
+            .workspace_optional::<Project>(
+                "FindProjectByPath",
+                &serde_json::json!({ "path": resolved_str }),
+            )
             .map_err(AppError::from)?
         {
             return Ok(existing);
@@ -45,19 +48,11 @@ impl Service {
         let id = uuid::Uuid::new_v4().to_string();
         let now = unix_now();
 
-        let name = GitOps::get_remote_origin_name(Path::new(&resolved_str)).unwrap_or_else(|| {
-            Path::new(&resolved_str)
-                .file_name()
-                .map(|f| f.to_string_lossy().to_string())
-                .unwrap_or_else(|| resolved_str.clone())
-        });
-
         self.db
             .workspace_one(
                 "CreateProject",
                 &serde_json::json!({
                     "id": id,
-                    "name": name,
                     "path": resolved_str,
                     "expanded_state": 0,
                     "created_at": now,
@@ -105,7 +100,6 @@ mod tests {
             })
             .await
             .unwrap();
-        assert_eq!(project.name, "my-project");
         assert_eq!(project.path, "/tmp/my-project");
         assert!(!project.expanded_state);
         assert!(!project.id.is_empty());
@@ -137,7 +131,7 @@ mod tests {
             .await
             .unwrap();
         let fetched = svc.get(&created.id).await.unwrap();
-        assert_eq!(fetched.name, "fetch-me");
+        assert_eq!(fetched.path, "/tmp/fetch-me");
         assert_eq!(fetched.id, created.id);
     }
 
@@ -224,8 +218,8 @@ mod tests {
             .await
             .unwrap();
         assert_ne!(second.id, first.id);
-        assert_eq!(first.name, "repo");
-        assert_eq!(second.name, "repo");
+        assert_eq!(first.path, "/tmp/alpha/repo");
+        assert_eq!(second.path, "/tmp/beta/repo");
         assert_eq!(svc.list().await.unwrap().len(), 2);
     }
 }

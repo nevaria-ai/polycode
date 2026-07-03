@@ -168,7 +168,6 @@ func TestQueriesWorkspace(t *testing.T) {
 
 	created, err := db.Q.CreateProject(ctx, polydb.CreateProjectParams{
 		ID:            "proj-1",
-		Name:          "polycode",
 		Path:          "/tmp/polycode",
 		ExpandedState: 0,
 		CreatedAt:     100,
@@ -176,7 +175,7 @@ func TestQueriesWorkspace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.ID != "proj-1" || created.Name != "polycode" {
+	if created.ID != "proj-1" || created.Path != "/tmp/polycode" {
 		t.Fatalf("CreateProject: %+v", created)
 	}
 
@@ -277,7 +276,7 @@ func TestQueriesTranscript(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := db.Q.CreateProject(ctx, polydb.CreateProjectParams{
-		ID: "proj-1", Name: "p", Path: "/p", CreatedAt: 1,
+		ID: "proj-1", Path: "/p", CreatedAt: 1,
 	})
 	if err != nil {
 		t.Fatal(err)

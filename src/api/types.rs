@@ -10,11 +10,13 @@ pub fn format_iso8601(epoch_secs: i64) -> String {
 #[serde(rename_all = "camelCase")]
 pub struct ApiProject {
     pub id: String,
-    pub name: String,
     pub path: String,
     pub expanded_state: bool,
     pub created_at: String,
     pub display_name: String,
+    /// Git repo owner when the stored name is in `owner/repo` form (from origin remote).
+    /// `None` for non-git folders or repos without a recognizable origin.
+    pub owner: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -188,7 +190,6 @@ pub struct DirectoryResponse {
     pub exists: bool,
 }
 
-use crate::api::projects::Project as DbProject;
 use crate::api::sessions::Session as DbSession;
 
 impl From<DbSession> for ApiSession {
@@ -205,19 +206,6 @@ impl From<DbSession> for ApiSession {
             created_at: format_iso8601(s.created_at),
             updated_at: format_iso8601(s.updated_at),
             last_active_at: format_iso8601(s.last_active_at),
-        }
-    }
-}
-
-impl From<DbProject> for ApiProject {
-    fn from(p: DbProject) -> Self {
-        Self {
-            id: p.id,
-            name: p.name.clone(),
-            path: p.path,
-            expanded_state: p.expanded_state,
-            created_at: format_iso8601(p.created_at),
-            display_name: p.name,
         }
     }
 }

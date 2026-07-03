@@ -5,6 +5,7 @@
 	import { Button } from '$components/ui/button';
 	import { Checkbox } from '$components/ui/checkbox';
 	import PromptPanel from '$components/PromptPanel.svelte';
+	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
 	import { createSession } from '$lib/services';
 	import type { PageData } from './$types';
@@ -122,7 +123,16 @@
 								<Folder class="size-4 shrink-0" />
 							{/if}
 							<span class="text-md truncate font-medium">
-								{selectedProject?.displayName ?? data.selectedProjectName ?? 'Select project'}
+								{#if selectedProject}
+									<ProjectName
+										displayName={selectedProject.displayName}
+										owner={selectedProject.owner}
+									/>
+								{:else if data.selectedProjectName}
+									{data.selectedProjectName}
+								{:else}
+									Select project
+								{/if}
 								{#if selectedWorktreeBranch}
 									<span class="text-[10px]">:{selectedWorktreeBranch}</span>
 								{/if}
@@ -154,7 +164,7 @@
 									<Folder class="size-3.5 shrink-0 text-muted-foreground" />
 								{/if}
 								<span data-testid="composer-project-item" class="text-xs font-medium">
-									{project.displayName ?? project.name}
+									<ProjectName displayName={project.displayName} owner={project.owner} />
 								</span>
 								{#if project.defaultBranchLabel}
 									<span

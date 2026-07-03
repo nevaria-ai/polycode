@@ -131,8 +131,8 @@ describe('font rendering', () => {
 		renderLayout([
 			{
 				id: 'repo-id',
-				name: 'repo',
 				displayName: 'acme/repo',
+				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
@@ -177,8 +177,8 @@ describe('font rendering', () => {
 		renderLayout([
 			{
 				id: 'repo-id',
-				name: 'repo',
 				displayName: 'acme/repo',
+				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,

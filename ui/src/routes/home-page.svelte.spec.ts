@@ -10,19 +10,19 @@ const docsProjectId = 'docs-id';
 const baseProjects: Project[] = [
 	{
 		id: polycodeProjectId,
-		name: 'polycode',
 		path: '/Projects/polycode',
 		expandedState: false,
 		createdAt: '2026-04-09T10:00:00.000Z',
-		displayName: 'polycode'
+		displayName: 'polycode',
+		owner: null
 	},
 	{
 		id: docsProjectId,
-		name: 'docs',
 		path: '/Projects/docs',
 		expandedState: false,
 		createdAt: '2026-04-09T10:00:00.000Z',
-		displayName: 'docs'
+		displayName: 'docs',
+		owner: null
 	}
 ];
 
@@ -33,7 +33,7 @@ const baseData = {
 			...baseProjects[0],
 			path: baseProjects[0].path,
 			projectId: baseProjects[0].id,
-			displayName: baseProjects[0].name,
+			displayName: baseProjects[0].displayName,
 			defaultBranchLabel: 'main',
 			sessions: [],
 			worktrees: [
@@ -50,7 +50,7 @@ const baseData = {
 			...baseProjects[1],
 			path: baseProjects[1].path,
 			projectId: baseProjects[1].id,
-			displayName: baseProjects[1].name,
+			displayName: baseProjects[1].displayName,
 			defaultBranchLabel: 'develop',
 			sessions: [],
 			worktrees: [
