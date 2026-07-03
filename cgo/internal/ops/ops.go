@@ -96,6 +96,27 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 		}
 		row, err := q.UpdateProjectExpandedState(ctx, p)
 		return jsonResult(row, err)
+	case "CountSessionsByProject":
+		var p projectIDArg
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		count, err := q.CountSessionsByProject(ctx, p.ProjectID)
+		return jsonResult(count, err)
+	case "SoftRemoveProject":
+		var p polydb.SoftRemoveProjectParams
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		row, err := q.SoftRemoveProject(ctx, p)
+		return jsonResult(row, err)
+	case "ReactivateProject":
+		var p idArg
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		row, err := q.ReactivateProject(ctx, p.ID)
+		return jsonResult(row, err)
 	case "CreateSession":
 		var p polydb.CreateSessionParams
 		if err := unmarshalArgs(argsJSON, &p); err != nil {

@@ -65,6 +65,7 @@ type Project struct {
 	Path          string `json:"path"`
 	ExpandedState int64  `json:"expanded_state"`
 	CreatedAt     int64  `json:"created_at"`
+	RemovedAt     *int64 `json:"removed_at"`
 }
 
 type ProviderRun struct {

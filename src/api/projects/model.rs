@@ -7,6 +7,7 @@ pub struct Project {
     #[serde(deserialize_with = "crate::api::serde_sqlite::bool_from_int")]
     pub expanded_state: bool,
     pub created_at: i64,
+    pub removed_at: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]

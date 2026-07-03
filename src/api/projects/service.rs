@@ -42,6 +42,15 @@ impl Service {
             )
             .map_err(AppError::from)?
         {
+            if existing.removed_at.is_some() {
+                return self
+                    .db
+                    .workspace_one(
+                        "ReactivateProject",
+                        &serde_json::json!({ "id": existing.id }),
+                    )
+                    .map_err(AppError::from);
+            }
             return Ok(existing);
         }
 
@@ -62,9 +71,27 @@ impl Service {
     }
 
     pub async fn close(&self, id: &str) -> Result<(), AppError> {
-        self.db
-            .workspace("DeleteProject", &serde_json::json!({ "id": id }))
+        let count: i64 = self
+            .db
+            .workspace_one(
+                "CountSessionsByProject",
+                &serde_json::json!({ "project_id": id }),
+            )
             .map_err(AppError::from)?;
+
+        if count > 0 {
+            let now = unix_now();
+            self.db
+                .workspace_one::<Project>(
+                    "SoftRemoveProject",
+                    &serde_json::json!({ "id": id, "removed_at": now }),
+                )
+                .map_err(AppError::from)?;
+        } else {
+            self.db
+                .workspace("DeleteProject", &serde_json::json!({ "id": id }))
+                .map_err(AppError::from)?;
+        }
         Ok(())
     }
 
@@ -221,5 +248,73 @@ mod tests {
         assert_eq!(first.path, "/tmp/alpha/repo");
         assert_eq!(second.path, "/tmp/beta/repo");
         assert_eq!(svc.list().await.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn close_soft_removes_when_sessions_exist() {
+        let db = memory_db();
+        let svc = Service::new(db.clone());
+        let project = svc
+            .create(CreateProject {
+                path: "/tmp/with-sessions".into(),
+            })
+            .await
+            .unwrap();
+        db.workspace_one::<serde_json::Value>(
+            "CreateSession",
+            &serde_json::json!({
+                "id": "sess-1",
+                "project_id": project.id,
+                "worktree_id": null,
+                "worktree_path": "/tmp/with-sessions",
+                "created_at": 1,
+                "updated_at": 1,
+                "last_active_at": 1,
+            }),
+        )
+        .unwrap();
+
+        svc.close(&project.id).await.unwrap();
+
+        assert!(svc.list().await.unwrap().is_empty());
+        let fetched = svc.get(&project.id).await.unwrap();
+        assert!(fetched.removed_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn create_reactivates_soft_removed_project() {
+        let db = memory_db();
+        let svc = Service::new(db.clone());
+        let project = svc
+            .create(CreateProject {
+                path: "/tmp/reactivate-me".into(),
+            })
+            .await
+            .unwrap();
+        db.workspace_one::<serde_json::Value>(
+            "CreateSession",
+            &serde_json::json!({
+                "id": "sess-1",
+                "project_id": project.id,
+                "worktree_id": null,
+                "worktree_path": "/tmp/reactivate-me",
+                "created_at": 1,
+                "updated_at": 1,
+                "last_active_at": 1,
+            }),
+        )
+        .unwrap();
+        svc.close(&project.id).await.unwrap();
+        assert!(svc.list().await.unwrap().is_empty());
+
+        let reactivated = svc
+            .create(CreateProject {
+                path: "/tmp/reactivate-me".into(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(reactivated.id, project.id);
+        assert!(reactivated.removed_at.is_none());
+        assert_eq!(svc.list().await.unwrap().len(), 1);
     }
 }

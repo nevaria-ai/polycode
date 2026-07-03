@@ -1,20 +1,21 @@
 -- name: CreateProject :one
 INSERT INTO projects (id, path, expanded_state, created_at)
 VALUES (?, ?, ?, ?)
-RETURNING id, path, expanded_state, created_at;
+RETURNING id, path, expanded_state, created_at, removed_at;
 
 -- name: ListProjects :many
-SELECT id, path, expanded_state, created_at
+SELECT id, path, expanded_state, created_at, removed_at
 FROM projects
+WHERE removed_at IS NULL
 ORDER BY created_at DESC, rowid DESC;
 
 -- name: GetProject :one
-SELECT id, path, expanded_state, created_at
+SELECT id, path, expanded_state, created_at, removed_at
 FROM projects
 WHERE id = ?;
 
 -- name: FindProjectByPath :one
-SELECT id, path, expanded_state, created_at
+SELECT id, path, expanded_state, created_at, removed_at
 FROM projects
 WHERE path = ?;
 
@@ -25,7 +26,18 @@ DELETE FROM projects WHERE id = ?;
 UPDATE projects
 SET expanded_state = ?
 WHERE id = ?
-RETURNING id, path, expanded_state, created_at;
+RETURNING id, path, expanded_state, created_at, removed_at;
+
+-- name: CountSessionsByProject :one
+SELECT COUNT(*) FROM sessions WHERE project_id = ?;
+
+-- name: SoftRemoveProject :one
+UPDATE projects SET removed_at = ? WHERE id = ?
+RETURNING id, path, expanded_state, created_at, removed_at;
+
+-- name: ReactivateProject :one
+UPDATE projects SET removed_at = NULL WHERE id = ?
+RETURNING id, path, expanded_state, created_at, removed_at;
 
 -- name: CreateSession :one
 INSERT INTO sessions (

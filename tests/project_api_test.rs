@@ -239,3 +239,125 @@ async fn test_list_projects_display_name_double_collision_uses_absolute_path() {
     // No project should be left with the ambiguous "temp/temp" display name.
     assert!(!display_names.contains("temp/temp"));
 }
+
+#[tokio::test]
+async fn test_close_project_soft_removes_when_sessions_exist() {
+    let app = common::app();
+    let project_id = common::seed_project(&app).await;
+    common::seed_session(&app, &project_id).await;
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri(format!("/api/projects/{project_id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let list = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/projects")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let projects: Vec<serde_json::Value> =
+        common::json_body(list).await.as_array().unwrap().clone();
+    assert!(projects.is_empty());
+
+    let get = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/projects/{project_id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(get.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_close_project_hard_deletes_without_sessions() {
+    let app = common::app();
+    let project_id = common::seed_project(&app).await;
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri(format!("/api/projects/{project_id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let get = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/projects/{project_id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(get.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_readd_soft_removed_project_restores_same_id() {
+    let app = common::app();
+    let path = "/tmp/readd-soft-removed";
+    let project_id = common::seed_project_with(&app, path).await;
+    common::seed_session(&app, &project_id).await;
+
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri(format!("/api/projects/{project_id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let readd = app
+        .clone()
+        .oneshot(common::json_request(
+            "POST",
+            "/api/projects",
+            Some(json!({"path": path})),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(readd.status(), StatusCode::OK);
+    let body = common::json_body(readd).await;
+    assert_eq!(body["project"]["id"].as_str().unwrap(), project_id);
+
+    let list = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/projects")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let projects: Vec<serde_json::Value> =
+        common::json_body(list).await.as_array().unwrap().clone();
+    assert_eq!(projects.len(), 1);
+    assert_eq!(projects[0]["id"].as_str().unwrap(), project_id);
+}

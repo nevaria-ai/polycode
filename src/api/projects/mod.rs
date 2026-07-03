@@ -230,6 +230,7 @@ mod tests {
             path: path.to_string(),
             expanded_state: false,
             created_at: 0,
+            removed_at: None,
         }
     }
 
