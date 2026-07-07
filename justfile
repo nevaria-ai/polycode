@@ -3,10 +3,8 @@ set dotenv-load := true
 
 # --- cgo ---
 
-go-test:
-    cd cgo && go test ./...
-
-go-sqlc:
+sqlc:
+    cd cgo && sqlc diff
     cd cgo && sqlc generate
 
 # --- app ---
@@ -27,14 +25,23 @@ build:
     ( cd ui && bun run build )
     cargo build --release
 
-# Go tests in cgo/, then Rust tests
+# Test ui, rust, and cgo sources
 test:
-    just go-test
+    ( cd ui && bun run test )
     cargo test
+    cd cgo && go test ./...
 
-web-validate:
-    ( cd ui && bun run test && bun run lint && bun run check )
+# Lint ui, rust, and cgo sources
+lint:
+    ( cd ui && bun run lint && bun run check )
+    cargo clippy -- -D warnings
+    cd cgo && go vet ./...
 
+# Format ui, rust, and cgo sources
+fmt:
+    ( cd ui && bun run format )
+    cargo fmt
+    cd cgo && go fmt ./...
 
 # Rust target/ (includes Go archive in OUT_DIR)
 clean:
