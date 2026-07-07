@@ -19,9 +19,7 @@
 
 		submitting = true;
 		try {
-			await deleteWorktree(info.projectId, info.worktreeId, {
-				branch: info.branch
-			});
+			await deleteWorktree(info.projectId, info.worktreeId);
 			info = null;
 			await invalidateAll();
 		} finally {

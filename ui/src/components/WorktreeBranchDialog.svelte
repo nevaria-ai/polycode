@@ -7,7 +7,7 @@
 
 	type BranchDialogMode =
 		| { mode: 'create'; projectId: string }
-		| { mode: 'rename'; projectId: string; worktreeId: string; oldBranch: string }
+		| { mode: 'rename'; projectId: string; worktreeId: string }
 		| null;
 
 	let { branchDialogState = $bindable(null) }: { branchDialogState?: BranchDialogMode } = $props();
@@ -17,9 +17,7 @@
 	let error = $state<string | null>(null);
 
 	$effect(() => {
-		if (branchDialogState?.mode === 'rename' && 'oldBranch' in branchDialogState) {
-			branchName = branchDialogState.oldBranch;
-		} else if (branchDialogState === null) {
+		if (branchDialogState === null) {
 			branchName = '';
 		}
 		error = null;
@@ -36,11 +34,11 @@
 					branch: branchName.trim()
 				});
 			} else {
-				const oldBranch = branchDialogState.oldBranch;
-				await renameWorktreeBranch(branchDialogState.projectId, branchDialogState.worktreeId, {
-					oldBranch,
-					newBranch: branchName.trim()
-				});
+				await renameWorktreeBranch(
+					branchDialogState.projectId,
+					branchDialogState.worktreeId,
+					branchName.trim()
+				);
 			}
 			branchDialogState = null;
 			await invalidateAll();

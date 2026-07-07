@@ -596,7 +596,7 @@ describe('AppSidebar', () => {
 		expect(document.querySelector('form[action="/?/deleteWorktree"]')).toBeNull();
 	});
 
-	it('rename worktree reuses worktree dialog with prefilled input', async () => {
+	it('rename worktree opens dialog with empty branch input', async () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{
@@ -631,7 +631,7 @@ describe('AppSidebar', () => {
 
 		const nameInput = document.querySelector('input[name="branchName"]') as HTMLInputElement | null;
 		expect(nameInput).toBeInTheDocument();
-		expect(nameInput?.value).toBe('feature/auth');
+		expect(nameInput?.value).toBe('');
 	});
 
 	it('does not mark nested paths under a session route as active', async () => {

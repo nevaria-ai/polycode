@@ -58,7 +58,6 @@ async fn delete_worktree_api(
     app: &axum::Router,
     project_id: &str,
     worktree_id: &str,
-    branch: &str,
 ) -> StatusCode {
     let encoded = urlencoding::encode(worktree_id);
     let resp = app
@@ -66,7 +65,7 @@ async fn delete_worktree_api(
         .oneshot(common::json_request(
             "DELETE",
             &format!("/api/projects/{project_id}/worktrees/{encoded}"),
-            Some(serde_json::json!({ "branch": branch })),
+            None,
         ))
         .await
         .unwrap();
@@ -77,7 +76,6 @@ async fn rename_branch_api(
     app: &axum::Router,
     project_id: &str,
     worktree_id: &str,
-    old_branch: &str,
     new_branch: &str,
 ) -> StatusCode {
     let encoded = urlencoding::encode(worktree_id);
@@ -87,7 +85,6 @@ async fn rename_branch_api(
             "PATCH",
             &format!("/api/projects/{project_id}/worktrees/{encoded}"),
             Some(serde_json::json!({
-                "oldBranch": old_branch,
                 "newBranch": new_branch,
             })),
         ))
@@ -318,7 +315,7 @@ async fn test_delete_worktree_api_keeps_session_and_stable_id() {
 
     let ext_path_str = ext_path.to_str().unwrap();
     let listed = list_worktrees(&app, &project_id).await;
-    let branch = listed
+    let _branch = listed
         .as_array()
         .unwrap()
         .iter()
@@ -337,7 +334,7 @@ async fn test_delete_worktree_api_keeps_session_and_stable_id() {
     );
 
     assert_eq!(
-        delete_worktree_api(&app, &project_id, &expected_id, &branch).await,
+        delete_worktree_api(&app, &project_id, &expected_id).await,
         StatusCode::NO_CONTENT
     );
 
@@ -454,7 +451,7 @@ async fn test_rename_checked_out_branch_by_worktree_id() {
     let wt_id = created["worktree"]["id"].as_str().unwrap();
 
     assert_eq!(
-        rename_branch_api(&app, &project_id, wt_id, "feature-a", "feature-renamed").await,
+        rename_branch_api(&app, &project_id, wt_id, "feature-renamed").await,
         StatusCode::NO_CONTENT
     );
 
@@ -476,7 +473,7 @@ async fn test_delete_worktree_by_id_ref() {
     let wt_id = created["worktree"]["id"].as_str().unwrap();
 
     assert_eq!(
-        delete_worktree_api(&app, &project_id, wt_id, "to-delete").await,
+        delete_worktree_api(&app, &project_id, wt_id).await,
         StatusCode::NO_CONTENT
     );
 
@@ -508,7 +505,7 @@ async fn test_git_only_worktree_resolves_by_id() {
     let worktree_id = v5_id_for_path(ext_path_str);
 
     assert_eq!(
-        delete_worktree_api(&app, &project_id, &worktree_id, "git-only-branch").await,
+        delete_worktree_api(&app, &project_id, &worktree_id).await,
         StatusCode::NO_CONTENT,
         "git-only worktree resolves by stable id from git scan"
     );

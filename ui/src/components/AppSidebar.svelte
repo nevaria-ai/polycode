@@ -106,7 +106,7 @@
 
 	type BranchDialogMode =
 		| { mode: 'create'; projectId: string }
-		| { mode: 'rename'; projectId: string; worktreeId: string; oldBranch: string }
+		| { mode: 'rename'; projectId: string; worktreeId: string }
 		| null;
 	let branchDialogState = $state<BranchDialogMode>(null);
 
@@ -336,8 +336,7 @@
 																					(branchDialogState = {
 																						mode: 'rename',
 																						projectId: project.projectId,
-																						worktreeId: worktree.id,
-																						oldBranch: worktree.branch ?? ''
+																						worktreeId: worktree.id
 																					})}>Rename branch</DropdownMenu.Item
 																			>
 																			<DropdownMenu.Item

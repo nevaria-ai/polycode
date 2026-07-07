@@ -16,17 +16,13 @@ export async function createWorktree(
 export async function renameWorktreeBranch(
 	projectId: string,
 	worktreeId: string,
-	data: { oldBranch: string; newBranch: string }
+	newBranch: string
 ): Promise<void> {
 	const encoded = encodeURIComponent(worktreeId);
-	await api.patch(`projects/${projectId}/worktrees/${encoded}`, { json: data });
+	await api.patch(`projects/${projectId}/worktrees/${encoded}`, { json: { newBranch } });
 }
 
-export async function deleteWorktree(
-	projectId: string,
-	worktreeId: string,
-	data: { branch: string }
-): Promise<void> {
+export async function deleteWorktree(projectId: string, worktreeId: string): Promise<void> {
 	const encoded = encodeURIComponent(worktreeId);
-	await api.delete(`projects/${projectId}/worktrees/${encoded}`, { json: data });
+	await api.delete(`projects/${projectId}/worktrees/${encoded}`);
 }

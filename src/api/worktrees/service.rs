@@ -90,6 +90,23 @@ impl Service {
         Self::external_path_for_id(project_id, project_path, worktree_id)
     }
 
+    /// Branch checked out in the worktree identified by `worktree_id`.
+    /// Composes `path_for_id` (DB/managed/git scan) with `get_worktree_branch` (HEAD read).
+    pub async fn branch_name_for_id(
+        &self,
+        project_id: &str,
+        project_path: &str,
+        worktree_id: &str,
+    ) -> Result<Option<String>, AppError> {
+        let path = self
+            .path_for_id(project_id, project_path, worktree_id)
+            .await?;
+        if !Path::new(&path).exists() {
+            return Ok(None);
+        }
+        GitOps::get_worktree_branch(Path::new(&path)).map_err(AppError::BadRequest)
+    }
+
     pub async fn add_row(
         &self,
         project_id: &str,

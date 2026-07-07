@@ -153,20 +153,29 @@ impl GitOps {
         })
     }
 
-    pub fn delete_worktree(
-        repo_path: &Path,
-        worktree_path: &Path,
-        branch: &str,
-    ) -> Result<(), String> {
-        // gix has no linked-worktree removal API; delegate to git.
-        let mut remove_cmd = std::process::Command::new("git");
-        remove_cmd
-            .args(["worktree", "remove", &worktree_path.to_string_lossy()])
-            .current_dir(repo_path);
-        Self::git_output_checked(&mut remove_cmd, "remove worktree")?;
+    pub fn delete_worktree(repo_path: &Path, worktree_path: &Path) -> Result<(), String> {
+        let branch = if worktree_path.exists() {
+            Self::get_worktree_branch(worktree_path)?
+        } else {
+            None
+        };
 
-        let main_repo = Self::main_storage_repo(repo_path)?;
-        Self::delete_local_branch(&main_repo, branch)
+        if worktree_path.exists() {
+            // gix has no linked-worktree removal API; delegate to git.
+            let mut remove_cmd = std::process::Command::new("git");
+            remove_cmd
+                .args(["worktree", "remove", &worktree_path.to_string_lossy()])
+                .current_dir(repo_path);
+            Self::git_output_checked(&mut remove_cmd, "remove worktree")?;
+        }
+
+        if let Some(branch) = branch {
+            let main_repo = Self::main_storage_repo(repo_path)?;
+            if Self::local_branch_exists(&main_repo, &branch)? {
+                Self::delete_local_branch(&main_repo, &branch)?;
+            }
+        }
+        Ok(())
     }
 
     /// Rename the branch checked out in `worktree_path` (`git branch -m`). Path and worktree id stay
@@ -174,19 +183,12 @@ impl GitOps {
     pub fn rename_worktree_branch(
         repo_path: &Path,
         worktree_path: &Path,
-        old_name: &str,
         new_name: &str,
     ) -> Result<(), String> {
-        if old_name == new_name {
-            return Err("new branch name must differ from current branch name".to_string());
-        }
-
         let current = Self::get_worktree_branch(worktree_path)?
             .ok_or_else(|| "worktree is not on a branch".to_string())?;
-        if current != old_name {
-            return Err(format!(
-                "worktree branch mismatch: expected '{old_name}', found '{current}'"
-            ));
+        if current == new_name {
+            return Err("new branch name must differ from current branch name".to_string());
         }
 
         let main_repo = Self::main_storage_repo(repo_path)?;
@@ -329,7 +331,7 @@ mod tests {
         assert_eq!(list.len(), 2);
 
         let wt_path_obj = Path::new(&wt.path);
-        GitOps::delete_worktree(dir.path(), wt_path_obj, "feature-x").unwrap();
+        GitOps::delete_worktree(dir.path(), wt_path_obj).unwrap();
 
         let list = GitOps::list_worktrees(dir.path()).unwrap();
         assert_eq!(list.len(), 1);
@@ -419,8 +421,7 @@ mod tests {
         let wt_path = dir.path().join("wt-a");
         GitOps::create_worktree(dir.path(), &wt_path, "feature-a").unwrap();
 
-        let err = GitOps::rename_worktree_branch(dir.path(), &wt_path, "feature-a", "feature-a")
-            .unwrap_err();
+        let err = GitOps::rename_worktree_branch(dir.path(), &wt_path, "feature-a").unwrap_err();
         assert!(err.contains("must differ"));
     }
 
@@ -433,8 +434,7 @@ mod tests {
         GitOps::create_worktree(dir.path(), &wt_a_path, "feature-a").unwrap();
         GitOps::create_worktree(dir.path(), &wt_b_path, "feature-b").unwrap();
 
-        let err = GitOps::rename_worktree_branch(dir.path(), &wt_a_path, "feature-a", "feature-b")
-            .unwrap_err();
+        let err = GitOps::rename_worktree_branch(dir.path(), &wt_a_path, "feature-b").unwrap_err();
         assert!(err.contains("already exists"));
     }
 
@@ -445,8 +445,7 @@ mod tests {
         let wt_path = dir.path().join("wt-a");
         GitOps::create_worktree(dir.path(), &wt_path, "feature-a").unwrap();
 
-        GitOps::rename_worktree_branch(dir.path(), &wt_path, "feature-a", "feature-renamed")
-            .unwrap();
+        GitOps::rename_worktree_branch(dir.path(), &wt_path, "feature-renamed").unwrap();
 
         let listed = GitOps::list_worktrees(dir.path()).unwrap();
         let wt = listed

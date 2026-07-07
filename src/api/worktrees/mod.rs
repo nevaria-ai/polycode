@@ -33,17 +33,10 @@ pub struct CreateBody {
     pub branch: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeleteBody {
-    pub branch: String,
-}
-
 /// Body for renaming the branch checked out in a worktree (`git branch -m`), not the worktree path.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RenameBranchBody {
-    pub old_branch: String,
     pub new_branch: String,
 }
 
@@ -115,7 +108,6 @@ async fn create(
 async fn delete_one(
     State(state): State<AppState>,
     Path((project_id, worktree_id)): Path<(String, String)>,
-    Json(body): Json<DeleteBody>,
 ) -> Result<StatusCode, AppError> {
     let project = ProjectService::new(state.db.clone())
         .get(&project_id)
@@ -125,11 +117,8 @@ async fn delete_one(
         .path_for_id(&project_id, &project.path, &worktree_id)
         .await?;
 
-    let worktree_path_obj = FsPath::new(&path);
-    if worktree_path_obj.exists() {
-        GitOps::delete_worktree(FsPath::new(&project.path), worktree_path_obj, &body.branch)
-            .map_err(AppError::BadRequest)?;
-    }
+    GitOps::delete_worktree(FsPath::new(&project.path), FsPath::new(&path))
+        .map_err(AppError::BadRequest)?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -151,7 +140,6 @@ async fn rename_checked_out_branch(
     GitOps::rename_worktree_branch(
         FsPath::new(&project.path),
         FsPath::new(&path),
-        &body.old_branch,
         &body.new_branch,
     )
     .map_err(AppError::BadRequest)?;
