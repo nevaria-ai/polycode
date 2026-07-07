@@ -8,7 +8,8 @@ import type { WorktreeEntry } from '$lib/sessions';
 
 export const ssr = false;
 
-export const load: LayoutLoad = async () => {
+export const load: LayoutLoad = async ({ depends }) => {
+	depends('projects:list');
 	const [projects, sessions] = await Promise.all([
 		getProjects().catch(() => [] as Project[]),
 		listAllSessions().catch(() => [] as Session[])

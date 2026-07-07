@@ -41,6 +41,7 @@ vi.mock('$lib/services', () => ({
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn(async () => {}),
+	invalidate: vi.fn(async () => {}),
 	invalidateAll: vi.fn(async () => {}),
 	replaceState: vi.fn()
 }));

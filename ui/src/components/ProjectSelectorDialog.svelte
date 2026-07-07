@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { createProject, getDirectories } from '$lib/services';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Button } from '$components/ui/button';
 	import * as Command from '$components/ui/command';
@@ -172,7 +172,7 @@
 			// is present in the layout data, then navigate. Navigating before
 			// invalidating would leave the composer with stale data and the
 			// selected project would not resolve.
-			await invalidateAll();
+			await invalidate('projects:list');
 			await goto(resolve(`/?project=${encodeURIComponent(project.id)}`));
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to create project';

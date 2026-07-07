@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 
-const { createProjectMock, invalidateAllMock, gotoMock } = vi.hoisted(() => ({
+const { createProjectMock, invalidateMock, gotoMock } = vi.hoisted(() => ({
 	createProjectMock: vi.fn(async () => ({ project: { id: 'test-project-id' } })),
-	invalidateAllMock: vi.fn(async () => {}),
+	invalidateMock: vi.fn(async () => {}),
 	gotoMock: vi.fn(async () => {})
 }));
 
@@ -21,7 +21,7 @@ vi.mock('$lib/services', async (importOriginal) => {
 });
 
 vi.mock('$app/navigation', () => ({
-	invalidateAll: invalidateAllMock,
+	invalidate: invalidateMock,
 	goto: gotoMock
 }));
 
@@ -72,8 +72,8 @@ describe('ProjectSelectorDialog', () => {
 		// across tests when the file runs alongside others in the same suite.
 		createProjectMock.mockReset();
 		createProjectMock.mockResolvedValue({ project: { id: 'test-project-id' } });
-		invalidateAllMock.mockReset();
-		invalidateAllMock.mockResolvedValue();
+		invalidateMock.mockReset();
+		invalidateMock.mockResolvedValue();
 		gotoMock.mockReset();
 		gotoMock.mockResolvedValue();
 		scrollIntoViewMock = vi.fn();
@@ -263,11 +263,11 @@ describe('ProjectSelectorDialog', () => {
 
 		await expect.poll(() => createProjectMock.mock.calls.length).toBe(1);
 		expect(createProjectMock).toHaveBeenCalledWith('/workspace');
-		expect(invalidateAllMock).toHaveBeenCalledTimes(1);
+		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
 		expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
-		// invalidateAll must run before goto so the layout's projectTree refresh
+		// invalidate must run before goto so the layout's projectTree refresh
 		// completes before the composer tries to resolve the selected project.
-		expect(invalidateAllMock.mock.invocationCallOrder[0]).toBeLessThan(
+		expect(invalidateMock.mock.invocationCallOrder[0]).toBeLessThan(
 			gotoMock.mock.invocationCallOrder[0]
 		);
 	});
@@ -325,7 +325,7 @@ describe('ProjectSelectorDialog', () => {
 
 		await expect.poll(() => gotoMock.mock.calls.length).toBe(1);
 		expect(gotoMock).toHaveBeenCalledWith('/?project=reused-existing-id');
-		expect(invalidateAllMock).toHaveBeenCalledTimes(1);
+		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
 	});
 
 	it('does not trigger submit when the Cancel button is clicked', async () => {
@@ -381,6 +381,6 @@ describe('ProjectSelectorDialog', () => {
 
 		await expect.element(page.getByText('permission denied')).toBeVisible();
 		expect(gotoMock).not.toHaveBeenCalled();
-		expect(invalidateAllMock).not.toHaveBeenCalled();
+		expect(invalidateMock).not.toHaveBeenCalled();
 	});
 });

@@ -32,7 +32,7 @@
 		type SidebarSessionEntry
 	} from '$components/SidebarSessionList.svelte';
 	import { closeProject, updateProjectExpandedState } from '$lib/services';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 
 	const NOTREAL_SESSION: SidebarSessionEntry = {
 		id: '__notreal__',
@@ -116,7 +116,7 @@
 
 	async function removeProject(projectId: string) {
 		await closeProject(projectId);
-		await invalidateAll();
+		await invalidate('projects:list');
 	}
 
 	function newProjectSession(projectId: string) {
