@@ -138,12 +138,11 @@ describe('font rendering', () => {
 				expandedState: false,
 				createdAt: '2026-04-09T10:00:00.000Z',
 				defaultBranchLabel: null,
+				mainWorktreeId: null,
 				sessions: [],
 				worktrees: [
 					{
 						id: 'test-wt-id',
-						name: 'test-wt-name',
-						path: '/repo',
 						branch: 'main',
 						sessions: [
 							{
@@ -184,12 +183,11 @@ describe('font rendering', () => {
 				expandedState: false,
 				createdAt: '2026-04-09T10:00:00.000Z',
 				defaultBranchLabel: null,
+				mainWorktreeId: null,
 				sessions: [],
 				worktrees: [
 					{
 						id: 'test-wt-id',
-						name: 'test-wt-name',
-						path: '/repo',
 						branch: 'main',
 						sessions: []
 					}

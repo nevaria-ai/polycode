@@ -1,12 +1,20 @@
+//! Git worktree and branch helpers.
+//!
+//! Reads and ref lookups use [`gix`]. Mutations delegate to `git` where gitoxide has no API
+//! (worktree add/remove, worktree-aware branch rename) or where `git` is simpler (branch rename).
+
 use std::path::Path;
 
+use gix::reference::find::existing::Error as FindReferenceError;
+use gix::refs::transaction::{Change, PreviousValue, RefEdit, RefLog};
+use gix::refs::FullName;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorktreeInfo {
-    pub name: String,
     pub path: String,
-    pub is_current: bool,
+    /// `true` for checkouts added via `git worktree add`; `false` for the main repo worktree.
+    pub is_linked_worktree: bool,
     pub branch: Option<String>,
 }
 
@@ -32,8 +40,47 @@ impl GitOps {
         Err(format!("{context} failed: {details}"))
     }
 
+    fn open_repo(path: &Path) -> Result<gix::Repository, String> {
+        gix::open(path).map_err(|e| e.to_string())
+    }
+
+    /// Main repository backing `path` (follows linked worktrees to common storage).
+    fn main_storage_repo(path: &Path) -> Result<gix::Repository, String> {
+        let repo = Self::open_repo(path)?;
+        if repo.kind() == gix::repository::Kind::LinkedWorkTree {
+            repo.main_repo().map_err(|e| e.to_string())
+        } else {
+            Ok(repo)
+        }
+    }
+
+    fn local_branch_exists(repo: &gix::Repository, branch: &str) -> Result<bool, String> {
+        let ref_name = format!("refs/heads/{branch}");
+        match repo.find_reference(ref_name.as_str()) {
+            Ok(_) => Ok(true),
+            Err(FindReferenceError::NotFound { .. }) => Ok(false),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    fn delete_local_branch(repo: &gix::Repository, branch: &str) -> Result<(), String> {
+        let name: FullName = format!("refs/heads/{branch}")
+            .try_into()
+            .map_err(|e: gix::validate::reference::name::Error| e.to_string())?;
+        repo.edit_reference(RefEdit {
+            change: Change::Delete {
+                expected: PreviousValue::MustExist,
+                log: RefLog::AndReference,
+            },
+            name,
+            deref: false,
+        })
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     pub fn list_worktrees(repo_path: &Path) -> Result<Vec<WorktreeInfo>, String> {
-        let repo = gix::open(repo_path).map_err(|e| e.to_string())?;
+        let repo = Self::open_repo(repo_path)?;
         let mut result = Vec::new();
 
         if let Some(wt) = repo.worktree() {
@@ -43,19 +90,14 @@ impl GitOps {
                 .flatten()
                 .map(|name| name.shorten().to_string());
             result.push(WorktreeInfo {
-                name: wt
-                    .id()
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| "main".to_string()),
                 path: wt.base().to_string_lossy().to_string(),
-                is_current: true,
+                is_linked_worktree: false,
                 branch,
             });
         }
 
         let linked = repo.worktrees().map_err(|e| e.to_string())?;
         for proxy in linked {
-            let name = proxy.id().to_string();
             let wt_path = proxy.base().map_err(|e| e.to_string())?;
             let branch = proxy
                 .into_repo()
@@ -63,9 +105,8 @@ impl GitOps {
                 .and_then(|r| r.head_name().ok().flatten())
                 .map(|name_ref| name_ref.shorten().to_string());
             result.push(WorktreeInfo {
-                name,
                 path: wt_path.to_string_lossy().to_string(),
-                is_current: false,
+                is_linked_worktree: true,
                 branch,
             });
         }
@@ -79,16 +120,7 @@ impl GitOps {
         branch: &str,
     ) -> Result<WorktreeInfo, String> {
         // Creating worktrees from an unborn HEAD repo leads to ambiguous branch behavior.
-        // Require at least one commit before allowing worktree creation.
-        let mut verify_head_cmd = std::process::Command::new("git");
-        verify_head_cmd
-            .args(["rev-parse", "--verify", "HEAD"])
-            .current_dir(repo_path);
-        Self::git_output_checked(
-            &mut verify_head_cmd,
-            "verify repository has at least one commit",
-        )
-        .map_err(|_| {
+        Self::open_repo(repo_path)?.head_id().map_err(|_| {
             "cannot create worktree: repository has no commits yet; create an initial commit first"
                 .to_string()
         })?;
@@ -97,6 +129,7 @@ impl GitOps {
             return Err(format!("path already exists: {}", worktree_path.display()));
         }
 
+        // gix has no linked-worktree creation API; delegate to git.
         let mut create_cmd = std::process::Command::new("git");
         create_cmd
             .args([
@@ -114,12 +147,8 @@ impl GitOps {
         }
 
         Ok(WorktreeInfo {
-            name: worktree_path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| branch.to_string()),
             path: worktree_path.to_string_lossy().to_string(),
-            is_current: false,
+            is_linked_worktree: true,
             branch: Some(branch.to_string()),
         })
     }
@@ -129,21 +158,19 @@ impl GitOps {
         worktree_path: &Path,
         branch: &str,
     ) -> Result<(), String> {
-        std::process::Command::new("git")
+        // gix has no linked-worktree removal API; delegate to git.
+        let mut remove_cmd = std::process::Command::new("git");
+        remove_cmd
             .args(["worktree", "remove", &worktree_path.to_string_lossy()])
-            .current_dir(repo_path)
-            .output()
-            .map_err(|e| format!("failed to run git worktree remove: {e}"))?;
+            .current_dir(repo_path);
+        Self::git_output_checked(&mut remove_cmd, "remove worktree")?;
 
-        std::process::Command::new("git")
-            .args(["branch", "-D", branch])
-            .current_dir(repo_path)
-            .output()
-            .map_err(|e| format!("failed to delete branch: {e}"))?;
-
-        Ok(())
+        let main_repo = Self::main_storage_repo(repo_path)?;
+        Self::delete_local_branch(&main_repo, branch)
     }
 
+    /// Rename the branch checked out in `worktree_path` (`git branch -m`). Path and worktree id stay
+    /// the same; only the branch name changes.
     pub fn rename_worktree_branch(
         repo_path: &Path,
         worktree_path: &Path,
@@ -162,15 +189,8 @@ impl GitOps {
             ));
         }
 
-        let verify_ref = format!("refs/heads/{new_name}");
-        let mut exists_cmd = std::process::Command::new("git");
-        exists_cmd
-            .args(["show-ref", "--verify", "--quiet", &verify_ref])
-            .current_dir(repo_path);
-        let exists = exists_cmd
-            .status()
-            .map_err(|e| format!("failed to check branch existence: {e}"))?;
-        if exists.success() {
+        let main_repo = Self::main_storage_repo(repo_path)?;
+        if Self::local_branch_exists(&main_repo, new_name)? {
             return Err(format!("branch '{new_name}' already exists"));
         }
 
@@ -183,7 +203,7 @@ impl GitOps {
     }
 
     pub fn get_worktree_branch(path: &Path) -> Result<Option<String>, String> {
-        let repo = gix::open(path).map_err(|e| e.to_string())?;
+        let repo = Self::open_repo(path)?;
         Ok(repo
             .head_name()
             .ok()
@@ -191,27 +211,26 @@ impl GitOps {
             .map(|name| name.shorten().to_string()))
     }
 
-    pub fn get_default_branch(repo_path: &Path) -> Result<String, String> {
-        let repo = gix::open(repo_path).map_err(|e| e.to_string())?;
-        repo.head_name()
-            .map_err(|e| e.to_string())?
-            .map(|name| name.shorten().to_string())
-            .ok_or_else(|| "no head branch".to_string())
-    }
-
     pub fn resolve_repo_root(path: &Path) -> Result<std::path::PathBuf, String> {
         let repo = match gix::discover(path) {
             Ok(r) => r,
             Err(_) => return Ok(path.to_path_buf()),
         };
-        let wt = repo
+
+        let main = if repo.kind() == gix::repository::Kind::LinkedWorkTree {
+            repo.main_repo().map_err(|e| e.to_string())?
+        } else {
+            repo
+        };
+
+        let wt = main
             .worktree()
             .ok_or_else(|| "repository has no worktree".to_string())?;
         Ok(wt.base().to_path_buf())
     }
 
     pub fn get_remote_origin_name(repo_path: &Path) -> Option<String> {
-        let repo = gix::open(repo_path).ok()?;
+        let repo = Self::open_repo(repo_path).ok()?;
         let remote = repo.find_remote("origin").ok()?;
         let url = remote.url(gix::remote::Direction::Fetch)?.to_string();
         let stripped = url
@@ -293,23 +312,8 @@ mod tests {
         init_repo(&dir);
         let result = GitOps::list_worktrees(dir.path()).unwrap();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "main");
-        assert!(result[0].is_current);
+        assert!(!result[0].is_linked_worktree);
         assert_eq!(result[0].branch.as_deref(), Some("main"));
-    }
-
-    #[test]
-    fn test_get_default_branch() {
-        let dir = TempDir::new().unwrap();
-        init_repo(&dir);
-        let branch = GitOps::get_default_branch(dir.path()).unwrap();
-        assert_eq!(branch, "main");
-    }
-
-    #[test]
-    fn test_get_default_branch_nonexistent() {
-        let result = GitOps::get_default_branch(Path::new("/nonexistent/path"));
-        assert!(result.is_err());
     }
 
     #[test]
@@ -318,9 +322,8 @@ mod tests {
         init_repo(&dir);
         let wt_path = dir.path().join("feature-x");
         let wt = GitOps::create_worktree(dir.path(), &wt_path, "feature-x").unwrap();
-        assert_eq!(wt.name, "feature-x");
         assert_eq!(wt.branch.as_deref(), Some("feature-x"));
-        assert!(!wt.is_current);
+        assert!(wt.is_linked_worktree);
 
         let list = GitOps::list_worktrees(dir.path()).unwrap();
         assert_eq!(list.len(), 2);
@@ -330,6 +333,9 @@ mod tests {
 
         let list = GitOps::list_worktrees(dir.path()).unwrap();
         assert_eq!(list.len(), 1);
+        assert!(!list
+            .iter()
+            .any(|w| w.branch.as_deref() == Some("feature-x")));
     }
 
     #[test]
@@ -337,6 +343,32 @@ mod tests {
         let dir = TempDir::new().unwrap();
         init_repo(&dir);
         let resolved = GitOps::resolve_repo_root(dir.path()).unwrap();
+        assert_eq!(resolved, dir.path());
+    }
+
+    #[test]
+    fn test_resolve_repo_root_from_linked_worktree() {
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        Command::new("touch")
+            .arg(dir.path().join("README.md"))
+            .output()
+            .expect("touch");
+        Command::new("git")
+            .args(["add", "."])
+            .current_dir(dir.path())
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "init"])
+            .current_dir(dir.path())
+            .output()
+            .expect("git commit");
+
+        let linked = dir.path().join("linked-wt");
+        GitOps::create_worktree(dir.path(), &linked, "linked-branch").unwrap();
+
+        let resolved = GitOps::resolve_repo_root(&linked).unwrap();
         assert_eq!(resolved, dir.path());
     }
 
@@ -404,6 +436,25 @@ mod tests {
         let err = GitOps::rename_worktree_branch(dir.path(), &wt_a_path, "feature-a", "feature-b")
             .unwrap_err();
         assert!(err.contains("already exists"));
+    }
+
+    #[test]
+    fn test_rename_branch_updates_listed_branch() {
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        let wt_path = dir.path().join("wt-a");
+        GitOps::create_worktree(dir.path(), &wt_path, "feature-a").unwrap();
+
+        GitOps::rename_worktree_branch(dir.path(), &wt_path, "feature-a", "feature-renamed")
+            .unwrap();
+
+        let listed = GitOps::list_worktrees(dir.path()).unwrap();
+        let wt = listed
+            .iter()
+            .find(|w| w.path == wt_path.to_string_lossy())
+            .unwrap();
+        assert_eq!(wt.branch.as_deref(), Some("feature-renamed"));
+        assert_eq!(wt.path, wt_path.to_string_lossy());
     }
 
     #[test]

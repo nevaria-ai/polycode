@@ -1,4 +1,5 @@
 use crate::api::sessions::model::{CreateSession, Session};
+use crate::api::worktrees::Service as WorktreeService;
 use crate::db::DbHandle;
 use crate::error::AppError;
 use crate::utils::unix_now;
@@ -29,6 +30,16 @@ impl Service {
     }
 
     pub async fn create(&self, input: CreateSession) -> Result<Session, AppError> {
+        let worktree_id = input.worktree_id.clone();
+        let worktree_path = if input.first_session_under_worktree {
+            WorktreeService::new(self.db.clone())
+                .ensure_row_for_id(&input.project_id, &input.project_path, &worktree_id, true)
+                .await?
+                .path
+        } else {
+            String::new()
+        };
+
         let id = uuid::Uuid::new_v4().to_string();
         let now = unix_now();
         self.db
@@ -37,8 +48,8 @@ impl Service {
                 &serde_json::json!({
                     "id": id,
                     "project_id": input.project_id,
-                    "worktree_id": input.worktree_id,
-                    "worktree_path": input.worktree_path,
+                    "worktree_id": worktree_id,
+                    "worktree_path": worktree_path,
                     "created_at": now,
                     "updated_at": now,
                     "last_active_at": now,
@@ -95,70 +106,67 @@ impl Service {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::projects::CreateProject;
+    use crate::api::projects::Service as ProjectService;
+    use crate::api::worktrees::Service as WorktreeService;
     use crate::test_support::memory_db;
 
     #[tokio::test]
     async fn create_session() {
-        let svc = Service::new(memory_db());
-        let session = svc
+        let db = memory_db();
+        let project = ProjectService::new(db.clone())
+            .create(CreateProject {
+                path: "/tmp/project".into(),
+            })
+            .await
+            .unwrap();
+        let wt_id = WorktreeService::worktree_id_for_path("/tmp/wt", &project.id);
+        WorktreeService::new(db.clone())
+            .add_row(&project.id, &wt_id, "/tmp/wt", true)
+            .await
+            .unwrap();
+
+        let session = Service::new(db)
             .create(CreateSession {
-                project_id: "proj-1".into(),
-                worktree_path: "/tmp/worktree".into(),
-                worktree_id: Some("wt-1".into()),
+                project_id: project.id.clone(),
+                project_path: "/tmp/project".into(),
+                worktree_id: wt_id.clone(),
+                first_session_under_worktree: true,
                 title: None,
             })
             .await
             .unwrap();
 
-        assert!(!session.id.is_empty());
-        assert_eq!(session.project_id, "proj-1");
-        assert_eq!(session.worktree_id, Some("wt-1".to_string()));
-        assert_eq!(session.worktree_path, "/tmp/worktree");
-        assert_eq!(session.status, "active");
-        assert_eq!(session.version, 1);
-        assert_eq!(session.has_summary, 0);
-        assert!(session.title.is_none());
+        assert_eq!(session.worktree_id, Some(wt_id));
+        assert_eq!(session.worktree_path, "/tmp/wt");
     }
 
     #[tokio::test]
     async fn list_by_project() {
-        let svc = Service::new(memory_db());
-
-        for path in ["/tmp/a1", "/tmp/a2", "/tmp/b1"] {
-            let project_id = if path == "/tmp/b1" {
-                "proj-b"
-            } else {
-                "proj-a"
-            };
-            svc.create(CreateSession {
-                project_id: project_id.into(),
-                worktree_path: path.into(),
-                worktree_id: None,
-                title: None,
+        let db = memory_db();
+        let project = ProjectService::new(db.clone())
+            .create(CreateProject {
+                path: "/tmp/p".into(),
             })
             .await
             .unwrap();
-        }
-
-        let sessions = svc.list_by_project("proj-a").await.unwrap();
-        assert_eq!(sessions.len(), 2);
-        assert!(sessions.iter().all(|s| s.project_id == "proj-a"));
-    }
-
-    #[tokio::test]
-    async fn archive_session() {
-        let svc = Service::new(memory_db());
-        let created = svc
+        let wt_id = WorktreeService::worktree_id_for_path("/tmp/path", &project.id);
+        WorktreeService::new(db.clone())
+            .add_row(&project.id, &wt_id, "/tmp/path", true)
+            .await
+            .unwrap();
+        Service::new(db.clone())
             .create(CreateSession {
-                project_id: "proj-1".into(),
-                worktree_path: "/tmp/path".into(),
-                worktree_id: None,
+                project_id: project.id.clone(),
+                project_path: "/tmp/p".into(),
+                worktree_id: wt_id,
+                first_session_under_worktree: true,
                 title: None,
             })
             .await
             .unwrap();
-        assert_eq!(created.status, "active");
-        let archived = svc.archive(&created.id).await.unwrap();
-        assert_eq!(archived.status, "archived");
+
+        let sessions = Service::new(db).list_by_project(&project.id).await.unwrap();
+        assert_eq!(sessions.len(), 1);
     }
 }

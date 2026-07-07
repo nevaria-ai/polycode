@@ -19,9 +19,11 @@ async fn test_list_sessions_empty() {
 #[tokio::test]
 async fn test_create_session() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let worktree_id = common::v5_id_for_path(&project_path);
     let body = serde_json::json!({
-        "worktreePath": "/tmp/worktree"
+        "worktreeId": worktree_id,
+        "firstSessionUnderWorktree": true
     });
     let req = Request::builder()
         .method(Method::POST)
@@ -36,8 +38,8 @@ async fn test_create_session() {
 #[tokio::test]
 async fn test_get_session() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
-    let sid = common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let req = Request::builder()
         .uri(format!("/api/projects/{pid}/sessions/{sid}"))
         .body(Body::empty())
@@ -61,8 +63,8 @@ async fn test_get_session_not_found() {
 #[tokio::test]
 async fn test_delete_session() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
-    let sid = common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let req = Request::builder()
         .method(Method::DELETE)
         .uri(format!("/api/projects/{pid}/sessions/{sid}"))

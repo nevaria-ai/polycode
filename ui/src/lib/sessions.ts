@@ -30,8 +30,6 @@ export type Session = {
 
 export type WorktreeEntry = {
 	id: string;
-	name: string;
-	path: string;
 	branch: string | null;
 	status?: 'clean' | 'uncommitted' | 'unmerged';
 	isMerged?: boolean;

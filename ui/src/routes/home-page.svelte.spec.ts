@@ -26,6 +26,8 @@ const baseProjects: Project[] = [
 	}
 ];
 
+const mainWorktreeId = 'main-wt-id';
+
 const baseData = {
 	projects: baseProjects,
 	projectTree: [
@@ -35,12 +37,11 @@ const baseData = {
 			projectId: baseProjects[0].id,
 			displayName: baseProjects[0].displayName,
 			defaultBranchLabel: 'main',
+			mainWorktreeId,
 			sessions: [],
 			worktrees: [
 				{
 					id: 'test-wt-id',
-					name: 'test-wt-name',
-					path: '/Projects/worktrees/polycode-feature-auth',
 					branch: 'feature/auth',
 					sessions: []
 				}
@@ -52,12 +53,11 @@ const baseData = {
 			projectId: baseProjects[1].id,
 			displayName: baseProjects[1].displayName,
 			defaultBranchLabel: 'develop',
+			mainWorktreeId: 'docs-main-wt-id',
 			sessions: [],
 			worktrees: [
 				{
-					id: 'test-wt-id',
-					name: 'test-wt-name',
-					path: '/Projects/worktrees/docs-feature-api',
+					id: 'docs-wt-id',
 					branch: 'feature/api',
 					sessions: []
 				}
@@ -67,16 +67,16 @@ const baseData = {
 	initialSidebarOpen: true,
 	selectedProjectId: polycodeProjectId,
 	selectedProjectName: 'polycode',
-	selectedWorktreePath: '/Projects/worktrees/polycode',
 	selectedWorktreeLabel: 'main',
-	selectedWorktreeId: null,
+	selectedWorktreeId: mainWorktreeId,
+	firstSessionUnderWorktree: true,
 	worktrees: [
 		{
-			path: '/Projects/worktrees/polycode',
+			id: mainWorktreeId,
 			branch: 'main'
 		},
 		{
-			path: '/Projects/worktrees/polycode-feature-auth',
+			id: 'test-wt-id',
 			branch: 'feature/auth'
 		}
 	]
@@ -160,7 +160,7 @@ describe('root homepage', () => {
 		) as HTMLElement | null;
 		expect(nestedWorktreeItem?.className).toContain('text-xs');
 		expect(worktreeLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(polycodeProjectId)}&worktree=${encodeURIComponent('/Projects/worktrees/polycode-feature-auth')}`
+			`/?project=${encodeURIComponent(polycodeProjectId)}&worktreeId=${encodeURIComponent('test-wt-id')}`
 		);
 	});
 
@@ -170,7 +170,12 @@ describe('root homepage', () => {
 			projectTree: baseData.projectTree.map((p) =>
 				p.projectId === polycodeProjectId ? { ...p, worktrees: [] } : p
 			),
-			worktrees: [{ path: '/Projects/worktrees/polycode', branch: 'main' }]
+			worktrees: [
+				{
+					id: mainWorktreeId,
+					branch: 'main'
+				}
+			]
 		};
 		render(HomePage, { data: noWorktreeData });
 

@@ -9,6 +9,39 @@ import (
 	"context"
 )
 
+const addWorktree = `-- name: AddWorktree :one
+INSERT INTO worktrees (id, project_id, path, is_linked_worktree, created_at)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id, project_id, path, is_linked_worktree, created_at
+`
+
+type AddWorktreeParams struct {
+	ID               string `json:"id"`
+	ProjectID        string `json:"project_id"`
+	Path             string `json:"path"`
+	IsLinkedWorktree int64  `json:"is_linked_worktree"`
+	CreatedAt        int64  `json:"created_at"`
+}
+
+func (q *Queries) AddWorktree(ctx context.Context, arg AddWorktreeParams) (Worktree, error) {
+	row := q.db.QueryRowContext(ctx, addWorktree,
+		arg.ID,
+		arg.ProjectID,
+		arg.Path,
+		arg.IsLinkedWorktree,
+		arg.CreatedAt,
+	)
+	var i Worktree
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Path,
+		&i.IsLinkedWorktree,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const archiveSession = `-- name: ArchiveSession :exec
 UPDATE sessions
 SET status = 'archived', updated_at = ?
@@ -147,6 +180,24 @@ func (q *Queries) FindProjectByPath(ctx context.Context, path string) (Project, 
 		&i.ExpandedState,
 		&i.CreatedAt,
 		&i.RemovedAt,
+	)
+	return i, err
+}
+
+const findWorktreeById = `-- name: FindWorktreeById :one
+SELECT id, project_id, path, is_linked_worktree, created_at
+FROM worktrees WHERE id = ?
+`
+
+func (q *Queries) FindWorktreeById(ctx context.Context, id string) (Worktree, error) {
+	row := q.db.QueryRowContext(ctx, findWorktreeById, id)
+	var i Worktree
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Path,
+		&i.IsLinkedWorktree,
+		&i.CreatedAt,
 	)
 	return i, err
 }

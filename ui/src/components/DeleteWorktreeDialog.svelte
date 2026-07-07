@@ -4,13 +4,13 @@
 	import { deleteWorktree } from '$lib/services';
 	import { invalidateAll } from '$app/navigation';
 
-	type WorktreeInfo = {
+	type WorktreeDeleteTarget = {
 		projectId: string;
-		worktreePath: string;
+		worktreeId: string;
 		branch: string;
 	};
 
-	let { info = $bindable(null) }: { info?: WorktreeInfo | null } = $props();
+	let { info = $bindable(null) }: { info?: WorktreeDeleteTarget | null } = $props();
 
 	let submitting = $state(false);
 
@@ -19,7 +19,7 @@
 
 		submitting = true;
 		try {
-			await deleteWorktree(info.projectId, info.worktreePath, {
+			await deleteWorktree(info.projectId, info.worktreeId, {
 				branch: info.branch
 			});
 			info = null;

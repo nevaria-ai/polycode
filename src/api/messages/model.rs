@@ -41,21 +41,3 @@ pub struct Part {
     pub provider_run_id: Option<String>,
     pub created_at: i64,
 }
-
-#[derive(Debug, Deserialize)]
-pub struct CreateMessage {
-    pub session_id: String,
-    pub role: String,
-    pub content: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreatePart {
-    pub message_id: String,
-    pub session_id: String,
-    #[serde(rename = "type")]
-    pub part_type: String,
-    pub content: String,
-    pub position: i64,
-    pub metadata: Option<String>,
-}

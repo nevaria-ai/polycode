@@ -23,13 +23,8 @@ pub struct ApiProject {
 #[serde(rename_all = "camelCase")]
 pub struct ApiWorktree {
     pub id: String,
-    pub project_id: String,
-    pub path: String,
-    pub name: String,
-    pub is_primary: bool,
     pub branch: Option<String>,
-    pub last_synced_at: Option<String>,
-    pub created_at: String,
+    pub is_linked_worktree: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -106,8 +101,8 @@ pub struct CreateProjectRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSessionRequest {
-    pub worktree_path: String,
-    pub worktree_id: Option<String>,
+    pub worktree_id: String,
+    pub first_session_under_worktree: bool,
     pub title: Option<String>,
 }
 

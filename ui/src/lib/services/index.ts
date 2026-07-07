@@ -10,7 +10,7 @@ export {
 	updateSessionTitle,
 	archiveSession
 } from './sessions';
-export { listWorktrees, createWorktree, renameWorktree, deleteWorktree } from './worktrees';
+export { listWorktrees, createWorktree, renameWorktreeBranch, deleteWorktree } from './worktrees';
 export { listMessages, sendMessage } from './messages';
 export { getDirectories } from './directories';
 

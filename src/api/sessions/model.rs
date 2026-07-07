@@ -18,7 +18,8 @@ pub struct Session {
 #[derive(Debug, Deserialize)]
 pub struct CreateSession {
     pub project_id: String,
-    pub worktree_path: String,
-    pub worktree_id: Option<String>,
+    pub project_path: String,
+    pub worktree_id: String,
+    pub first_session_under_worktree: bool,
     pub title: Option<String>,
 }

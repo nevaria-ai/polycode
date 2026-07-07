@@ -159,12 +159,13 @@ async fn contract_list_projects_timestamps_iso8601() {
 #[tokio::test]
 async fn contract_create_session_response_camel_case_and_wrapped() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let worktree_id = common::v5_id_for_path(&project_path);
     let resp = app
         .oneshot(common::json_request(
             "POST",
             &format!("/api/projects/{pid}/sessions"),
-            Some(json!({"worktreePath": "/tmp/work"})),
+            Some(json!({"worktreeId": worktree_id, "firstSessionUnderWorktree": true})),
         ))
         .await
         .unwrap();
@@ -177,12 +178,13 @@ async fn contract_create_session_response_camel_case_and_wrapped() {
 #[tokio::test]
 async fn contract_session_has_summary_is_boolean() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let worktree_id = common::v5_id_for_path(&project_path);
     let resp = app
         .oneshot(common::json_request(
             "POST",
             &format!("/api/projects/{pid}/sessions"),
-            Some(json!({"worktreePath": "/tmp/work"})),
+            Some(json!({"worktreeId": worktree_id, "firstSessionUnderWorktree": true})),
         ))
         .await
         .unwrap();
@@ -202,12 +204,13 @@ async fn contract_session_has_summary_is_boolean() {
 #[tokio::test]
 async fn contract_session_no_snake_case_keys() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let worktree_id = common::v5_id_for_path(&project_path);
     let resp = app
         .oneshot(common::json_request(
             "POST",
             &format!("/api/projects/{pid}/sessions"),
-            Some(json!({"worktreePath": "/tmp/work"})),
+            Some(json!({"worktreeId": worktree_id, "firstSessionUnderWorktree": true})),
         ))
         .await
         .unwrap();
@@ -227,12 +230,13 @@ async fn contract_session_no_snake_case_keys() {
 #[tokio::test]
 async fn contract_session_timestamps_iso8601() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let worktree_id = common::v5_id_for_path(&project_path);
     let resp = app
         .oneshot(common::json_request(
             "POST",
             &format!("/api/projects/{pid}/sessions"),
-            Some(json!({"worktreePath": "/tmp/work"})),
+            Some(json!({"worktreeId": worktree_id, "firstSessionUnderWorktree": true})),
         ))
         .await
         .unwrap();
@@ -246,8 +250,8 @@ async fn contract_session_timestamps_iso8601() {
 #[tokio::test]
 async fn contract_list_sessions_camel_case() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
-    common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let resp = app
         .oneshot(common::json_request(
             "GET",
@@ -266,8 +270,8 @@ async fn contract_list_sessions_camel_case() {
 #[tokio::test]
 async fn contract_create_message_camel_case() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
-    let sid = common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let resp = app
         .oneshot(common::json_request(
             "POST",
@@ -284,8 +288,8 @@ async fn contract_create_message_camel_case() {
 #[tokio::test]
 async fn contract_message_has_session_id_camel_case() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
-    let sid = common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let resp = app
         .oneshot(common::json_request(
             "POST",
@@ -303,8 +307,8 @@ async fn contract_message_has_session_id_camel_case() {
 #[tokio::test]
 async fn contract_message_timestamp_iso8601() {
     let app = common::app();
-    let pid = common::seed_project(&app).await;
-    let sid = common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let resp = app
         .oneshot(common::json_request(
             "POST",
@@ -321,8 +325,8 @@ async fn contract_message_timestamp_iso8601() {
 async fn contract_list_messages_camel_case() {
     let db = common::memory_db();
     let app = common::app_with(db.clone());
-    let pid = common::seed_project(&app).await;
-    let sid = common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let _ = app
         .oneshot(common::json_request(
             "POST",

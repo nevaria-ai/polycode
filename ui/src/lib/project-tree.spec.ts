@@ -10,9 +10,7 @@ describe('materializeProjectTree', () => {
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
-				worktrees: [
-					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
-				]
+				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
 			}
 		]);
 
@@ -28,9 +26,7 @@ describe('materializeProjectTree', () => {
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: true,
-				worktrees: [
-					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
-				]
+				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
 			}
 		]);
 
@@ -45,9 +41,7 @@ describe('materializeProjectTree', () => {
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
-				worktrees: [
-					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
-				]
+				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
 			}
 		]);
 
@@ -65,8 +59,6 @@ describe('materializeProjectTree', () => {
 					worktrees: [
 						{
 							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{

@@ -39,6 +39,15 @@ RETURNING id, path, expanded_state, created_at, removed_at;
 UPDATE projects SET removed_at = NULL WHERE id = ?
 RETURNING id, path, expanded_state, created_at, removed_at;
 
+-- name: AddWorktree :one
+INSERT INTO worktrees (id, project_id, path, is_linked_worktree, created_at)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id, project_id, path, is_linked_worktree, created_at;
+
+-- name: FindWorktreeById :one
+SELECT id, project_id, path, is_linked_worktree, created_at
+FROM worktrees WHERE id = ?;
+
 -- name: CreateSession :one
 INSERT INTO sessions (
     id, project_id, worktree_id, worktree_path,

@@ -2,6 +2,7 @@
 
 use crate::api::projects::{CreateProject, Service as ProjectService};
 use crate::api::sessions::{CreateSession, Service as SessionService};
+use crate::api::worktrees::Service as WorktreeService;
 use crate::db::DbHandle;
 
 pub fn memory_db() -> DbHandle {
@@ -19,11 +20,18 @@ pub async fn seed_project(db: DbHandle) -> String {
 }
 
 pub async fn seed_session(db: DbHandle, project_id: &str) -> String {
+    let project_path = "/tmp/test-project";
+    let wt_id = WorktreeService::worktree_id_for_path(project_path, project_id);
+    WorktreeService::new(db.clone())
+        .add_row(project_id, &wt_id, project_path, false)
+        .await
+        .expect("seed worktree row");
     SessionService::new(db)
         .create(CreateSession {
             project_id: project_id.to_string(),
-            worktree_path: "/tmp/work".into(),
-            worktree_id: None,
+            project_path: project_path.into(),
+            worktree_id: wt_id,
+            first_session_under_worktree: true,
             title: None,
         })
         .await

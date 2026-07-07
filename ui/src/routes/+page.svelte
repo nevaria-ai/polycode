@@ -26,7 +26,7 @@
 	);
 	let selectedWorktreeBranch = $derived(
 		data.worktrees.find(
-			(worktree: PageData['worktrees'][number]) => worktree.path === data.selectedWorktreePath
+			(worktree: PageData['worktrees'][number]) => worktree.id === data.selectedWorktreeId
 		)?.branch ??
 			selectedProject?.defaultBranchLabel ??
 			null
@@ -40,8 +40,8 @@
 		return `/?project=${encodeURIComponent(projectId)}`;
 	}
 
-	function getWorktreeHref(projectId: string, worktreePath: string): HomepageHref {
-		return `/?project=${encodeURIComponent(projectId)}&worktree=${encodeURIComponent(worktreePath)}`;
+	function getWorktreeHref(projectId: string, worktreeId: string): HomepageHref {
+		return `/?project=${encodeURIComponent(projectId)}&worktreeId=${encodeURIComponent(worktreeId)}`;
 	}
 
 	function navigateTo(href: HomepageHref) {
@@ -49,7 +49,7 @@
 	}
 
 	async function handleSubmit() {
-		if (!promptText.trim() || !data.selectedProjectId || !data.selectedWorktreePath) return;
+		if (!promptText.trim() || !data.selectedProjectId || !data.selectedWorktreeId) return;
 
 		submitting = true;
 		submitError = null;
@@ -69,8 +69,8 @@
 		let createResult;
 		try {
 			createResult = await createSession(data.selectedProjectId, {
-				worktreeId: data.selectedWorktreeId ?? null,
-				worktreePath: data.selectedWorktreePath
+				worktreeId: data.selectedWorktreeId,
+				firstSessionUnderWorktree: data.firstSessionUnderWorktree
 			});
 		} catch (err: unknown) {
 			submitError = err instanceof Error ? err.message : 'Failed to create session';
@@ -177,10 +177,10 @@
 							</DropdownMenu.Item>
 
 							{#if project.worktrees.length > 0}
-								{#each project.worktrees as worktree (worktree.path)}
+								{#each project.worktrees as worktree (worktree.id)}
 									<DropdownMenu.Item
 										data-testid="composer-worktree-link"
-										data-value={getWorktreeHref(project.projectId, worktree.path)}
+										data-value={getWorktreeHref(project.projectId, worktree.id)}
 										class="ml-3 flex items-center gap-2 text-foreground/60"
 										onclick={(e) => {
 											const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
@@ -189,7 +189,7 @@
 									>
 										<GitBranch class="size-3 shrink-0 text-muted-foreground" />
 										<span data-testid="composer-worktree-item" class="truncate text-xs">
-											{worktree.branch ?? worktree.path}
+											{worktree.branch ?? 'detached'}
 										</span>
 									</DropdownMenu.Item>
 								{/each}

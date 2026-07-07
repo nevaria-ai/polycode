@@ -17,16 +17,19 @@ export const load: LayoutLoad = async () => {
 	const projectTree = await Promise.all(
 		projects.map(async (project) => {
 			const worktrees = await listWorktrees(project.id).catch(() => [] as Worktree[]);
-			const defaultBranch = worktrees.find((w) => w.isPrimary)?.branch ?? null;
+			const mainWorktree = worktrees.find((w) => !w.isLinkedWorktree) ?? null;
+			const defaultBranch = mainWorktree?.branch ?? null;
+			const mainWorktreeId = mainWorktree?.id ?? null;
 			const projectSessions = sessions.filter((s) => s.projectId === project.id);
 
 			return {
 				...project,
 				projectId: project.id,
 				defaultBranchLabel: defaultBranch,
+				mainWorktreeId,
 				sessions: projectSessions as Session[],
 				worktrees: worktrees
-					.filter((w) => !w.isPrimary)
+					.filter((w) => w.isLinkedWorktree)
 					.map((w) => ({
 						...w,
 						sessions: sessions.filter((s) => s.worktreeId === w.id) as Session[]

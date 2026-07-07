@@ -4,7 +4,7 @@ export interface Project {
 	expandedState: boolean;
 	createdAt: string;
 	displayName: string;
-	/** Git owner when name is in `owner/repo` form. Null for plain folders. */
+	/** Git owner when displayName is in `owner/repo` form. Null for plain folders. */
 	owner: string | null;
 }
 
@@ -24,14 +24,8 @@ export interface Session {
 
 export interface Worktree {
 	id: string;
-	projectId: string;
-	path: string;
-	name: string;
-	isPrimary: boolean;
 	branch: string | null;
-	status?: string;
-	lastSyncedAt: string | null;
-	sessionCount: number;
+	isLinkedWorktree: boolean;
 }
 
 export interface MessageView {
@@ -92,13 +86,14 @@ export interface SidebarProject {
 	owner: string | null;
 	projectId: string;
 	defaultBranchLabel?: string | null;
+	mainWorktreeId?: string | null;
 	sessions: Session[];
 	worktrees: Array<Worktree & { sessions: Session[] }>;
 }
 
 export interface CreateSessionApiInput {
-	worktreeId?: string | null;
-	worktreePath: string;
+	worktreeId: string;
+	firstSessionUnderWorktree: boolean;
 	title?: string;
 }
 

@@ -2,12 +2,12 @@
 	import { Button } from '$components/ui/button';
 	import { Input } from '$components/ui/input';
 	import * as Dialog from '$components/ui/dialog';
-	import { createWorktree, renameWorktree } from '$lib/services';
+	import { createWorktree, renameWorktreeBranch } from '$lib/services';
 	import { invalidateAll } from '$app/navigation';
 
 	type BranchDialogMode =
 		| { mode: 'create'; projectId: string }
-		| { mode: 'rename'; projectId: string; worktreePath: string; oldBranch: string }
+		| { mode: 'rename'; projectId: string; worktreeId: string; oldBranch: string }
 		| null;
 
 	let { branchDialogState = $bindable(null) }: { branchDialogState?: BranchDialogMode } = $props();
@@ -37,7 +37,7 @@
 				});
 			} else {
 				const oldBranch = branchDialogState.oldBranch;
-				await renameWorktree(branchDialogState.projectId, branchDialogState.worktreePath, {
+				await renameWorktreeBranch(branchDialogState.projectId, branchDialogState.worktreeId, {
 					oldBranch,
 					newBranch: branchName.trim()
 				});

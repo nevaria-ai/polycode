@@ -118,11 +118,9 @@ type Summary struct {
 }
 
 type Worktree struct {
-	ID           string `json:"id"`
-	ProjectID    string `json:"project_id"`
-	Path         string `json:"path"`
-	Name         string `json:"name"`
-	IsPrimary    int64  `json:"is_primary"`
-	LastSyncedAt *int64 `json:"last_synced_at"`
-	CreatedAt    int64  `json:"created_at"`
+	ID               string `json:"id"`
+	ProjectID        string `json:"project_id"`
+	Path             string `json:"path"`
+	IsLinkedWorktree int64  `json:"is_linked_worktree"`
+	CreatedAt        int64  `json:"created_at"`
 }

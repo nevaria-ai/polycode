@@ -10,6 +10,7 @@ use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 
 use super::AppState;
+use crate::api::projects::Service as ProjectService;
 use crate::api::types::*;
 use crate::error::AppError;
 
@@ -48,11 +49,13 @@ async fn create(
     Path(pid): Path<String>,
     Json(body): Json<CreateSessionRequest>,
 ) -> Result<(StatusCode, Json<CreateSessionResponse>), AppError> {
+    let project = ProjectService::new(state.db.clone()).get(&pid).await?;
     let session = Service::new(state.db)
         .create(CreateSession {
             project_id: pid,
-            worktree_path: body.worktree_path,
+            project_path: project.path,
             worktree_id: body.worktree_id,
+            first_session_under_worktree: body.first_session_under_worktree,
             title: body.title,
         })
         .await?;

@@ -30,7 +30,7 @@ export function materializeProjectTree(
 	return projects.map((project) => {
 		const previousProject = previousProjects.get(project.projectId);
 		const previousWorktrees = new Map(
-			(previousProject?.worktrees ?? []).map((worktree) => [worktree.path, worktree])
+			(previousProject?.worktrees ?? []).map((worktree) => [worktree.id, worktree])
 		);
 
 		return {
@@ -40,7 +40,7 @@ export function materializeProjectTree(
 			isExpanded: previousProject?.isExpanded ?? project.expandedState,
 			worktrees: project.worktrees.map((worktree) => ({
 				...worktree,
-				isExpanded: previousWorktrees.get(worktree.path)?.isExpanded ?? false
+				isExpanded: previousWorktrees.get(worktree.id)?.isExpanded ?? false
 			}))
 		};
 	});

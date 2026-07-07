@@ -243,8 +243,14 @@ async fn test_list_projects_display_name_double_collision_uses_absolute_path() {
 #[tokio::test]
 async fn test_close_project_soft_removes_when_sessions_exist() {
     let app = common::app();
-    let project_id = common::seed_project(&app).await;
-    common::seed_session(&app, &project_id).await;
+    let (_dir, project_id, project_path) = common::setup_git_project(&app).await;
+    common::seed_session(
+        &app,
+        &project_id,
+        &common::v5_id_for_path(&project_path),
+        true,
+    )
+    .await;
 
     let response = app
         .clone()
@@ -319,9 +325,14 @@ async fn test_close_project_hard_deletes_without_sessions() {
 #[tokio::test]
 async fn test_readd_soft_removed_project_restores_same_id() {
     let app = common::app();
-    let path = "/tmp/readd-soft-removed";
-    let project_id = common::seed_project_with(&app, path).await;
-    common::seed_session(&app, &project_id).await;
+    let (_dir, project_id, project_path) = common::setup_git_project(&app).await;
+    common::seed_session(
+        &app,
+        &project_id,
+        &common::v5_id_for_path(&project_path),
+        true,
+    )
+    .await;
 
     app.clone()
         .oneshot(
@@ -339,7 +350,7 @@ async fn test_readd_soft_removed_project_restores_same_id() {
         .oneshot(common::json_request(
             "POST",
             "/api/projects",
-            Some(json!({"path": path})),
+            Some(json!({"path": project_path})),
         ))
         .await
         .unwrap();
@@ -360,4 +371,38 @@ async fn test_readd_soft_removed_project_restores_same_id() {
         common::json_body(list).await.as_array().unwrap().clone();
     assert_eq!(projects.len(), 1);
     assert_eq!(projects[0]["id"].as_str().unwrap(), project_id);
+}
+
+#[tokio::test]
+async fn test_create_project_normalizes_linked_worktree_path_to_main_repo() {
+    use std::process::Command;
+
+    let app = common::app();
+    let (dir, project_id, main_path) = common::setup_git_project(&app).await;
+    let linked = dir.path().join("linked-wt");
+    Command::new("git")
+        .args([
+            "worktree",
+            "add",
+            linked.to_str().unwrap(),
+            "-b",
+            "linked-branch",
+        ])
+        .current_dir(&main_path)
+        .output()
+        .expect("git worktree add");
+
+    let resp = app
+        .clone()
+        .oneshot(common::json_request(
+            "POST",
+            "/api/projects",
+            Some(json!({ "path": linked.to_string_lossy() })),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = common::json_body(resp).await;
+    assert_eq!(body["project"]["id"].as_str().unwrap(), project_id);
+    assert_eq!(body["project"]["path"].as_str().unwrap(), main_path);
 }

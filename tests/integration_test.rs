@@ -18,8 +18,8 @@ async fn test_health_ok() {
 async fn test_full_happy_path() {
     let app = common::app();
 
-    let pid = common::seed_project(&app).await;
-    let sid = common::seed_session(&app, &pid).await;
+    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
+    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
 
     let uri = format!("/api/projects/{pid}/sessions/{sid}/messages");
     let resp = app

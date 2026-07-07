@@ -7,7 +7,7 @@ use tower::ServiceExt;
 #[tokio::test]
 async fn test_post_message() {
     let app = common::app();
-    let (pid, sid) = common::seed_project_and_session(&app).await;
+    let (_dir, pid, sid) = common::seed_project_and_session(&app).await;
 
     let body = serde_json::json!({
         "content": "Hello from test"
@@ -30,7 +30,7 @@ async fn test_post_message() {
 #[tokio::test]
 async fn test_list_messages() {
     let app = common::app();
-    let (pid, sid) = common::seed_project_and_session(&app).await;
+    let (_dir, pid, sid) = common::seed_project_and_session(&app).await;
 
     let post_body = serde_json::json!({ "content": "msg one" });
     app.clone()

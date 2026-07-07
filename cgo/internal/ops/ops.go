@@ -171,6 +171,21 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 			return "", err
 		}
 		return okJSON, nil
+
+	case "AddWorktree":
+		var p polydb.AddWorktreeParams
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		row, err := q.AddWorktree(ctx, p)
+		return jsonResult(row, err)
+	case "FindWorktreeById":
+		var p idArg
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		row, err := q.FindWorktreeById(ctx, p.ID)
+		return jsonResult(row, err)
 	default:
 		return "", fmt.Errorf("unknown workspace op: %q", op)
 	}

@@ -32,7 +32,7 @@ vi.mock('$lib/services', () => ({
 	archiveSession: vi.fn(async () => ({ session: {} })),
 	listWorktrees: vi.fn(async () => []),
 	createWorktree: vi.fn(async () => ({ worktree: {} })),
-	renameWorktree: vi.fn(async () => undefined),
+	renameWorktreeBranch: vi.fn(async () => undefined),
 	deleteWorktree: vi.fn(async () => undefined),
 	listMessages: vi.fn(async () => []),
 	sendMessage: vi.fn(async () => undefined),
@@ -89,9 +89,7 @@ describe('AppSidebar', () => {
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
-				worktrees: [
-					{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
-				]
+				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
 			}
 		];
 
@@ -115,9 +113,7 @@ describe('AppSidebar', () => {
 					projectId: 'repo-id',
 					expandedState: false,
 
-					worktrees: [
-						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
-					]
+					worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
 				}
 			]
 		});
@@ -137,9 +133,7 @@ describe('AppSidebar', () => {
 					projectId: 'repo-id',
 					expandedState: false,
 
-					worktrees: [
-						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
-					]
+					worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
 				}
 			]
 		});
@@ -164,8 +158,6 @@ describe('AppSidebar', () => {
 					worktrees: [
 						{
 							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
@@ -206,8 +198,6 @@ describe('AppSidebar', () => {
 					worktrees: [
 						{
 							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
@@ -243,9 +233,7 @@ describe('AppSidebar', () => {
 					expandedState: false,
 					sessions: [],
 					defaultBranchLabel: 'develop',
-					worktrees: [
-						{ id: 'test-wt-id', name: 'test-wt-name', path: '/repo', branch: 'main', sessions: [] }
-					]
+					worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
 				}
 			]
 		});
@@ -292,9 +280,7 @@ describe('AppSidebar', () => {
 					],
 					worktrees: [
 						{
-							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo-feature',
+							id: 'wt-feature',
 							branch: 'feature/auth',
 							sessions: []
 						}
@@ -341,8 +327,6 @@ describe('AppSidebar', () => {
 					worktrees: [
 						{
 							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
 							branch: 'main',
 							sessions: []
 						}
@@ -444,8 +428,6 @@ describe('AppSidebar', () => {
 					worktrees: [
 						{
 							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
@@ -485,8 +467,6 @@ describe('AppSidebar', () => {
 					worktrees: [
 						{
 							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{
@@ -589,9 +569,7 @@ describe('AppSidebar', () => {
 					sessions: [],
 					worktrees: [
 						{
-							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo-feature',
+							id: 'wt-feature',
 							branch: 'feature/auth',
 							sessions: []
 						}
@@ -630,9 +608,7 @@ describe('AppSidebar', () => {
 					sessions: [],
 					worktrees: [
 						{
-							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo-feature',
+							id: 'wt-feature',
 							branch: 'feature/auth',
 							sessions: []
 						}
@@ -648,7 +624,7 @@ describe('AppSidebar', () => {
 		)?.click();
 
 		await page.getByRole('button', { name: 'Worktree actions' }).click();
-		await page.getByText('Rename').click();
+		await page.getByText('Rename branch').click();
 
 		await expect.element(page.getByRole('dialog')).toBeInTheDocument();
 		await expect.element(page.getByText('Rename Branch')).toBeVisible();
@@ -673,8 +649,6 @@ describe('AppSidebar', () => {
 					worktrees: [
 						{
 							id: 'test-wt-id',
-							name: 'test-wt-name',
-							path: '/repo',
 							branch: 'main',
 							sessions: [
 								{

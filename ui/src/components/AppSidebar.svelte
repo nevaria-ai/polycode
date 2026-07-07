@@ -74,9 +74,9 @@
 		}
 	}
 
-	function toggleWorktree(projectId: string, worktreePath: string) {
+	function toggleWorktree(projectId: string, worktreeId: string) {
 		const project = tree.find((item) => item.projectId === projectId);
-		const worktree = project?.worktrees.find((item) => item.path === worktreePath);
+		const worktree = project?.worktrees.find((item) => item.id === worktreeId);
 		if (worktree) worktree.isExpanded = !worktree.isExpanded;
 	}
 
@@ -106,12 +106,12 @@
 
 	type BranchDialogMode =
 		| { mode: 'create'; projectId: string }
-		| { mode: 'rename'; projectId: string; worktreePath: string; oldBranch: string }
+		| { mode: 'rename'; projectId: string; worktreeId: string; oldBranch: string }
 		| null;
 	let branchDialogState = $state<BranchDialogMode>(null);
 
-	type WorktreeInfo = { projectId: string; worktreePath: string; branch: string };
-	let deleteWorktreeInfo = $state<WorktreeInfo | null>(null);
+	type WorktreeDeleteTarget = { projectId: string; worktreeId: string; branch: string };
+	let deleteWorktreeInfo = $state<WorktreeDeleteTarget | null>(null);
 	let openSettings = $state(false);
 
 	async function removeProject(projectId: string) {
@@ -123,10 +123,10 @@
 		goto(resolve(`/?project=${encodeURIComponent(projectId)}`));
 	}
 
-	function newWorktreeSession(projectId: string, worktreePath: string) {
+	function newWorktreeSession(projectId: string, worktreeId: string) {
 		goto(
 			resolve(
-				`/?project=${encodeURIComponent(projectId)}&worktree=${encodeURIComponent(worktreePath)}`
+				`/?project=${encodeURIComponent(projectId)}&worktreeId=${encodeURIComponent(worktreeId)}`
 			)
 		);
 	}
@@ -280,7 +280,7 @@
 									</div>
 									{#if project.worktrees.length > 0}
 										<Sidebar.MenuSub class="my-2 mr-0 ml-[13px] pr-0 pl-1.5">
-											{#each project.worktrees as worktree (worktree.path)}
+											{#each project.worktrees as worktree (worktree.id)}
 												<Collapsible.Root
 													bind:open={worktree.isExpanded}
 													class="group/worktree-collapsible"
@@ -291,7 +291,7 @@
 															class="w-full text-xs text-sidebar-foreground/90 group-has-[.worktree-actions_[data-state=open]]/worktree:bg-sidebar-accent"
 															aria-label={`Expand ${worktree.branch} branch`}
 															onclick={(event) => {
-																toggleWorktree(project.projectId, worktree.path);
+																toggleWorktree(project.projectId, worktree.id);
 																blurMouseClickTarget(event);
 															}}
 														>
@@ -336,16 +336,16 @@
 																					(branchDialogState = {
 																						mode: 'rename',
 																						projectId: project.projectId,
-																						worktreePath: worktree.id,
+																						worktreeId: worktree.id,
 																						oldBranch: worktree.branch ?? ''
-																					})}>Rename</DropdownMenu.Item
+																					})}>Rename branch</DropdownMenu.Item
 																			>
 																			<DropdownMenu.Item
 																				class="text-destructive"
 																				onclick={() =>
 																					(deleteWorktreeInfo = {
 																						projectId: project.projectId,
-																						worktreePath: worktree.id,
+																						worktreeId: worktree.id,
 																						branch: worktree.branch ?? ''
 																					})}>Delete</DropdownMenu.Item
 																			>
@@ -358,7 +358,7 @@
 																		aria-label="New session"
 																		onclick={(event) => {
 																			event.stopPropagation();
-																			newWorktreeSession(project.projectId, worktree.path);
+																			newWorktreeSession(project.projectId, worktree.id);
 																		}}
 																	>
 																		<Plus class="size-3.5" />

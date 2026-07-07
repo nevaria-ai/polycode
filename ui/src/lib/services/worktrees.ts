@@ -12,20 +12,21 @@ export async function createWorktree(
 	return api.post(`projects/${projectId}/worktrees/create`, { json: data }).json();
 }
 
-export async function renameWorktree(
+/** Rename the branch checked out in a worktree (`git branch -m`). Path and worktree id are unchanged. */
+export async function renameWorktreeBranch(
 	projectId: string,
-	worktreePath: string,
+	worktreeId: string,
 	data: { oldBranch: string; newBranch: string }
 ): Promise<void> {
-	const encoded = encodeURIComponent(worktreePath);
+	const encoded = encodeURIComponent(worktreeId);
 	await api.patch(`projects/${projectId}/worktrees/${encoded}`, { json: data });
 }
 
 export async function deleteWorktree(
 	projectId: string,
-	worktreePath: string,
+	worktreeId: string,
 	data: { branch: string }
 ): Promise<void> {
-	const encoded = encodeURIComponent(worktreePath);
+	const encoded = encodeURIComponent(worktreeId);
 	await api.delete(`projects/${projectId}/worktrees/${encoded}`, { json: data });
 }
