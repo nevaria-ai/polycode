@@ -1,7 +1,7 @@
 mod model;
 mod service;
 
-pub use model::{CreateSession, Session};
+pub use model::{CreateSession, Session, SessionMetadata};
 pub use service::Service;
 
 use axum::extract::{Path, State};

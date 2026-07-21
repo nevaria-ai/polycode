@@ -63,18 +63,11 @@ SELECT
 FROM sessions
 WHERE id = ?;
 
--- name: ListSessionsByProject :many
+-- Slim rows for sidebar tree nesting (excludes version / has_summary).
+-- name: ListSessionMetadata :many
 SELECT
     id, project_id, worktree_id, worktree_path,
-    title, status, version, has_summary, created_at, updated_at, last_active_at
-FROM sessions
-WHERE project_id = ?
-ORDER BY updated_at DESC;
-
--- name: ListAllSessions :many
-SELECT
-    id, project_id, worktree_id, worktree_path,
-    title, status, version, has_summary, created_at, updated_at, last_active_at
+    title, status, created_at, updated_at, last_active_at
 FROM sessions
 ORDER BY last_active_at DESC;
 

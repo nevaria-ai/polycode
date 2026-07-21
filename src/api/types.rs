@@ -192,7 +192,20 @@ pub struct DirectoryResponse {
     pub exists: bool,
 }
 
-use crate::api::sessions::Session as DbSession;
+use crate::api::sessions::{Session as DbSession, SessionMetadata};
+
+impl From<&SessionMetadata> for ApiSessionMetadata {
+    fn from(s: &SessionMetadata) -> Self {
+        Self {
+            id: s.id.clone(),
+            title: s.title.clone(),
+            status: s.status.clone(),
+            created_at: format_iso8601(s.created_at),
+            updated_at: format_iso8601(s.updated_at),
+            last_active_at: format_iso8601(s.last_active_at),
+        }
+    }
+}
 
 impl From<DbSession> for ApiSession {
     fn from(s: DbSession) -> Self {
@@ -205,19 +218,6 @@ impl From<DbSession> for ApiSession {
             status: s.status,
             version: s.version,
             has_summary: s.has_summary != 0,
-            created_at: format_iso8601(s.created_at),
-            updated_at: format_iso8601(s.updated_at),
-            last_active_at: format_iso8601(s.last_active_at),
-        }
-    }
-}
-
-impl From<&DbSession> for ApiSessionMetadata {
-    fn from(s: &DbSession) -> Self {
-        Self {
-            id: s.id.clone(),
-            title: s.title.clone(),
-            status: s.status.clone(),
             created_at: format_iso8601(s.created_at),
             updated_at: format_iso8601(s.updated_at),
             last_active_at: format_iso8601(s.last_active_at),

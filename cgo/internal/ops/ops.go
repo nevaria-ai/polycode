@@ -134,15 +134,8 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 		}
 		row, err := q.GetSession(ctx, p.ID)
 		return jsonResult(row, err)
-	case "ListSessionsByProject":
-		var p projectIDArg
-		if err := unmarshalArgs(argsJSON, &p); err != nil {
-			return "", err
-		}
-		rows, err := q.ListSessionsByProject(ctx, p.ProjectID)
-		return jsonResult(rows, err)
-	case "ListAllSessions":
-		rows, err := q.ListAllSessions(ctx)
+	case "ListSessionMetadata":
+		rows, err := q.ListSessionMetadata(ctx)
 		return jsonResult(rows, err)
 	case "DeleteSession":
 		var p idArg

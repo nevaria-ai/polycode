@@ -246,9 +246,9 @@ func TestQueriesWorkspace(t *testing.T) {
 		t.Fatalf("GetSession title: %+v", sess.Title)
 	}
 
-	byProject, err := db.Q.ListSessionsByProject(ctx, "proj-1")
-	if err != nil || len(byProject) != 1 {
-		t.Fatalf("ListSessionsByProject: %d items, err=%v", len(byProject), err)
+	meta, err := db.Q.ListSessionMetadata(ctx)
+	if err != nil || len(meta) != 1 {
+		t.Fatalf("ListSessionMetadata: %d items, err=%v", len(meta), err)
 	}
 
 	if err := db.Q.ArchiveSession(ctx, polydb.ArchiveSessionParams{UpdatedAt: 300, ID: "sess-1"}); err != nil {

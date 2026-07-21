@@ -248,49 +248,6 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 	return i, err
 }
 
-const listAllSessions = `-- name: ListAllSessions :many
-SELECT
-    id, project_id, worktree_id, worktree_path,
-    title, status, version, has_summary, created_at, updated_at, last_active_at
-FROM sessions
-ORDER BY last_active_at DESC
-`
-
-func (q *Queries) ListAllSessions(ctx context.Context) ([]Session, error) {
-	rows, err := q.db.QueryContext(ctx, listAllSessions)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Session
-	for rows.Next() {
-		var i Session
-		if err := rows.Scan(
-			&i.ID,
-			&i.ProjectID,
-			&i.WorktreeID,
-			&i.WorktreePath,
-			&i.Title,
-			&i.Status,
-			&i.Version,
-			&i.HasSummary,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.LastActiveAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listProjects = `-- name: ListProjects :many
 SELECT id, path, expanded_state, created_at, removed_at
 FROM projects
@@ -327,24 +284,36 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 	return items, nil
 }
 
-const listSessionsByProject = `-- name: ListSessionsByProject :many
+const listSessionMetadata = `-- name: ListSessionMetadata :many
 SELECT
     id, project_id, worktree_id, worktree_path,
-    title, status, version, has_summary, created_at, updated_at, last_active_at
+    title, status, created_at, updated_at, last_active_at
 FROM sessions
-WHERE project_id = ?
-ORDER BY updated_at DESC
+ORDER BY last_active_at DESC
 `
 
-func (q *Queries) ListSessionsByProject(ctx context.Context, projectID string) ([]Session, error) {
-	rows, err := q.db.QueryContext(ctx, listSessionsByProject, projectID)
+type ListSessionMetadataRow struct {
+	ID           string  `json:"id"`
+	ProjectID    string  `json:"project_id"`
+	WorktreeID   *string `json:"worktree_id"`
+	WorktreePath string  `json:"worktree_path"`
+	Title        *string `json:"title"`
+	Status       string  `json:"status"`
+	CreatedAt    int64   `json:"created_at"`
+	UpdatedAt    int64   `json:"updated_at"`
+	LastActiveAt int64   `json:"last_active_at"`
+}
+
+// Slim rows for sidebar tree nesting (excludes version / has_summary).
+func (q *Queries) ListSessionMetadata(ctx context.Context) ([]ListSessionMetadataRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSessionMetadata)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Session
+	var items []ListSessionMetadataRow
 	for rows.Next() {
-		var i Session
+		var i ListSessionMetadataRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
@@ -352,8 +321,6 @@ func (q *Queries) ListSessionsByProject(ctx context.Context, projectID string) (
 			&i.WorktreePath,
 			&i.Title,
 			&i.Status,
-			&i.Version,
-			&i.HasSummary,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastActiveAt,

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use crate::api::projects::model::Project;
-use crate::api::sessions::{Service as SessionService, Session};
+use crate::api::sessions::{Service as SessionService, SessionMetadata};
 use crate::api::types::*;
 use crate::api::worktrees::Service as WorktreeService;
 use crate::db::DbHandle;
@@ -24,8 +24,8 @@ impl ProjectTreeBuilder {
         labels: &HashMap<String, (String, Option<String>)>,
         display_names: &HashMap<String, String>,
     ) -> Result<Vec<ApiProjectTree>, AppError> {
-        let all_sessions = SessionService::new(self.db.clone()).list_all().await?;
-        let mut sessions_by_project: HashMap<String, Vec<Session>> = HashMap::new();
+        let all_sessions = SessionService::new(self.db.clone()).list_metadata().await?;
+        let mut sessions_by_project: HashMap<String, Vec<SessionMetadata>> = HashMap::new();
         for session in all_sessions {
             sessions_by_project
                 .entry(session.project_id.clone())
@@ -49,7 +49,7 @@ impl ProjectTreeBuilder {
         project: Project,
         labels: &HashMap<String, (String, Option<String>)>,
         display_names: &HashMap<String, String>,
-        sessions: &[Session],
+        sessions: &[SessionMetadata],
     ) -> Result<ApiProjectTree, AppError> {
         let (label, owner) = labels.get(&project.id).cloned().unwrap_or_default();
         let display_name = display_names.get(&project.id).cloned().unwrap_or(label);
@@ -114,7 +114,7 @@ fn list_git_worktrees(project_path: &str) -> Vec<WorktreeInfo> {
 }
 
 fn resolve_session_worktree_id(
-    session: &Session,
+    session: &SessionMetadata,
     project_id: &str,
     path_to_id: &HashMap<String, String>,
 ) -> String {
@@ -143,16 +143,14 @@ mod tests {
         worktree_id: Option<&str>,
         worktree_path: &str,
         title: Option<&str>,
-    ) -> Session {
-        Session {
+    ) -> SessionMetadata {
+        SessionMetadata {
             id: id.to_string(),
             project_id: project_id.to_string(),
             worktree_id: worktree_id.map(str::to_string),
             worktree_path: worktree_path.to_string(),
             title: title.map(str::to_string),
             status: "active".to_string(),
-            version: 1,
-            has_summary: 0,
             created_at: 1,
             updated_at: 2,
             last_active_at: 10,

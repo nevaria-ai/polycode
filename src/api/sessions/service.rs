@@ -1,4 +1,4 @@
-use crate::api::sessions::model::{CreateSession, Session};
+use crate::api::sessions::model::{CreateSession, Session, SessionMetadata};
 use crate::api::worktrees::Service as WorktreeService;
 use crate::db::DbHandle;
 use crate::error::AppError;
@@ -14,18 +14,9 @@ impl Service {
         Self { db }
     }
 
-    pub async fn list_all(&self) -> Result<Vec<Session>, AppError> {
+    pub async fn list_metadata(&self) -> Result<Vec<SessionMetadata>, AppError> {
         self.db
-            .workspace_many("ListAllSessions", &serde_json::json!({}))
-            .map_err(AppError::from)
-    }
-
-    pub async fn list_by_project(&self, project_id: &str) -> Result<Vec<Session>, AppError> {
-        self.db
-            .workspace_many(
-                "ListSessionsByProject",
-                &serde_json::json!({ "project_id": project_id }),
-            )
+            .workspace_many("ListSessionMetadata", &serde_json::json!({}))
             .map_err(AppError::from)
     }
 
@@ -142,7 +133,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn list_by_project() {
+    async fn list_metadata() {
         let db = memory_db();
         let project = ProjectService::new(db.clone())
             .create(CreateProject {
@@ -166,7 +157,8 @@ mod tests {
             .await
             .unwrap();
 
-        let sessions = Service::new(db).list_by_project(&project.id).await.unwrap();
+        let sessions = Service::new(db).list_metadata().await.unwrap();
         assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].project_id, project.id);
     }
 }
