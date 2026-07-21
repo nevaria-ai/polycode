@@ -45,8 +45,8 @@ async fn test_create_project() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let result: serde_json::Value = common::json_body(response).await;
-    assert_eq!(result["project"]["displayName"], "test-project");
-    assert!(result["project"]["name"].is_null() || result["project"].get("name").is_none());
+    assert!(result["id"].as_str().is_some());
+    assert!(result.get("project").is_none());
 }
 
 #[tokio::test]
@@ -86,7 +86,7 @@ async fn test_create_project_dedupes_same_path() {
         .await
         .unwrap();
     assert_eq!(first.status(), StatusCode::OK);
-    let first_id = common::json_body(first).await["project"]["id"]
+    let first_id = common::json_body(first).await["id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -102,7 +102,7 @@ async fn test_create_project_dedupes_same_path() {
         .unwrap();
     assert_eq!(second.status(), StatusCode::OK);
     let second_body = common::json_body(second).await;
-    assert_eq!(second_body["project"]["id"].as_str().unwrap(), first_id);
+    assert_eq!(second_body["id"].as_str().unwrap(), first_id);
 
     let list = app
         .oneshot(
@@ -131,7 +131,7 @@ async fn test_create_project_allows_same_name_different_path() {
         ))
         .await
         .unwrap();
-    let first_id = common::json_body(first).await["project"]["id"]
+    let first_id = common::json_body(first).await["id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -145,7 +145,7 @@ async fn test_create_project_allows_same_name_different_path() {
         ))
         .await
         .unwrap();
-    let second_id = common::json_body(second).await["project"]["id"]
+    let second_id = common::json_body(second).await["id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -278,18 +278,6 @@ async fn test_close_project_soft_removes_when_sessions_exist() {
     let projects: Vec<serde_json::Value> =
         common::json_body(list).await.as_array().unwrap().clone();
     assert!(projects.is_empty());
-
-    let get = app
-        .clone()
-        .oneshot(
-            Request::builder()
-                .uri(format!("/api/projects/{project_id}"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(get.status(), StatusCode::OK);
 }
 
 #[tokio::test]
@@ -310,16 +298,20 @@ async fn test_close_project_hard_deletes_without_sessions() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let get = app
+    let list = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/projects/{project_id}"))
+                .uri("/api/projects")
                 .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
-    assert_eq!(get.status(), StatusCode::NOT_FOUND);
+    let projects: Vec<serde_json::Value> =
+        common::json_body(list).await.as_array().unwrap().clone();
+    assert!(projects
+        .iter()
+        .all(|p| p["id"].as_str() != Some(project_id.as_str())));
 }
 
 #[tokio::test]
@@ -356,7 +348,7 @@ async fn test_readd_soft_removed_project_restores_same_id() {
         .unwrap();
     assert_eq!(readd.status(), StatusCode::OK);
     let body = common::json_body(readd).await;
-    assert_eq!(body["project"]["id"].as_str().unwrap(), project_id);
+    assert_eq!(body["id"].as_str().unwrap(), project_id);
 
     let list = app
         .oneshot(
@@ -403,6 +395,62 @@ async fn test_create_project_normalizes_linked_worktree_path_to_main_repo() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body = common::json_body(resp).await;
-    assert_eq!(body["project"]["id"].as_str().unwrap(), project_id);
-    assert_eq!(body["project"]["path"].as_str().unwrap(), main_path);
+    assert_eq!(body["id"].as_str().unwrap(), project_id);
+
+    let list = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/projects")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let projects = common::json_body(list).await;
+    let project = projects
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"].as_str() == Some(project_id.as_str()))
+        .expect("reactivated project in list");
+    assert_eq!(project["path"].as_str().unwrap(), main_path);
+}
+
+#[tokio::test]
+async fn test_list_projects_returns_nested_worktree_sessions() {
+    let app = common::app();
+    let (_dir, project_id, project_path) = common::setup_git_project(&app).await;
+    let main_worktree_id = common::v5_id_for_path(&project_path);
+    let session_id = common::seed_session(&app, &project_id, &main_worktree_id, true).await;
+
+    let list = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/projects")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(list.status(), StatusCode::OK);
+    let projects = common::json_body(list).await;
+    let project = &projects.as_array().unwrap()[0];
+
+    assert!(project.get("sessions").is_none(), "no top-level sessions");
+    let worktrees = project["worktrees"].as_array().unwrap();
+    assert!(!worktrees.is_empty());
+
+    let main = worktrees
+        .iter()
+        .find(|wt| !wt["isLinkedWorktree"].as_bool().unwrap())
+        .expect("main worktree present");
+    assert_eq!(main["id"].as_str().unwrap(), main_worktree_id);
+
+    let sessions = main["sessions"].as_array().unwrap();
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(sessions[0]["id"].as_str().unwrap(), session_id);
+    assert!(
+        sessions[0].get("projectId").is_none(),
+        "sidebar metadata is slim"
+    );
 }

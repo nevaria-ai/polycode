@@ -2,19 +2,33 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import HomePage from './+page.svelte';
-import type { Project } from '$lib/types/api';
+import type { ProjectTree } from '$lib/types/api';
 
 const polycodeProjectId = 'polycode-id';
 const docsProjectId = 'docs-id';
 
-const baseProjects: Project[] = [
+const baseProjects: ProjectTree[] = [
 	{
 		id: polycodeProjectId,
 		path: '/Projects/polycode',
 		expandedState: false,
 		createdAt: '2026-04-09T10:00:00.000Z',
 		displayName: 'polycode',
-		owner: null
+		owner: null,
+		worktrees: [
+			{
+				id: 'main-wt-id',
+				branch: 'main',
+				isLinkedWorktree: false,
+				sessions: []
+			},
+			{
+				id: 'test-wt-id',
+				branch: 'feature/auth',
+				isLinkedWorktree: true,
+				sessions: []
+			}
+		]
 	},
 	{
 		id: docsProjectId,
@@ -22,46 +36,43 @@ const baseProjects: Project[] = [
 		expandedState: false,
 		createdAt: '2026-04-09T10:00:00.000Z',
 		displayName: 'docs',
-		owner: null
+		owner: null,
+		worktrees: [
+			{
+				id: 'docs-main-wt-id',
+				branch: 'develop',
+				isLinkedWorktree: false,
+				sessions: []
+			},
+			{
+				id: 'docs-wt-id',
+				branch: 'feature/api',
+				isLinkedWorktree: true,
+				sessions: []
+			}
+		]
 	}
 ];
 
 const mainWorktreeId = 'main-wt-id';
 
 const baseData = {
-	projects: baseProjects,
 	projectTree: [
 		{
-			...baseProjects[0],
 			path: baseProjects[0].path,
 			projectId: baseProjects[0].id,
 			displayName: baseProjects[0].displayName,
-			defaultBranchLabel: 'main',
-			mainWorktreeId,
-			sessions: [],
-			worktrees: [
-				{
-					id: 'test-wt-id',
-					branch: 'feature/auth',
-					sessions: []
-				}
-			]
+			owner: baseProjects[0].owner,
+			expandedState: baseProjects[0].expandedState,
+			worktrees: baseProjects[0].worktrees
 		},
 		{
-			...baseProjects[1],
 			path: baseProjects[1].path,
 			projectId: baseProjects[1].id,
 			displayName: baseProjects[1].displayName,
-			defaultBranchLabel: 'develop',
-			mainWorktreeId: 'docs-main-wt-id',
-			sessions: [],
-			worktrees: [
-				{
-					id: 'docs-wt-id',
-					branch: 'feature/api',
-					sessions: []
-				}
-			]
+			owner: baseProjects[1].owner,
+			expandedState: baseProjects[1].expandedState,
+			worktrees: baseProjects[1].worktrees
 		}
 	],
 	initialSidebarOpen: true,
@@ -134,7 +145,7 @@ describe('root homepage', () => {
 		await expect.element(page.getByText('docs')).toBeVisible();
 		await expect.element(page.getByText('feature/api')).toBeVisible();
 		expect(document.querySelectorAll('[data-testid="composer-project-link"]')).toHaveLength(2);
-		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(2);
+		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(4);
 
 		const projectDefaultBranch = document.querySelector(
 			'[data-testid="composer-project-default-branch"]'
@@ -160,15 +171,20 @@ describe('root homepage', () => {
 		) as HTMLElement | null;
 		expect(nestedWorktreeItem?.className).toContain('text-xs');
 		expect(worktreeLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(polycodeProjectId)}&worktreeId=${encodeURIComponent('test-wt-id')}`
+			`/?project=${encodeURIComponent(polycodeProjectId)}&worktreeId=${encodeURIComponent('main-wt-id')}`
 		);
 	});
 
-	it('renders a project with no worktrees as a single clickable project item', async () => {
+	it('renders a project with no linked worktrees as a single clickable project item', async () => {
 		const noWorktreeData = {
 			...baseData,
 			projectTree: baseData.projectTree.map((p) =>
-				p.projectId === polycodeProjectId ? { ...p, worktrees: [] } : p
+				p.projectId === polycodeProjectId
+					? {
+							...p,
+							worktrees: p.worktrees.filter((worktree) => !worktree.isLinkedWorktree)
+						}
+					: p
 			),
 			worktrees: [
 				{
@@ -184,7 +200,7 @@ describe('root homepage', () => {
 		const projectLink = document.querySelector(
 			'[data-testid="composer-project-link"]'
 		) as HTMLElement | null;
-		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(3);
 		expect(projectLink?.getAttribute('data-value')).toBe(
 			`/?project=${encodeURIComponent(polycodeProjectId)}`
 		);

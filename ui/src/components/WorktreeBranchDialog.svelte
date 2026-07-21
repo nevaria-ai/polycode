@@ -3,7 +3,7 @@
 	import { Input } from '$components/ui/input';
 	import * as Dialog from '$components/ui/dialog';
 	import { createWorktree, renameWorktreeBranch } from '$lib/services';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 
 	type BranchDialogMode =
 		| { mode: 'create'; projectId: string }
@@ -41,7 +41,7 @@
 				);
 			}
 			branchDialogState = null;
-			await invalidateAll();
+			await invalidate('projects:list');
 		} catch (e) {
 			error = e instanceof Error ? e.message : `Failed to ${branchDialogState?.mode} branch`;
 		} finally {

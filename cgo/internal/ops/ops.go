@@ -94,8 +94,11 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 		if err := unmarshalArgs(argsJSON, &p); err != nil {
 			return "", err
 		}
-		row, err := q.UpdateProjectExpandedState(ctx, p)
-		return jsonResult(row, err)
+		err := q.UpdateProjectExpandedState(ctx, p)
+		if err != nil {
+			return "", err
+		}
+		return okJSON, nil
 	case "CountSessionsByProject":
 		var p projectIDArg
 		if err := unmarshalArgs(argsJSON, &p); err != nil {

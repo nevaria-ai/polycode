@@ -16,19 +16,26 @@ async fn setup_git_project() -> (axum::Router, tempfile::TempDir, String, String
     (app, dir, project_id, project_path)
 }
 
-async fn list_worktrees(app: &axum::Router, project_id: &str) -> serde_json::Value {
+async fn list_worktrees_for_project(app: &axum::Router, project_id: &str) -> serde_json::Value {
     let resp = app
         .clone()
         .oneshot(
             Request::builder()
-                .uri(format!("/api/projects/{project_id}/worktrees"))
+                .uri("/api/projects")
                 .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    common::json_body(resp).await
+    let projects = common::json_body(resp).await;
+    let project = projects
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"].as_str() == Some(project_id))
+        .expect("project in nested tree");
+    project["worktrees"].clone()
 }
 
 async fn create_session(
@@ -93,11 +100,7 @@ async fn rename_branch_api(
     resp.status()
 }
 
-async fn create_worktree_api(
-    app: &axum::Router,
-    project_id: &str,
-    branch: &str,
-) -> serde_json::Value {
+async fn create_worktree_api(app: &axum::Router, project_id: &str, branch: &str) -> String {
     let resp = app
         .clone()
         .oneshot(common::json_request(
@@ -108,7 +111,17 @@ async fn create_worktree_api(
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    common::json_body(resp).await
+
+    let listed = list_worktrees_for_project(app, project_id).await;
+    listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|w| w["branch"].as_str() == Some(branch))
+        .expect("created worktree in nested projects tree")["id"]
+        .as_str()
+        .unwrap()
+        .to_string()
 }
 
 async fn update_session_title(
@@ -130,7 +143,7 @@ async fn update_session_title(
 }
 
 #[tokio::test]
-async fn test_list_worktrees_empty_project() {
+async fn test_list_worktrees_route_removed() {
     let app = common::app();
     let response = app
         .oneshot(
@@ -145,9 +158,9 @@ async fn test_list_worktrees_empty_project() {
 }
 
 #[tokio::test]
-async fn test_list_worktrees_returns_git_entries_only() {
+async fn test_nested_projects_returns_git_worktree_entries() {
     let (app, _dir, project_id, project_path) = setup_git_project().await;
-    let worktrees = list_worktrees(&app, &project_id).await;
+    let worktrees = list_worktrees_for_project(&app, &project_id).await;
     let arr = worktrees.as_array().unwrap();
     assert_eq!(arr.len(), 1);
     assert!(!arr[0]["isLinkedWorktree"].as_bool().unwrap());
@@ -160,7 +173,7 @@ async fn test_list_worktrees_returns_git_entries_only() {
     assert_eq!(arr[0]["id"].as_str().unwrap(), expected_id);
 
     // List is read-only: no DB row yet, but id is stable v5(path) per response.
-    let listed_again = list_worktrees(&app, &project_id).await;
+    let listed_again = list_worktrees_for_project(&app, &project_id).await;
     assert_eq!(
         listed_again.as_array().unwrap()[0]["id"].as_str().unwrap(),
         expected_id
@@ -172,7 +185,7 @@ async fn test_list_worktrees_returns_git_entries_only() {
         .expect("session has worktreeId after lazy create");
     assert_eq!(persisted_id, expected_id);
 
-    let listed_after = list_worktrees(&app, &project_id).await;
+    let listed_after = list_worktrees_for_project(&app, &project_id).await;
     let wt = listed_after
         .as_array()
         .unwrap()
@@ -181,7 +194,7 @@ async fn test_list_worktrees_returns_git_entries_only() {
         .expect("primary worktree in list");
     assert_eq!(wt["id"].as_str().unwrap(), persisted_id);
 
-    let listed_once_more = list_worktrees(&app, &project_id).await;
+    let listed_once_more = list_worktrees_for_project(&app, &project_id).await;
     let wt2 = listed_once_more
         .as_array()
         .unwrap()
@@ -205,11 +218,18 @@ async fn test_create_worktree_persists_uuid_v4_id() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let created = common::json_body(resp).await;
-    let id = created["worktree"]["id"].as_str().unwrap();
+
+    let listed = list_worktrees_for_project(&app, &project_id).await;
+    let arr = listed.as_array().unwrap();
+    assert_eq!(arr.len(), 2);
+    let wt = arr
+        .iter()
+        .find(|w| w["branch"].as_str() == Some("feature-a"))
+        .expect("created worktree in nested projects tree");
+    assert!(wt["isLinkedWorktree"].as_bool().unwrap());
+    let id = wt["id"].as_str().unwrap();
     let parsed = Uuid::parse_str(id).expect("valid uuid");
     assert_eq!(parsed.get_version(), Some(uuid::Version::Random));
-    assert!(created["worktree"]["isLinkedWorktree"].as_bool().unwrap());
     let created_path = polycode::paths::worktree_dir(&project_id, id);
     assert_eq!(
         id,
@@ -219,16 +239,7 @@ async fn test_create_worktree_persists_uuid_v4_id() {
         )
     );
 
-    let listed = list_worktrees(&app, &project_id).await;
-    let arr = listed.as_array().unwrap();
-    assert_eq!(arr.len(), 2);
-    let wt = arr
-        .iter()
-        .find(|w| w["id"] == id)
-        .expect("created worktree in list");
-    assert_eq!(wt["id"].as_str().unwrap(), id);
-
-    let listed_again = list_worktrees(&app, &project_id).await;
+    let listed_again = list_worktrees_for_project(&app, &project_id).await;
     let wt2 = listed_again
         .as_array()
         .unwrap()
@@ -255,7 +266,7 @@ async fn test_session_creates_worktree_row_lazily() {
         .expect("git worktree add");
 
     let ext_path_str = ext_path.to_str().unwrap();
-    let listed = list_worktrees(&app, &project_id).await;
+    let listed = list_worktrees_for_project(&app, &project_id).await;
     let list_id = listed
         .as_array()
         .unwrap()
@@ -277,10 +288,10 @@ async fn test_session_creates_worktree_row_lazily() {
         .expect("lazy worktree row created");
     assert_eq!(
         wt_id, list_id,
-        "session row uses same v5(path) id as list API"
+        "session row uses same v5(path) id as nested projects tree"
     );
 
-    let listed_after = list_worktrees(&app, &project_id).await;
+    let listed_after = list_worktrees_for_project(&app, &project_id).await;
     let ext = listed_after
         .as_array()
         .unwrap()
@@ -314,7 +325,7 @@ async fn test_delete_worktree_api_keeps_session_and_stable_id() {
         .expect("git worktree add");
 
     let ext_path_str = ext_path.to_str().unwrap();
-    let listed = list_worktrees(&app, &project_id).await;
+    let listed = list_worktrees_for_project(&app, &project_id).await;
     let _branch = listed
         .as_array()
         .unwrap()
@@ -356,7 +367,7 @@ async fn test_delete_worktree_api_keeps_session_and_stable_id() {
         .output()
         .expect("git worktree re-add");
 
-    let listed_again = list_worktrees(&app, &project_id).await;
+    let listed_again = list_worktrees_for_project(&app, &project_id).await;
     let restored = listed_again
         .as_array()
         .unwrap()
@@ -447,20 +458,19 @@ async fn test_path_reuse_attaches_new_session_to_same_worktree_row() {
 #[tokio::test]
 async fn test_rename_checked_out_branch_by_worktree_id() {
     let (app, _dir, project_id, _path) = setup_git_project().await;
-    let created = create_worktree_api(&app, &project_id, "feature-a").await;
-    let wt_id = created["worktree"]["id"].as_str().unwrap();
+    let wt_id = create_worktree_api(&app, &project_id, "feature-a").await;
 
     assert_eq!(
-        rename_branch_api(&app, &project_id, wt_id, "feature-renamed").await,
+        rename_branch_api(&app, &project_id, &wt_id, "feature-renamed").await,
         StatusCode::NO_CONTENT
     );
 
-    let listed = list_worktrees(&app, &project_id).await;
+    let listed = list_worktrees_for_project(&app, &project_id).await;
     let wt = listed
         .as_array()
         .unwrap()
         .iter()
-        .find(|w| w["id"].as_str() == Some(wt_id))
+        .find(|w| w["id"].as_str() == Some(wt_id.as_str()))
         .expect("worktree still listed by same id");
     assert_eq!(wt["branch"].as_str(), Some("feature-renamed"));
     assert!(wt["isLinkedWorktree"].as_bool().unwrap());
@@ -469,20 +479,19 @@ async fn test_rename_checked_out_branch_by_worktree_id() {
 #[tokio::test]
 async fn test_delete_worktree_by_id_ref() {
     let (app, _dir, project_id, _path) = setup_git_project().await;
-    let created = create_worktree_api(&app, &project_id, "to-delete").await;
-    let wt_id = created["worktree"]["id"].as_str().unwrap();
+    let wt_id = create_worktree_api(&app, &project_id, "to-delete").await;
 
     assert_eq!(
-        delete_worktree_api(&app, &project_id, wt_id).await,
+        delete_worktree_api(&app, &project_id, &wt_id).await,
         StatusCode::NO_CONTENT
     );
 
-    let listed = list_worktrees(&app, &project_id).await;
+    let listed = list_worktrees_for_project(&app, &project_id).await;
     assert!(listed
         .as_array()
         .unwrap()
         .iter()
-        .all(|w| w["id"].as_str() != Some(wt_id)));
+        .all(|w| w["id"].as_str() != Some(wt_id.as_str())));
 }
 
 #[tokio::test]
@@ -510,6 +519,6 @@ async fn test_git_only_worktree_resolves_by_id() {
         "git-only worktree resolves by stable id from git scan"
     );
 
-    let listed = list_worktrees(&app, &project_id).await;
+    let listed = list_worktrees_for_project(&app, &project_id).await;
     assert_eq!(listed.as_array().unwrap().len(), 1);
 }

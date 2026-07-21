@@ -6,25 +6,38 @@ pub fn format_iso8601(epoch_secs: i64) -> String {
         .unwrap_or_default()
 }
 
+/// Slim session row for sidebar nesting under worktrees.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiProject {
+pub struct ApiSessionMetadata {
+    pub id: String,
+    pub title: Option<String>,
+    pub status: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub last_active_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiWorktreeWithSessions {
+    pub id: String,
+    pub branch: Option<String>,
+    pub is_linked_worktree: bool,
+    pub sessions: Vec<ApiSessionMetadata>,
+}
+
+/// Project with nested worktrees and session metadata for the sidebar tree.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiProjectTree {
     pub id: String,
     pub path: String,
     pub expanded_state: bool,
     pub created_at: String,
     pub display_name: String,
-    /// Git repo owner when the stored name is in `owner/repo` form (from origin remote).
-    /// `None` for non-git folders or repos without a recognizable origin.
     pub owner: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApiWorktree {
-    pub id: String,
-    pub branch: Option<String>,
-    pub is_linked_worktree: bool,
+    pub worktrees: Vec<ApiWorktreeWithSessions>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -147,7 +160,7 @@ pub struct UpdateExpandedStateRequest {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateProjectResponse {
-    pub project: ApiProject,
+    pub id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -160,12 +173,6 @@ pub struct CreateSessionResponse {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSessionResponse {
     pub session: ApiSession,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateWorktreeResponse {
-    pub worktree: ApiWorktree,
 }
 
 #[derive(Debug, Serialize)]
@@ -198,6 +205,19 @@ impl From<DbSession> for ApiSession {
             status: s.status,
             version: s.version,
             has_summary: s.has_summary != 0,
+            created_at: format_iso8601(s.created_at),
+            updated_at: format_iso8601(s.updated_at),
+            last_active_at: format_iso8601(s.last_active_at),
+        }
+    }
+}
+
+impl From<&DbSession> for ApiSessionMetadata {
+    fn from(s: &DbSession) -> Self {
+        Self {
+            id: s.id.clone(),
+            title: s.title.clone(),
+            status: s.status.clone(),
             created_at: format_iso8601(s.created_at),
             updated_at: format_iso8601(s.updated_at),
             last_active_at: format_iso8601(s.last_active_at),

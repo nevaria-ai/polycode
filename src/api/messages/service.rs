@@ -29,15 +29,6 @@ impl Service {
         self.create_message(session_id, "user", &req.content).await
     }
 
-    pub async fn list_messages(&self, session_id: &str) -> Result<Vec<Message>, AppError> {
-        self.db
-            .transcript_many(
-                "ListMessagesBySession",
-                &serde_json::json!({ "session_id": session_id }),
-            )
-            .map_err(AppError::from)
-    }
-
     pub async fn create_agent_reply(
         &self,
         session_id: &str,

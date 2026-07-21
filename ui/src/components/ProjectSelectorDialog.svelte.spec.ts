@@ -3,7 +3,7 @@ import { cleanup, render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 
 const { createProjectMock, invalidateMock, gotoMock } = vi.hoisted(() => ({
-	createProjectMock: vi.fn(async () => ({ project: { id: 'test-project-id' } })),
+	createProjectMock: vi.fn(async () => ({ id: 'test-project-id' })),
 	invalidateMock: vi.fn(async () => {}),
 	gotoMock: vi.fn(async () => {})
 }));
@@ -71,7 +71,7 @@ describe('ProjectSelectorDialog', () => {
 		// the default resolved value. Without this, one-shot handlers can leak
 		// across tests when the file runs alongside others in the same suite.
 		createProjectMock.mockReset();
-		createProjectMock.mockResolvedValue({ project: { id: 'test-project-id' } });
+		createProjectMock.mockResolvedValue({ id: 'test-project-id' });
 		invalidateMock.mockReset();
 		invalidateMock.mockResolvedValue();
 		gotoMock.mockReset();
@@ -308,7 +308,7 @@ describe('ProjectSelectorDialog', () => {
 		// The backend returns the existing project when the path is already added;
 		// since the response shape is identical to a fresh create, the frontend
 		// treats both cases the same way: navigate to /?project=<id>.
-		createProjectMock.mockResolvedValueOnce({ project: { id: 'reused-existing-id' } });
+		createProjectMock.mockResolvedValueOnce({ id: 'reused-existing-id' });
 
 		render(ProjectSelectorDialog, { open: true });
 
@@ -347,13 +347,14 @@ describe('ProjectSelectorDialog', () => {
 		// Project ids are UUIDs so this is mostly belt-and-suspenders, but the
 		// dialog must not blindly concatenate the id into the URL.
 		createProjectMock.mockResolvedValueOnce({
-			project: { id: 'id with spaces & slashes' }
+			id: 'id with spaces & slashes'
 		});
 
 		render(ProjectSelectorDialog, { open: true });
 
 		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
 		await input.fill('/workspace');
+		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
 		await pressInputKey('Tab');
 		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
 
@@ -373,6 +374,7 @@ describe('ProjectSelectorDialog', () => {
 
 		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
 		await input.fill('/workspace');
+		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
 		await pressInputKey('Tab');
 		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
 

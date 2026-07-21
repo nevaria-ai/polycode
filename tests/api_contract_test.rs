@@ -66,7 +66,7 @@ async fn contract_directory_response_shape() {
 // ─── Project Contract ────────────────────────────────────────────
 
 #[tokio::test]
-async fn contract_create_project_response_camel_case_and_wrapped() {
+async fn contract_create_project_response_returns_id() {
     let app = common::app();
     let resp = app
         .oneshot(common::json_request(
@@ -79,23 +79,12 @@ async fn contract_create_project_response_camel_case_and_wrapped() {
     assert_eq!(resp.status(), StatusCode::OK);
     let json = common::json_body(resp).await;
 
-    assert!(json["project"].is_object(), "must be wrapped in 'project'");
+    assert!(json["id"].is_string(), "must return project id");
+    assert!(
+        json.get("project").is_none(),
+        "must not wrap a project tree"
+    );
     assert_no_snake_case_keys(&json, "POST /api/projects");
-}
-
-#[tokio::test]
-async fn contract_create_project_timestamps_iso8601() {
-    let app = common::app();
-    let resp = app
-        .oneshot(common::json_request(
-            "POST",
-            "/api/projects",
-            Some(json!({"path": "/tmp/ts"})),
-        ))
-        .await
-        .unwrap();
-    let json = common::json_body(resp).await;
-    assert_iso8601(&json["project"]["createdAt"], "project.createdAt");
 }
 
 #[tokio::test]
@@ -110,20 +99,9 @@ async fn contract_create_project_no_snake_case() {
         .await
         .unwrap();
     let json = common::json_body(resp).await;
-    let project = &json["project"];
-    assert!(
-        project.get("created_at").is_none(),
-        "should not have created_at"
-    );
-    assert!(
-        project.get("updated_at").is_none(),
-        "should not have updated_at"
-    );
-    assert!(
-        project.get("project_id").is_none(),
-        "should not have project_id"
-    );
-    assert!(project.get("createdAt").is_some(), "should have createdAt");
+    assert!(json.get("created_at").is_none());
+    assert!(json.get("project_id").is_none());
+    assert!(json.get("id").is_some());
 }
 
 #[tokio::test]
@@ -248,21 +226,27 @@ async fn contract_session_timestamps_iso8601() {
 }
 
 #[tokio::test]
-async fn contract_list_sessions_camel_case() {
+async fn contract_list_projects_nested_tree_camel_case() {
     let app = common::app();
     let (_dir, pid, project_path) = common::setup_git_project(&app).await;
     common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
     let resp = app
-        .oneshot(common::json_request(
-            "GET",
-            &format!("/api/projects/{pid}/sessions"),
-            None,
-        ))
+        .oneshot(common::json_request("GET", "/api/projects", None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let json = common::json_body(resp).await;
-    assert_no_snake_case_keys(&json, "GET /api/projects/{pid}/sessions");
+    assert_no_snake_case_keys(&json, "GET /api/projects");
+    let project = &json.as_array().unwrap()[0];
+    assert!(project["worktrees"].is_array());
+    assert!(project.get("sessions").is_none());
+    let main = project["worktrees"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|wt| !wt["isLinkedWorktree"].as_bool().unwrap())
+        .expect("main worktree");
+    assert!(main["sessions"].is_array());
 }
 
 // ─── Message Contract ────────────────────────────────────────────
@@ -319,33 +303,4 @@ async fn contract_message_timestamp_iso8601() {
         .unwrap();
     let json = common::json_body(resp).await;
     assert_iso8601(&json["createdAt"], "message.createdAt");
-}
-
-#[tokio::test]
-async fn contract_list_messages_camel_case() {
-    let db = common::memory_db();
-    let app = common::app_with(db.clone());
-    let (_dir, pid, project_path) = common::setup_git_project(&app).await;
-    let sid = common::seed_session(&app, &pid, &common::v5_id_for_path(&project_path), true).await;
-    let _ = app
-        .oneshot(common::json_request(
-            "POST",
-            &format!("/api/projects/{pid}/sessions/{sid}/messages"),
-            Some(json!({"content": "msg1"})),
-        ))
-        .await
-        .unwrap();
-
-    let app2 = common::app_with(db);
-    let resp = app2
-        .oneshot(common::json_request(
-            "GET",
-            &format!("/api/projects/{pid}/sessions/{sid}/messages"),
-            None,
-        ))
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    let json = common::json_body(resp).await;
-    assert_no_snake_case_keys(&json, "GET .../messages");
 }

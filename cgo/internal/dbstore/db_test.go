@@ -199,15 +199,19 @@ func TestQueriesWorkspace(t *testing.T) {
 		t.Fatal("expected no rows error for missing path")
 	}
 
-	updated, err := db.Q.UpdateProjectExpandedState(ctx, polydb.UpdateProjectExpandedStateParams{
+	err = db.Q.UpdateProjectExpandedState(ctx, polydb.UpdateProjectExpandedStateParams{
 		ExpandedState: 1,
 		ID:            "proj-1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.ExpandedState != 1 {
-		t.Fatalf("UpdateProjectExpandedState: %+v", updated)
+	got, err = db.Q.GetProject(ctx, "proj-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ExpandedState != 1 {
+		t.Fatalf("UpdateProjectExpandedState: %+v", got)
 	}
 
 	session, err := db.Q.CreateSession(ctx, polydb.CreateSessionParams{

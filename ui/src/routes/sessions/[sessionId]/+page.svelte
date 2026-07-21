@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { page } from '$app/state';
-	import { replaceState, invalidateAll } from '$app/navigation';
+	import { replaceState, invalidate } from '$app/navigation';
 	import { sendMessage, updateSessionTitle } from '$lib/services';
 	import { Pin, FileText, Bot, User, Pencil } from '@lucide/svelte';
 	import PromptPanel from '$components/PromptPanel.svelte';
@@ -52,7 +52,7 @@
 				content
 			});
 			messageText = '';
-			await invalidateAll();
+			await invalidate(`session:${session.id}`);
 		} catch (err: unknown) {
 			submitError = err instanceof Error ? err.message : 'Failed to send message';
 		}
@@ -86,7 +86,8 @@
 				title: editTitle.trim()
 			});
 			isEditingTitle = false;
-			await invalidateAll();
+			await invalidate(`session:${session.id}`);
+			await invalidate('projects:list');
 		} catch (err: unknown) {
 			renameError = err instanceof Error ? err.message : 'Failed to rename session';
 		}

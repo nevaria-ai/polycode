@@ -22,11 +22,10 @@ WHERE path = ?;
 -- name: DeleteProject :exec
 DELETE FROM projects WHERE id = ?;
 
--- name: UpdateProjectExpandedState :one
+-- name: UpdateProjectExpandedState :exec
 UPDATE projects
 SET expanded_state = ?
-WHERE id = ?
-RETURNING id, path, expanded_state, created_at, removed_at;
+WHERE id = ?;
 
 -- name: CountSessionsByProject :one
 SELECT COUNT(*) FROM sessions WHERE project_id = ?;

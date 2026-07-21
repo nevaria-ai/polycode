@@ -4,7 +4,8 @@ import type { SessionViewData } from '$lib/types/api';
 
 export const ssr = false;
 
-export const load: PageLoad = async ({ params, url }): Promise<SessionViewData> => {
+export const load: PageLoad = async ({ params, url, depends }): Promise<SessionViewData> => {
+	depends(`session:${params.sessionId}`);
 	const projectId = url.searchParams.get('project') ?? '';
 
 	try {

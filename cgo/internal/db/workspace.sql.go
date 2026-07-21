@@ -412,11 +412,10 @@ func (q *Queries) SoftRemoveProject(ctx context.Context, arg SoftRemoveProjectPa
 	return i, err
 }
 
-const updateProjectExpandedState = `-- name: UpdateProjectExpandedState :one
+const updateProjectExpandedState = `-- name: UpdateProjectExpandedState :exec
 UPDATE projects
 SET expanded_state = ?
 WHERE id = ?
-RETURNING id, path, expanded_state, created_at, removed_at
 `
 
 type UpdateProjectExpandedStateParams struct {
@@ -424,17 +423,9 @@ type UpdateProjectExpandedStateParams struct {
 	ID            string `json:"id"`
 }
 
-func (q *Queries) UpdateProjectExpandedState(ctx context.Context, arg UpdateProjectExpandedStateParams) (Project, error) {
-	row := q.db.QueryRowContext(ctx, updateProjectExpandedState, arg.ExpandedState, arg.ID)
-	var i Project
-	err := row.Scan(
-		&i.ID,
-		&i.Path,
-		&i.ExpandedState,
-		&i.CreatedAt,
-		&i.RemovedAt,
-	)
-	return i, err
+func (q *Queries) UpdateProjectExpandedState(ctx context.Context, arg UpdateProjectExpandedStateParams) error {
+	_, err := q.db.ExecContext(ctx, updateProjectExpandedState, arg.ExpandedState, arg.ID)
+	return err
 }
 
 const updateSessionTitle = `-- name: UpdateSessionTitle :exec

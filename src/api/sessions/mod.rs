@@ -16,32 +16,16 @@ use crate::error::AppError;
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/api/sessions", get(list_all_sessions))
-        .route("/api/projects/{pid}/sessions", get(list).post(create))
+        .route("/api/projects/{pid}/sessions", post(create))
         .route(
             "/api/projects/{pid}/sessions/{sid}",
-            get(get_one).delete(delete_one),
+            get(get_session).delete(delete_one),
         )
         .route(
             "/api/projects/{pid}/sessions/{sid}/title",
             patch(update_title),
         )
         .route("/api/projects/{pid}/sessions/{sid}/archive", post(archive))
-}
-
-async fn list_all_sessions(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<ApiSession>>, AppError> {
-    let sessions = Service::new(state.db).list_all().await?;
-    Ok(Json(sessions.into_iter().map(ApiSession::from).collect()))
-}
-
-async fn list(
-    State(state): State<AppState>,
-    Path(pid): Path<String>,
-) -> Result<Json<Vec<ApiSession>>, AppError> {
-    let sessions = Service::new(state.db).list_by_project(&pid).await?;
-    Ok(Json(sessions.into_iter().map(ApiSession::from).collect()))
 }
 
 async fn create(
@@ -67,10 +51,12 @@ async fn create(
     ))
 }
 
-async fn get_one(
+async fn get_session(
     State(state): State<AppState>,
     Path((_pid, sid)): Path<(String, String)>,
 ) -> Result<Json<SessionViewResponse>, AppError> {
+    // Stub: full session view (messages / pinned context / provider runs) is out of
+    // scope until session page work lands. Only the session row is populated.
     let session = Service::new(state.db).get(&sid).await?;
     Ok(Json(SessionViewResponse {
         session: ApiSession::from(session),

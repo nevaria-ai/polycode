@@ -1,46 +1,29 @@
-import { getProjects, listAllSessions, listWorktrees } from '$lib/services';
-import type { Project, Worktree } from '$lib/services';
+import { getProjects } from '$lib/services';
 import { getInitialSidebarStateFromCookieString } from '$components/ui/sidebar';
 import type { LayoutLoad } from './$types';
-
-import type { Session } from '$lib/sessions';
-import type { WorktreeEntry } from '$lib/sessions';
+import type { SidebarProjectInput } from '$lib/project-tree';
 
 export const ssr = false;
 
 export const load: LayoutLoad = async ({ depends }) => {
 	depends('projects:list');
-	const [projects, sessions] = await Promise.all([
-		getProjects().catch(() => [] as Project[]),
-		listAllSessions().catch(() => [] as Session[])
-	]);
+	const projects = await getProjects().catch(() => []);
 
-	const projectTree = await Promise.all(
-		projects.map(async (project) => {
-			const worktrees = await listWorktrees(project.id).catch(() => [] as Worktree[]);
-			const mainWorktree = worktrees.find((w) => !w.isLinkedWorktree) ?? null;
-			const defaultBranch = mainWorktree?.branch ?? null;
-			const mainWorktreeId = mainWorktree?.id ?? null;
-			const projectSessions = sessions.filter((s) => s.projectId === project.id);
-
-			return {
-				...project,
-				projectId: project.id,
-				defaultBranchLabel: defaultBranch,
-				mainWorktreeId,
-				sessions: projectSessions as Session[],
-				worktrees: worktrees
-					.filter((w) => w.isLinkedWorktree)
-					.map((w) => ({
-						...w,
-						sessions: sessions.filter((s) => s.worktreeId === w.id) as Session[]
-					})) as Array<WorktreeEntry & { sessions: Session[] }>
-			};
-		})
-	);
+	const projectTree: SidebarProjectInput[] = projects.map((project) => ({
+		path: project.path,
+		displayName: project.displayName,
+		owner: project.owner,
+		projectId: project.id,
+		expandedState: project.expandedState,
+		worktrees: project.worktrees.map((worktree) => ({
+			id: worktree.id,
+			branch: worktree.branch,
+			isLinkedWorktree: worktree.isLinkedWorktree,
+			sessions: worktree.sessions
+		}))
+	}));
 
 	return {
-		projects,
 		initialSidebarOpen: getInitialSidebarStateFromCookieString(
 			typeof document !== 'undefined' ? document.cookie : ''
 		),

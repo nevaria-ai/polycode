@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { materializeProjectTree } from './project-tree';
 
+const session = {
+	id: 'session-1',
+	title: 'Session',
+	status: 'active' as const,
+	createdAt: '2026-04-09T10:00:00.000Z',
+	updatedAt: '2026-04-09T10:00:00.000Z',
+	lastActiveAt: '2026-04-09T10:00:00.000Z'
+};
+
 describe('materializeProjectTree', () => {
 	it('adds collapsed UI state by default', () => {
 		const tree = materializeProjectTree([
@@ -10,7 +19,7 @@ describe('materializeProjectTree', () => {
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+				worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
 			}
 		]);
 
@@ -26,7 +35,7 @@ describe('materializeProjectTree', () => {
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: true,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+				worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
 			}
 		]);
 
@@ -41,7 +50,7 @@ describe('materializeProjectTree', () => {
 				path: '/repo',
 				projectId: 'repo-id',
 				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+				worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
 			}
 		]);
 
@@ -60,18 +69,8 @@ describe('materializeProjectTree', () => {
 						{
 							id: 'test-wt-id',
 							branch: 'main',
-							sessions: [
-								{
-									id: 'session-1',
-									worktreeId: 'wt-1',
-									title: 'Session',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
-									status: 'active',
-									createdAt: '2026-04-09T10:00:00.000Z',
-									lastActiveAt: '2026-04-09T10:00:00.000Z'
-								}
-							]
+							isLinkedWorktree: false,
+							sessions: [session]
 						}
 					]
 				}

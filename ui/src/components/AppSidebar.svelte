@@ -18,9 +18,11 @@
 	import * as Tooltip from '$components/ui/tooltip';
 	import {
 		materializeProjectTree,
-		type ProjectTreeProject,
-		type ProjectTreeProjectInput,
-		type ProjectTreeWorktree
+		linkedWorktrees,
+		mainWorktree,
+		type SidebarProject,
+		type SidebarProjectInput,
+		type ExpandedWorktree
 	} from '$lib/project-tree';
 	import { APP_NAME } from '$lib/config';
 	import ProjectSelectorDialog from '$components/ProjectSelectorDialog.svelte';
@@ -39,13 +41,13 @@
 		title: 'No agent session yet'
 	};
 
-	function projectDisplaySessions(project: ProjectTreeProject): SidebarSessionEntry[] {
-		const sessions = project.sessions ?? [];
+	function projectDisplaySessions(project: SidebarProject): SidebarSessionEntry[] {
+		const sessions = mainWorktree(project)?.sessions ?? [];
 		if (sessions.length === 0) return [NOTREAL_SESSION];
 		return sessions;
 	}
 
-	function worktreeDisplaySessions(worktree: ProjectTreeWorktree): SidebarSessionEntry[] {
+	function worktreeDisplaySessions(worktree: ExpandedWorktree): SidebarSessionEntry[] {
 		if (worktree.sessions.length === 0) return [NOTREAL_SESSION];
 		return worktree.sessions;
 	}
@@ -53,11 +55,11 @@
 	let {
 		projectTree = []
 	}: {
-		projectTree?: ProjectTreeProjectInput[];
+		projectTree?: SidebarProjectInput[];
 	} = $props();
 
 	const sidebar = Sidebar.useSidebar();
-	let tree = $state<ProjectTreeProject[]>([]);
+	let tree = $state<SidebarProject[]>([]);
 
 	$effect(() => {
 		tree = materializeProjectTree(
@@ -263,11 +265,11 @@
 								</Sidebar.MenuButton>
 
 								<Collapsible.Content>
-									{#if project.defaultBranchLabel}
+									{#if mainWorktree(project)?.branch}
 										<div
 											class="project-default-branch mb-1 ml-[13px] text-[11px] text-sidebar-foreground/90"
 										>
-											:{project.defaultBranchLabel}
+											:{mainWorktree(project)?.branch}
 										</div>
 									{/if}
 									<!-- Project-level sessions (default branch or non-git) -->
@@ -278,9 +280,9 @@
 											{isSessionActive}
 										/>
 									</div>
-									{#if project.worktrees.length > 0}
+									{#if linkedWorktrees(project).length > 0}
 										<Sidebar.MenuSub class="my-2 mr-0 ml-[13px] pr-0 pl-1.5">
-											{#each project.worktrees as worktree (worktree.id)}
+											{#each linkedWorktrees(project) as worktree (worktree.id)}
 												<Collapsible.Root
 													bind:open={worktree.isExpanded}
 													class="group/worktree-collapsible"

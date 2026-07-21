@@ -95,20 +95,17 @@ impl Service {
         Ok(())
     }
 
-    pub async fn update_expanded_state(
-        &self,
-        id: &str,
-        expanded: bool,
-    ) -> Result<Project, AppError> {
+    pub async fn update_expanded_state(&self, id: &str, expanded: bool) -> Result<(), AppError> {
         self.db
-            .workspace_one(
+            .workspace(
                 "UpdateProjectExpandedState",
                 &serde_json::json!({
                     "id": id,
                     "expanded_state": i64::from(expanded),
                 }),
             )
-            .map_err(AppError::from)
+            .map_err(AppError::from)?;
+        Ok(())
     }
 }
 
@@ -206,7 +203,8 @@ mod tests {
             .await
             .unwrap();
         assert!(!created.expanded_state);
-        let updated = svc.update_expanded_state(&created.id, true).await.unwrap();
+        svc.update_expanded_state(&created.id, true).await.unwrap();
+        let updated = svc.get(&created.id).await.unwrap();
         assert!(updated.expanded_state);
     }
 

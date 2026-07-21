@@ -2,7 +2,7 @@
 	import { Button } from '$components/ui/button';
 	import * as Dialog from '$components/ui/dialog';
 	import { deleteWorktree } from '$lib/services';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 
 	type WorktreeDeleteTarget = {
 		projectId: string;
@@ -21,7 +21,7 @@
 		try {
 			await deleteWorktree(info.projectId, info.worktreeId);
 			info = null;
-			await invalidateAll();
+			await invalidate('projects:list');
 		} finally {
 			submitting = false;
 		}

@@ -16,15 +16,14 @@ use std::path::Path as FsPath;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 
 use super::AppState;
 use crate::api::projects::Service as ProjectService;
-use crate::api::types::*;
 use crate::error::AppError;
-use crate::git::worktree::{GitOps, WorktreeInfo};
+use crate::git::worktree::GitOps;
 use crate::paths;
 
 #[derive(Debug, Deserialize)]
@@ -42,7 +41,6 @@ pub struct RenameBranchBody {
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/api/projects/{id}/worktrees", get(list))
         .route("/api/projects/{id}/worktrees/create", post(create))
         .route(
             "/api/projects/{id}/worktrees/{worktree_id}",
@@ -50,41 +48,11 @@ pub fn router() -> Router<AppState> {
         )
 }
 
-fn git_entry_to_api(wt: WorktreeInfo, id: String) -> ApiWorktree {
-    ApiWorktree {
-        id,
-        branch: wt.branch,
-        is_linked_worktree: wt.is_linked_worktree,
-    }
-}
-
-async fn list(
-    State(state): State<AppState>,
-    Path(project_id): Path<String>,
-) -> Result<Json<Vec<ApiWorktree>>, AppError> {
-    let project = ProjectService::new(state.db.clone())
-        .get(&project_id)
-        .await?;
-
-    let git_worktrees =
-        GitOps::list_worktrees(FsPath::new(&project.path)).map_err(AppError::BadRequest)?;
-
-    let api_worktrees = git_worktrees
-        .into_iter()
-        .map(|wt| {
-            let id = Service::worktree_id_for_path(&wt.path, &project_id);
-            git_entry_to_api(wt, id)
-        })
-        .collect();
-
-    Ok(Json(api_worktrees))
-}
-
 async fn create(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
     Json(body): Json<CreateBody>,
-) -> Result<(StatusCode, Json<CreateWorktreeResponse>), AppError> {
+) -> Result<StatusCode, AppError> {
     let project = ProjectService::new(state.db.clone())
         .get(&project_id)
         .await?;
@@ -94,15 +62,10 @@ async fn create(
     std::fs::create_dir_all(worktree_path.parent().unwrap())
         .map_err(|e| AppError::BadRequest(format!("failed to create worktree storage dir: {e}")))?;
 
-    let wt = GitOps::create_worktree(FsPath::new(&project.path), &worktree_path, &body.branch)
+    GitOps::create_worktree(FsPath::new(&project.path), &worktree_path, &body.branch)
         .map_err(AppError::BadRequest)?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(CreateWorktreeResponse {
-            worktree: git_entry_to_api(wt, worktree_id),
-        }),
-    ))
+    Ok(StatusCode::CREATED)
 }
 
 async fn delete_one(

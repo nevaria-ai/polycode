@@ -5,7 +5,7 @@ pub use model::{Message, Part};
 pub use service::{SendMessageRequest, Service};
 
 use axum::extract::{Path, State};
-use axum::routing::get;
+use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
 
@@ -23,7 +23,7 @@ struct SessionPath {
 pub fn router() -> Router<AppState> {
     Router::new().route(
         "/api/projects/{pid}/sessions/{sid}/messages",
-        get(list_messages).post(send_message),
+        post(send_message),
     )
 }
 
@@ -43,14 +43,4 @@ async fn send_message(
     let msg = service.send_message(&path.sid, &service_req).await?;
 
     Ok(Json(ApiMessage::from(msg)))
-}
-
-async fn list_messages(
-    State(state): State<AppState>,
-    Path(path): Path<SessionPath>,
-) -> Result<Json<Vec<ApiMessage>>, AppError> {
-    let messages = Service::new(state.db.clone())
-        .list_messages(&path.sid)
-        .await?;
-    Ok(Json(messages.into_iter().map(ApiMessage::from).collect()))
 }
