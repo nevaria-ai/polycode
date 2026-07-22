@@ -309,7 +309,7 @@ async fn test_session_creates_worktree_row_lazily() {
 }
 
 #[tokio::test]
-async fn test_delete_worktree_cascades_sessions() {
+async fn test_delete_worktree_api_keeps_session_and_stable_id() {
     let (app, dir, project_id, project_path) = setup_git_project().await;
     let ext_path = dir.path().join("api-delete-wt");
     Command::new("git")
@@ -328,7 +328,7 @@ async fn test_delete_worktree_cascades_sessions() {
     let expected_id = v5_id_for_path(ext_path_str);
 
     let session = create_session(&app, &project_id, &expected_id, true).await;
-    let session_id = session["session"]["id"].as_str().unwrap();
+    let session_id = session["session"]["id"].as_str().unwrap().to_string();
     assert_eq!(
         session["session"]["worktreeId"].as_str().unwrap(),
         expected_id
@@ -339,6 +339,15 @@ async fn test_delete_worktree_cascades_sessions() {
         StatusCode::NO_CONTENT
     );
 
+    // Git checkout is gone from the live tree…
+    let listed_again = list_worktrees_for_project(&app, &project_id).await;
+    assert!(listed_again
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|w| w["id"].as_str() != Some(expected_id.as_str())));
+
+    // …but DB row + session remain (same as external `git worktree remove`).
     let get_resp = app
         .clone()
         .oneshot(
@@ -349,14 +358,18 @@ async fn test_delete_worktree_cascades_sessions() {
         )
         .await
         .unwrap();
-    assert_eq!(get_resp.status(), StatusCode::NOT_FOUND);
+    assert_eq!(get_resp.status(), StatusCode::OK);
+    let body = common::json_body(get_resp).await;
+    assert_eq!(
+        body["session"]["worktreeId"].as_str().unwrap(),
+        expected_id,
+        "worktree id stays stable after git-only delete"
+    );
 
-    let listed_again = list_worktrees_for_project(&app, &project_id).await;
-    assert!(listed_again
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|w| w["id"].as_str() != Some(expected_id.as_str())));
+    assert_eq!(
+        update_session_title(&app, &project_id, &session_id, "still writable").await,
+        StatusCode::OK
+    );
 }
 
 #[tokio::test]

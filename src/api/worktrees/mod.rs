@@ -94,12 +94,10 @@ async fn delete_one(
         .path_for_id(&project_id, &project.path, &worktree_id)
         .await?;
 
+    // Git checkout + checked-out branch only. DB worktree row and sessions stay
+    // for safekeeping (same outcome as removing the worktree outside the API).
     GitOps::delete_worktree(FsPath::new(&project.path), FsPath::new(&path))
         .map_err(AppError::BadRequest)?;
-
-    if svc.find_by_id(&worktree_id).await?.is_some() {
-        svc.delete_row(&worktree_id).await?;
-    }
 
     Ok(StatusCode::NO_CONTENT)
 }

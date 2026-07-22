@@ -158,15 +158,6 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 	return err
 }
 
-const deleteWorktreeById = `-- name: DeleteWorktreeById :exec
-DELETE FROM worktrees WHERE id = ?
-`
-
-func (q *Queries) DeleteWorktreeById(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteWorktreeById, id)
-	return err
-}
-
 const findProjectByPath = `-- name: FindProjectByPath :one
 SELECT id, path, created_at, removed_at
 FROM projects

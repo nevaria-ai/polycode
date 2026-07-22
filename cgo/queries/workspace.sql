@@ -48,9 +48,6 @@ FROM worktrees
 WHERE project_id = ?
 ORDER BY is_linked_worktree ASC, created_at ASC;
 
--- name: DeleteWorktreeById :exec
-DELETE FROM worktrees WHERE id = ?;
-
 -- name: UpdateWorktreeExpandedState :exec
 UPDATE worktrees
 SET expanded_state = ?

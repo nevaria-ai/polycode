@@ -65,13 +65,6 @@ impl Service {
             .map_err(AppError::from)
     }
 
-    pub async fn delete_row(&self, id: &str) -> Result<(), AppError> {
-        self.db
-            .workspace("DeleteWorktreeById", &serde_json::json!({ "id": id }))
-            .map_err(AppError::from)?;
-        Ok(())
-    }
-
     pub async fn update_expanded_state(&self, id: &str, expanded: bool) -> Result<(), AppError> {
         self.db
             .workspace(

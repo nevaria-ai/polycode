@@ -179,16 +179,6 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 		}
 		rows, err := q.ListWorktreesByProject(ctx, p.ProjectID)
 		return jsonResult(rows, err)
-	case "DeleteWorktreeById":
-		var p idArg
-		if err := unmarshalArgs(argsJSON, &p); err != nil {
-			return "", err
-		}
-		err := q.DeleteWorktreeById(ctx, p.ID)
-		if err != nil {
-			return "", err
-		}
-		return okJSON, nil
 	case "UpdateWorktreeExpandedState":
 		var p polydb.UpdateWorktreeExpandedStateParams
 		if err := unmarshalArgs(argsJSON, &p); err != nil {
