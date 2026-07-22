@@ -50,7 +50,7 @@ export interface BaseEventPayload {
 export interface SessionCreatedPayload extends BaseEventPayload {
 	sessionId: string;
 	projectId: string;
-	worktreePath: string;
+	worktreeId: string;
 	initialTitle?: string;
 }
 

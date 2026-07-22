@@ -18,9 +18,11 @@
 	import * as Tooltip from '$components/ui/tooltip';
 	import {
 		materializeProjectTree,
-		type ProjectTreeProject,
-		type ProjectTreeProjectInput,
-		type ProjectTreeWorktree
+		linkedWorktrees,
+		unlinkedWorktree,
+		type SidebarProject,
+		type SidebarProjectInput,
+		type ExpandedWorktree
 	} from '$lib/project-tree';
 	import { APP_NAME } from '$lib/config';
 	import ProjectSelectorDialog from '$components/ProjectSelectorDialog.svelte';
@@ -31,21 +33,21 @@
 	import SidebarSessionList, {
 		type SidebarSessionEntry
 	} from '$components/SidebarSessionList.svelte';
-	import { closeProject, updateProjectExpandedState } from '$lib/services';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { closeProject, updateWorktreeExpandedState } from '$lib/services';
+	import { goto, invalidate } from '$app/navigation';
 
 	const NOTREAL_SESSION: SidebarSessionEntry = {
 		id: '__notreal__',
 		title: 'No agent session yet'
 	};
 
-	function projectDisplaySessions(project: ProjectTreeProject): SidebarSessionEntry[] {
-		const sessions = project.sessions ?? [];
+	function projectDisplaySessions(project: SidebarProject): SidebarSessionEntry[] {
+		const sessions = unlinkedWorktree(project)?.sessions ?? [];
 		if (sessions.length === 0) return [NOTREAL_SESSION];
 		return sessions;
 	}
 
-	function worktreeDisplaySessions(worktree: ProjectTreeWorktree): SidebarSessionEntry[] {
+	function worktreeDisplaySessions(worktree: ExpandedWorktree): SidebarSessionEntry[] {
 		if (worktree.sessions.length === 0) return [NOTREAL_SESSION];
 		return worktree.sessions;
 	}
@@ -53,11 +55,11 @@
 	let {
 		projectTree = []
 	}: {
-		projectTree?: ProjectTreeProjectInput[];
+		projectTree?: SidebarProjectInput[];
 	} = $props();
 
 	const sidebar = Sidebar.useSidebar();
-	let tree = $state<ProjectTreeProject[]>([]);
+	let tree = $state<SidebarProject[]>([]);
 
 	$effect(() => {
 		tree = materializeProjectTree(
@@ -68,16 +70,25 @@
 
 	function toggleProject(projectId: string) {
 		const project = tree.find((item) => item.projectId === projectId);
-		if (project) {
+		const worktree = project ? unlinkedWorktree(project) : null;
+		if (project && worktree) {
 			project.isExpanded = !project.isExpanded;
-			void updateProjectExpandedState(projectId, project.isExpanded);
+			worktree.isExpanded = project.isExpanded;
+			void updateWorktreeExpandedState(projectId, worktree.id, project.isExpanded);
 		}
 	}
 
 	function toggleWorktree(projectId: string, worktreeId: string) {
 		const project = tree.find((item) => item.projectId === projectId);
 		const worktree = project?.worktrees.find((item) => item.id === worktreeId);
-		if (worktree) worktree.isExpanded = !worktree.isExpanded;
+		if (worktree) {
+			worktree.isExpanded = !worktree.isExpanded;
+			void updateWorktreeExpandedState(projectId, worktreeId, worktree.isExpanded);
+			const unlinked = project ? unlinkedWorktree(project) : null;
+			if (unlinked?.id === worktreeId && project) {
+				project.isExpanded = worktree.isExpanded;
+			}
+		}
 	}
 
 	function blurMouseClickTarget(event: MouseEvent) {
@@ -116,7 +127,7 @@
 
 	async function removeProject(projectId: string) {
 		await closeProject(projectId);
-		await invalidateAll();
+		await invalidate('projects:list');
 	}
 
 	function newProjectSession(projectId: string) {
@@ -263,11 +274,11 @@
 								</Sidebar.MenuButton>
 
 								<Collapsible.Content>
-									{#if project.defaultBranchLabel}
+									{#if unlinkedWorktree(project)?.branch}
 										<div
 											class="project-default-branch mb-1 ml-[13px] text-[11px] text-sidebar-foreground/90"
 										>
-											:{project.defaultBranchLabel}
+											:{unlinkedWorktree(project)?.branch}
 										</div>
 									{/if}
 									<!-- Project-level sessions (default branch or non-git) -->
@@ -278,9 +289,9 @@
 											{isSessionActive}
 										/>
 									</div>
-									{#if project.worktrees.length > 0}
+									{#if linkedWorktrees(project).length > 0}
 										<Sidebar.MenuSub class="my-2 mr-0 ml-[13px] pr-0 pl-1.5">
-											{#each project.worktrees as worktree (worktree.id)}
+											{#each linkedWorktrees(project) as worktree (worktree.id)}
 												<Collapsible.Root
 													bind:open={worktree.isExpanded}
 													class="group/worktree-collapsible"

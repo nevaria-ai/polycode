@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::api::worktrees::model::WorktreeRow;
 use crate::db::DbHandle;
 use crate::error::AppError;
-use crate::git::worktree::GitOps;
+use crate::git::worktree::{GitOps, WorktreeInfo};
 use crate::paths;
 use crate::utils::unix_now;
 
@@ -56,20 +56,75 @@ impl Service {
             .map_err(AppError::from)
     }
 
+    pub async fn list_by_project(&self, project_id: &str) -> Result<Vec<WorktreeRow>, AppError> {
+        self.db
+            .workspace_many(
+                "ListWorktreesByProject",
+                &serde_json::json!({ "project_id": project_id }),
+            )
+            .map_err(AppError::from)
+    }
+
+    pub async fn update_expanded_state(&self, id: &str, expanded: bool) -> Result<(), AppError> {
+        self.db
+            .workspace(
+                "UpdateWorktreeExpandedState",
+                &serde_json::json!({
+                    "id": id,
+                    "expanded_state": i64::from(expanded),
+                }),
+            )
+            .map_err(AppError::from)?;
+        Ok(())
+    }
+
+    fn git_worktrees(project_path: &str) -> Vec<WorktreeInfo> {
+        GitOps::list_worktrees(Path::new(project_path)).unwrap_or_else(|_| {
+            vec![WorktreeInfo {
+                path: project_path.to_string(),
+                is_linked_worktree: false,
+                branch: None,
+            }]
+        })
+    }
+
+    fn git_entry_for_id<'a>(
+        _project_path: &str,
+        project_id: &str,
+        worktree_id: &str,
+        git_worktrees: &'a [WorktreeInfo],
+    ) -> Option<&'a WorktreeInfo> {
+        git_worktrees
+            .iter()
+            .find(|wt| Self::worktree_id_for_path(&wt.path, project_id) == worktree_id)
+    }
+
     /// Git scan to resolve an external worktree path from its stable v5 id.
     fn external_path_for_id(
         project_id: &str,
         project_path: &str,
         worktree_id: &str,
     ) -> Result<String, AppError> {
-        let git_worktrees =
-            GitOps::list_worktrees(Path::new(project_path)).map_err(AppError::BadRequest)?;
+        let git_worktrees = Self::git_worktrees(project_path);
+        if let Some(wt) =
+            Self::git_entry_for_id(project_path, project_id, worktree_id, &git_worktrees)
+        {
+            return Ok(wt.path.clone());
+        }
 
-        git_worktrees
-            .into_iter()
-            .find(|wt| Self::worktree_id_for_path(&wt.path, project_id) == worktree_id)
-            .map(|wt| wt.path)
-            .ok_or_else(|| AppError::NotFound("worktree not found".into()))
+        let default_id = Self::worktree_id_for_path(project_path, project_id);
+        if worktree_id == default_id {
+            return Ok(project_path.to_string());
+        }
+
+        Err(AppError::NotFound("worktree not found".into()))
+    }
+
+    fn is_linked_for_id(project_path: &str, project_id: &str, worktree_id: &str) -> bool {
+        let git_worktrees = Self::git_worktrees(project_path);
+        Self::git_entry_for_id(project_path, project_id, worktree_id, &git_worktrees)
+            .map(|wt| wt.is_linked_worktree)
+            .unwrap_or(false)
     }
 
     /// Map a stable worktree id to its checkout path (DB row, managed convention, or git scan).
@@ -123,20 +178,21 @@ impl Service {
                     "project_id": project_id,
                     "path": path,
                     "is_linked_worktree": i64::from(is_linked_worktree),
+                    "expanded_state": 0,
                     "created_at": now,
                 }),
             )
             .map_err(AppError::from)
     }
 
-    /// Lazy worktree row on first session: app-managed ids use the `.polycode` path convention;
-    /// external ids git-scan once, then `AddWorktree`.
+    /// Lazy worktree row on first session or expand toggle: app-managed ids use the `.polycode`
+    /// path convention; external ids git-scan once (or use project path for non-git), then
+    /// `AddWorktree`.
     pub async fn ensure_row_for_id(
         &self,
         project_id: &str,
         project_path: &str,
         worktree_id: &str,
-        is_linked_worktree: bool,
     ) -> Result<WorktreeRow, AppError> {
         if let Some(row) = self.find_by_id(worktree_id).await? {
             return Ok(row);
@@ -147,6 +203,7 @@ impl Service {
         } else {
             Self::external_path_for_id(project_id, project_path, worktree_id)?
         };
+        let is_linked_worktree = Self::is_linked_for_id(project_path, project_id, worktree_id);
 
         self.add_row(project_id, worktree_id, &path, is_linked_worktree)
             .await
@@ -202,5 +259,16 @@ mod tests {
     fn managed_path_for_id_rejects_v5_external_id() {
         let v5_id = uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, b"/external").to_string();
         assert!(Service::managed_path_for_id("proj-1", &v5_id).is_none());
+    }
+
+    #[test]
+    fn external_path_for_non_git_project_uses_project_path() {
+        let path = Service::external_path_for_id(
+            "p1",
+            "/tmp/not-git",
+            &Service::worktree_id_for_path("/tmp/not-git", "p1"),
+        )
+        .unwrap();
+        assert_eq!(path, "/tmp/not-git");
     }
 }

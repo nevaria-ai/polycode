@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { materializeProjectTree } from './project-tree';
 
+const session = {
+	id: 'session-1',
+	title: 'Session',
+	status: 'active' as const,
+	createdAt: '2026-04-09T10:00:00.000Z',
+	updatedAt: '2026-04-09T10:00:00.000Z',
+	lastActiveAt: '2026-04-09T10:00:00.000Z'
+};
+
+const unlinkedWorktree = (expandedState = false) => ({
+	id: 'test-wt-id',
+	branch: 'main',
+	isLinkedWorktree: false,
+	expandedState,
+	sessions: [] as (typeof session)[]
+});
+
 describe('materializeProjectTree', () => {
 	it('adds collapsed UI state by default', () => {
 		const tree = materializeProjectTree([
@@ -9,8 +26,7 @@ describe('materializeProjectTree', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+				worktrees: [unlinkedWorktree()]
 			}
 		]);
 
@@ -18,15 +34,14 @@ describe('materializeProjectTree', () => {
 		expect(tree[0]?.worktrees[0]?.isExpanded).toBe(false);
 	});
 
-	it('hydrates project expansion from persisted expandedState', () => {
+	it('hydrates project expansion from unlinked worktree expandedState', () => {
 		const tree = materializeProjectTree([
 			{
 				displayName: 'acme/repo',
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: true,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+				worktrees: [unlinkedWorktree(true)]
 			}
 		]);
 
@@ -40,8 +55,7 @@ describe('materializeProjectTree', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+				worktrees: [unlinkedWorktree()]
 			}
 		]);
 
@@ -55,23 +69,10 @@ describe('materializeProjectTree', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: [
 						{
-							id: 'test-wt-id',
-							branch: 'main',
-							sessions: [
-								{
-									id: 'session-1',
-									worktreeId: 'wt-1',
-									title: 'Session',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
-									status: 'active',
-									createdAt: '2026-04-09T10:00:00.000Z',
-									lastActiveAt: '2026-04-09T10:00:00.000Z'
-								}
-							]
+							...unlinkedWorktree(),
+							sessions: [session]
 						}
 					]
 				}

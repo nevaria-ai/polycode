@@ -20,28 +20,24 @@ vi.mock('$app/state', () => ({
 
 vi.mock('$lib/services', () => ({
 	getProjects: vi.fn(async () => []),
-	createProject: vi.fn(async () => ({ project: { id: 'test' } })),
+	createProject: vi.fn(async () => ({ id: 'test' })),
 	closeProject: closeProjectMock,
-	updateProjectExpandedState: vi.fn(async () => ({})),
-	listAllSessions: vi.fn(async () => []),
-	listSessions: vi.fn(async () => []),
+	updateWorktreeExpandedState: vi.fn(async () => undefined),
 	createSession: vi.fn(async () => ({ session: {} })),
 	getSession: vi.fn(async () => ({})),
 	deleteSession: vi.fn(async () => undefined),
 	updateSessionTitle: vi.fn(async () => ({ session: {} })),
 	archiveSession: vi.fn(async () => ({ session: {} })),
-	listWorktrees: vi.fn(async () => []),
-	createWorktree: vi.fn(async () => ({ worktree: {} })),
+	createWorktree: vi.fn(async () => undefined),
 	renameWorktreeBranch: vi.fn(async () => undefined),
 	deleteWorktree: vi.fn(async () => undefined),
-	listMessages: vi.fn(async () => []),
 	sendMessage: vi.fn(async () => undefined),
 	getDirectories: vi.fn(async () => ({ suggestions: [], exists: false }))
 }));
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn(async () => {}),
-	invalidateAll: vi.fn(async () => {}),
+	invalidate: vi.fn(async () => {}),
 	replaceState: vi.fn()
 }));
 
@@ -88,8 +84,15 @@ describe('AppSidebar', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+				worktrees: [
+					{
+						id: 'test-wt-id',
+						branch: 'main',
+						isLinkedWorktree: false,
+						expandedState: false,
+						sessions: []
+					}
+				]
 			}
 		];
 
@@ -111,9 +114,16 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
-					worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+					worktrees: [
+						{
+							id: 'test-wt-id',
+							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						}
+					]
 				}
 			]
 		});
@@ -131,9 +141,23 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
-					worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+					worktrees: [
+						{
+							id: 'main-wt',
+							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						},
+						{
+							id: 'test-wt-id',
+							branch: 'feature',
+							isLinkedWorktree: true,
+							expandedState: false,
+							sessions: []
+						}
+					]
 				}
 			]
 		});
@@ -153,22 +177,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
-									worktreeId: 'wt-1',
 									title: 'A very long session title that should wrap to a second line',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
 									status: 'active',
-
 									createdAt: '2026-04-09T10:00:00.000Z',
+									updatedAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
 							]
@@ -179,7 +201,6 @@ describe('AppSidebar', () => {
 		});
 
 		await page.getByRole('button', { name: /repo/i }).click();
-		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
 
 		const sessionLink = page.getByRole('link', { name: /a very long session title/i });
 		await expect.element(sessionLink).toBeInTheDocument();
@@ -193,22 +214,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
-									worktreeId: 'wt-1',
 									title: 'Active Session',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
 									status: 'active',
-
 									createdAt: '2026-04-09T10:00:00.000Z',
+									updatedAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
 							]
@@ -230,10 +249,15 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
-					sessions: [],
-					defaultBranchLabel: 'develop',
-					worktrees: [{ id: 'test-wt-id', branch: 'main', sessions: [] }]
+					worktrees: [
+						{
+							id: 'test-wt-id',
+							branch: 'develop',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						}
+					]
 				}
 			]
 		});
@@ -262,26 +286,28 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
-
-					defaultBranchLabel: 'develop',
-					sessions: [
-						{
-							id: 'session-1',
-							worktreeId: 'wt-1',
-							title: 'Default branch session',
-							projectId: 'repo-id',
-							worktreePath: '/repo',
-							status: 'active',
-
-							createdAt: '2026-04-09T10:00:00.000Z',
-							lastActiveAt: '2026-04-09T10:00:00.000Z'
-						}
-					],
 					worktrees: [
+						{
+							id: 'main-wt',
+							branch: 'develop',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: [
+								{
+									id: 'session-1',
+									title: 'Default branch session',
+									status: 'active',
+									createdAt: '2026-04-09T10:00:00.000Z',
+									updatedAt: '2026-04-09T10:00:00.000Z',
+									lastActiveAt: '2026-04-09T10:00:00.000Z'
+								}
+							]
+						},
 						{
 							id: 'wt-feature',
 							branch: 'feature/auth',
+							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -322,12 +348,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
-							id: 'test-wt-id',
+							id: 'main-wt',
 							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						},
+						{
+							id: 'test-wt-id',
+							branch: 'feature',
+							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -342,7 +376,7 @@ describe('AppSidebar', () => {
 		const projectButton = document.querySelector('[aria-label="Expand acme/repo"]');
 		const worktreeMain = document.querySelector('.worktree-main');
 		const worktreeActions = document.querySelector('.worktree-actions');
-		const worktreeButton = document.querySelector('[aria-label="Expand main branch"]');
+		const worktreeButton = document.querySelector('[aria-label="Expand feature branch"]');
 		const worktreeDropdownTrigger = worktreeActions?.querySelector(
 			'[data-slot="dropdown-menu-trigger"]'
 		);
@@ -423,22 +457,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 's1',
-									worktreeId: 'wt-1',
 									title: 'Test Session',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
 									status: 'active',
-
 									createdAt: '2026-04-09T10:00:00.000Z',
+									updatedAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
 							]
@@ -448,7 +480,6 @@ describe('AppSidebar', () => {
 			]
 		});
 		await page.getByRole('button', { name: /repo/i }).click();
-		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
 		await expect.element(page.getByText('Test Session')).toBeInTheDocument();
 	});
 
@@ -462,22 +493,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
-									worktreeId: 'wt-1',
 									title: 'Active Session',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
 									status: 'active',
-
 									createdAt: '2026-04-09T10:00:00.000Z',
+									updatedAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
 							]
@@ -488,7 +517,6 @@ describe('AppSidebar', () => {
 		});
 
 		await page.getByRole('button', { name: /repo/i }).click();
-		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
 
 		// Session links include the project id as a query param so the session
 		// page knows which project context to load. Match the real href shape.
@@ -505,9 +533,6 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
-					sessions: [],
-					defaultBranchLabel: 'develop',
 					worktrees: []
 				}
 			]
@@ -532,9 +557,6 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
-					sessions: [],
-					defaultBranchLabel: 'develop',
 					worktrees: []
 				}
 			]
@@ -565,12 +587,19 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
-					sessions: [],
 					worktrees: [
+						{
+							id: 'main-wt',
+							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						},
 						{
 							id: 'wt-feature',
 							branch: 'feature/auth',
+							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -604,12 +633,19 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
-					sessions: [],
 					worktrees: [
+						{
+							id: 'main-wt',
+							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						},
 						{
 							id: 'wt-feature',
 							branch: 'feature/auth',
+							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -644,22 +680,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
-									worktreeId: 'wt-1',
 									title: 'Active Session',
-									projectId: 'repo-id',
-									worktreePath: '/repo',
 									status: 'active',
-
 									createdAt: '2026-04-09T10:00:00.000Z',
+									updatedAt: '2026-04-09T10:00:00.000Z',
 									lastActiveAt: '2026-04-09T10:00:00.000Z'
 								}
 							]
@@ -670,7 +704,6 @@ describe('AppSidebar', () => {
 		});
 
 		await page.getByRole('button', { name: /repo/i }).click();
-		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
 
 		// Session links include the project id as a query param (see sessionHref).
 		const sessionLink = container.querySelector('a[href="/sessions/session-1?project=repo-id"]');

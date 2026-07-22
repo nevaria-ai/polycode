@@ -16,15 +16,15 @@ use std::path::Path as FsPath;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, patch, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 
 use super::AppState;
 use crate::api::projects::Service as ProjectService;
-use crate::api::types::*;
+use crate::api::types::UpdateExpandedStateRequest;
 use crate::error::AppError;
-use crate::git::worktree::{GitOps, WorktreeInfo};
+use crate::git::worktree::GitOps;
 use crate::paths;
 
 #[derive(Debug, Deserialize)]
@@ -42,49 +42,22 @@ pub struct RenameBranchBody {
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/api/projects/{id}/worktrees", get(list))
         .route("/api/projects/{id}/worktrees/create", post(create))
         .route(
             "/api/projects/{id}/worktrees/{worktree_id}",
             delete(delete_one).patch(rename_checked_out_branch),
         )
-}
-
-fn git_entry_to_api(wt: WorktreeInfo, id: String) -> ApiWorktree {
-    ApiWorktree {
-        id,
-        branch: wt.branch,
-        is_linked_worktree: wt.is_linked_worktree,
-    }
-}
-
-async fn list(
-    State(state): State<AppState>,
-    Path(project_id): Path<String>,
-) -> Result<Json<Vec<ApiWorktree>>, AppError> {
-    let project = ProjectService::new(state.db.clone())
-        .get(&project_id)
-        .await?;
-
-    let git_worktrees =
-        GitOps::list_worktrees(FsPath::new(&project.path)).map_err(AppError::BadRequest)?;
-
-    let api_worktrees = git_worktrees
-        .into_iter()
-        .map(|wt| {
-            let id = Service::worktree_id_for_path(&wt.path, &project_id);
-            git_entry_to_api(wt, id)
-        })
-        .collect();
-
-    Ok(Json(api_worktrees))
+        .route(
+            "/api/projects/{id}/worktrees/{worktree_id}/expanded-state",
+            patch(update_expanded_state),
+        )
 }
 
 async fn create(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
     Json(body): Json<CreateBody>,
-) -> Result<(StatusCode, Json<CreateWorktreeResponse>), AppError> {
+) -> Result<StatusCode, AppError> {
     let project = ProjectService::new(state.db.clone())
         .get(&project_id)
         .await?;
@@ -94,15 +67,19 @@ async fn create(
     std::fs::create_dir_all(worktree_path.parent().unwrap())
         .map_err(|e| AppError::BadRequest(format!("failed to create worktree storage dir: {e}")))?;
 
-    let wt = GitOps::create_worktree(FsPath::new(&project.path), &worktree_path, &body.branch)
+    GitOps::create_worktree(FsPath::new(&project.path), &worktree_path, &body.branch)
         .map_err(AppError::BadRequest)?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(CreateWorktreeResponse {
-            worktree: git_entry_to_api(wt, worktree_id),
-        }),
-    ))
+    Service::new(state.db)
+        .add_row(
+            &project_id,
+            &worktree_id,
+            worktree_path.to_str().unwrap(),
+            true,
+        )
+        .await?;
+
+    Ok(StatusCode::CREATED)
 }
 
 async fn delete_one(
@@ -117,6 +94,8 @@ async fn delete_one(
         .path_for_id(&project_id, &project.path, &worktree_id)
         .await?;
 
+    // Git checkout + checked-out branch only. DB worktree row and sessions stay
+    // for safekeeping (same outcome as removing the worktree outside the API).
     GitOps::delete_worktree(FsPath::new(&project.path), FsPath::new(&path))
         .map_err(AppError::BadRequest)?;
 
@@ -144,5 +123,21 @@ async fn rename_checked_out_branch(
     )
     .map_err(AppError::BadRequest)?;
 
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn update_expanded_state(
+    State(state): State<AppState>,
+    Path((project_id, worktree_id)): Path<(String, String)>,
+    Json(body): Json<UpdateExpandedStateRequest>,
+) -> Result<StatusCode, AppError> {
+    let project = ProjectService::new(state.db.clone())
+        .get(&project_id)
+        .await?;
+    let svc = Service::new(state.db.clone());
+    svc.ensure_row_for_id(&project_id, &project.path, &worktree_id)
+        .await?;
+    svc.update_expanded_state(&worktree_id, body.expanded_state)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }

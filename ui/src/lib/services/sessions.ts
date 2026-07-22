@@ -6,14 +6,6 @@ import type {
 	RenameSessionApiInput
 } from '$lib/types/api';
 
-export async function listAllSessions(): Promise<Session[]> {
-	return api.get('sessions').json<Session[]>();
-}
-
-export async function listSessions(projectId: string): Promise<Session[]> {
-	return api.get(`projects/${projectId}/sessions`).json<Session[]>();
-}
-
 export async function createSession(
 	projectId: string,
 	input: CreateSessionApiInput

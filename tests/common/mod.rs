@@ -100,10 +100,7 @@ pub async fn seed_project_with(app: &Router, path: &str) -> String {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    json_body(resp).await["project"]["id"]
-        .as_str()
-        .unwrap()
-        .to_string()
+    json_body(resp).await["id"].as_str().unwrap().to_string()
 }
 
 pub async fn seed_session(

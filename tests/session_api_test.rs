@@ -5,18 +5,6 @@ use axum::http::{Method, Request, StatusCode};
 use tower::ServiceExt;
 
 #[tokio::test]
-async fn test_list_sessions_empty() {
-    let app = common::app();
-    let pid = common::seed_project(&app).await;
-    let req = Request::builder()
-        .uri(format!("/api/projects/{pid}/sessions"))
-        .body(Body::empty())
-        .unwrap();
-    let res = app.oneshot(req).await.unwrap();
-    assert_eq!(res.status(), StatusCode::OK);
-}
-
-#[tokio::test]
 async fn test_create_session() {
     let app = common::app();
     let (_dir, pid, project_path) = common::setup_git_project(&app).await;

@@ -6,25 +6,38 @@ pub fn format_iso8601(epoch_secs: i64) -> String {
         .unwrap_or_default()
 }
 
+/// Slim session row for sidebar nesting under worktrees.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiProject {
+pub struct ApiSessionMetadata {
     pub id: String,
-    pub path: String,
-    pub expanded_state: bool,
+    pub title: Option<String>,
+    pub status: String,
     pub created_at: String,
-    pub display_name: String,
-    /// Git repo owner when the stored name is in `owner/repo` form (from origin remote).
-    /// `None` for non-git folders or repos without a recognizable origin.
-    pub owner: Option<String>,
+    pub updated_at: String,
+    pub last_active_at: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiWorktree {
+pub struct ApiWorktreeWithSessions {
     pub id: String,
     pub branch: Option<String>,
     pub is_linked_worktree: bool,
+    pub expanded_state: bool,
+    pub sessions: Vec<ApiSessionMetadata>,
+}
+
+/// Project with nested worktrees and session metadata for the sidebar tree.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiProjectTree {
+    pub id: String,
+    pub path: String,
+    pub created_at: String,
+    pub display_name: String,
+    pub owner: Option<String>,
+    pub worktrees: Vec<ApiWorktreeWithSessions>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -32,8 +45,7 @@ pub struct ApiWorktree {
 pub struct ApiSession {
     pub id: String,
     pub project_id: String,
-    pub worktree_id: Option<String>,
-    pub worktree_path: String,
+    pub worktree_id: String,
     pub title: Option<String>,
     pub status: String,
     pub version: i64,
@@ -147,7 +159,7 @@ pub struct UpdateExpandedStateRequest {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateProjectResponse {
-    pub project: ApiProject,
+    pub id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -160,12 +172,6 @@ pub struct CreateSessionResponse {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSessionResponse {
     pub session: ApiSession,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateWorktreeResponse {
-    pub worktree: ApiWorktree,
 }
 
 #[derive(Debug, Serialize)]
@@ -185,7 +191,20 @@ pub struct DirectoryResponse {
     pub exists: bool,
 }
 
-use crate::api::sessions::Session as DbSession;
+use crate::api::sessions::{Session as DbSession, SessionMetadata};
+
+impl From<&SessionMetadata> for ApiSessionMetadata {
+    fn from(s: &SessionMetadata) -> Self {
+        Self {
+            id: s.id.clone(),
+            title: s.title.clone(),
+            status: s.status.clone(),
+            created_at: format_iso8601(s.created_at),
+            updated_at: format_iso8601(s.updated_at),
+            last_active_at: format_iso8601(s.last_active_at),
+        }
+    }
+}
 
 impl From<DbSession> for ApiSession {
     fn from(s: DbSession) -> Self {
@@ -193,7 +212,6 @@ impl From<DbSession> for ApiSession {
             id: s.id,
             project_id: s.project_id,
             worktree_id: s.worktree_id,
-            worktree_path: s.worktree_path,
             title: s.title,
             status: s.status,
             version: s.version,

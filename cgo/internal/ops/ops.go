@@ -89,13 +89,6 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 			return "", err
 		}
 		return okJSON, nil
-	case "UpdateProjectExpandedState":
-		var p polydb.UpdateProjectExpandedStateParams
-		if err := unmarshalArgs(argsJSON, &p); err != nil {
-			return "", err
-		}
-		row, err := q.UpdateProjectExpandedState(ctx, p)
-		return jsonResult(row, err)
 	case "CountSessionsByProject":
 		var p projectIDArg
 		if err := unmarshalArgs(argsJSON, &p); err != nil {
@@ -131,15 +124,8 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 		}
 		row, err := q.GetSession(ctx, p.ID)
 		return jsonResult(row, err)
-	case "ListSessionsByProject":
-		var p projectIDArg
-		if err := unmarshalArgs(argsJSON, &p); err != nil {
-			return "", err
-		}
-		rows, err := q.ListSessionsByProject(ctx, p.ProjectID)
-		return jsonResult(rows, err)
-	case "ListAllSessions":
-		rows, err := q.ListAllSessions(ctx)
+	case "ListSessionMetadata":
+		rows, err := q.ListSessionMetadata(ctx)
 		return jsonResult(rows, err)
 	case "DeleteSession":
 		var p idArg
@@ -186,6 +172,23 @@ func WorkspaceOp(db *dbstore.DB, op string, argsJSON string) (string, error) {
 		}
 		row, err := q.FindWorktreeById(ctx, p.ID)
 		return jsonResult(row, err)
+	case "ListWorktreesByProject":
+		var p projectIDArg
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		rows, err := q.ListWorktreesByProject(ctx, p.ProjectID)
+		return jsonResult(rows, err)
+	case "UpdateWorktreeExpandedState":
+		var p polydb.UpdateWorktreeExpandedStateParams
+		if err := unmarshalArgs(argsJSON, &p); err != nil {
+			return "", err
+		}
+		err := q.UpdateWorktreeExpandedState(ctx, p)
+		if err != nil {
+			return "", err
+		}
+		return okJSON, nil
 	default:
 		return "", fmt.Errorf("unknown workspace op: %q", op)
 	}

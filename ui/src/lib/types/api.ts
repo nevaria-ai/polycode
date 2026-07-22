@@ -1,18 +1,33 @@
-export interface Project {
+export interface SessionMetadata {
+	id: string;
+	title: string | null;
+	status: 'active' | 'ended' | 'archived';
+	createdAt: string;
+	updatedAt: string;
+	lastActiveAt: string;
+}
+
+export interface WorktreeWithSessions {
+	id: string;
+	branch: string | null;
+	isLinkedWorktree: boolean;
+	expandedState: boolean;
+	sessions: SessionMetadata[];
+}
+
+export interface ProjectTree {
 	id: string;
 	path: string;
-	expandedState: boolean;
 	createdAt: string;
 	displayName: string;
-	/** Git owner when displayName is in `owner/repo` form. Null for plain folders. */
 	owner: string | null;
+	worktrees: WorktreeWithSessions[];
 }
 
 export interface Session {
 	id: string;
 	projectId: string;
-	worktreeId: string | null;
-	worktreePath: string;
+	worktreeId: string;
 	title: string | null;
 	status: 'active' | 'ended' | 'archived';
 	version: number;
@@ -20,12 +35,6 @@ export interface Session {
 	createdAt: string;
 	updatedAt: string;
 	lastActiveAt: string;
-}
-
-export interface Worktree {
-	id: string;
-	branch: string | null;
-	isLinkedWorktree: boolean;
 }
 
 export interface MessageView {
@@ -78,17 +87,6 @@ export interface SessionViewData {
 export interface DirectoryResponse {
 	suggestions: string[];
 	exists: boolean;
-}
-
-export interface SidebarProject {
-	path: string;
-	displayName: string;
-	owner: string | null;
-	projectId: string;
-	defaultBranchLabel?: string | null;
-	mainWorktreeId?: string | null;
-	sessions: Session[];
-	worktrees: Array<Worktree & { sessions: Session[] }>;
 }
 
 export interface CreateSessionApiInput {

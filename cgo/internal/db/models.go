@@ -4,28 +4,6 @@
 
 package db
 
-type Artifact struct {
-	ID            string  `json:"id"`
-	SessionID     string  `json:"session_id"`
-	MessageID     *string `json:"message_id"`
-	PartID        *string `json:"part_id"`
-	ProviderRunID *string `json:"provider_run_id"`
-	Type          string  `json:"type"`
-	Content       string  `json:"content"`
-	Metadata      *string `json:"metadata"`
-	CreatedAt     int64   `json:"created_at"`
-}
-
-type ContextItem struct {
-	ID           string  `json:"id"`
-	Type         string  `json:"type"`
-	Source       string  `json:"source"`
-	ResolvedPath *string `json:"resolved_path"`
-	Content      string  `json:"content"`
-	Metadata     *string `json:"metadata"`
-	CreatedAt    int64   `json:"created_at"`
-}
-
 type Message struct {
 	ID            string  `json:"id"`
 	SessionID     string  `json:"session_id"`
@@ -34,11 +12,6 @@ type Message struct {
 	Content       string  `json:"content"`
 	ProviderRunID *string `json:"provider_run_id"`
 	CreatedAt     int64   `json:"created_at"`
-}
-
-type MessageContextItem struct {
-	MessageID     string `json:"message_id"`
-	ContextItemID string `json:"context_item_id"`
 }
 
 type Part struct {
@@ -53,41 +26,17 @@ type Part struct {
 	CreatedAt     int64   `json:"created_at"`
 }
 
-type PinnedContext struct {
-	ID            string `json:"id"`
-	SessionID     string `json:"session_id"`
-	ContextItemID string `json:"context_item_id"`
-	PinnedAt      int64  `json:"pinned_at"`
-}
-
 type Project struct {
-	ID            string `json:"id"`
-	Path          string `json:"path"`
-	ExpandedState int64  `json:"expanded_state"`
-	CreatedAt     int64  `json:"created_at"`
-	RemovedAt     *int64 `json:"removed_at"`
-}
-
-type ProviderRun struct {
-	ID                string  `json:"id"`
-	SessionID         string  `json:"session_id"`
-	MessageID         *string `json:"message_id"`
-	AdapterType       string  `json:"adapter_type"`
-	Status            string  `json:"status"`
-	StartedAt         int64   `json:"started_at"`
-	FinishedAt        *int64  `json:"finished_at"`
-	DurationMs        *int64  `json:"duration_ms"`
-	ProviderSessionID *string `json:"provider_session_id"`
-	ProviderModel     *string `json:"provider_model"`
-	ErrorMessage      *string `json:"error_message"`
-	RawOutputPointer  *string `json:"raw_output_pointer"`
+	ID        string `json:"id"`
+	Path      string `json:"path"`
+	CreatedAt int64  `json:"created_at"`
+	RemovedAt *int64 `json:"removed_at"`
 }
 
 type Session struct {
 	ID           string  `json:"id"`
 	ProjectID    string  `json:"project_id"`
-	WorktreeID   *string `json:"worktree_id"`
-	WorktreePath string  `json:"worktree_path"`
+	WorktreeID   string  `json:"worktree_id"`
 	Title        *string `json:"title"`
 	Status       string  `json:"status"`
 	Version      int64   `json:"version"`
@@ -97,30 +46,11 @@ type Session struct {
 	LastActiveAt int64   `json:"last_active_at"`
 }
 
-type SessionEvent struct {
-	ID            string  `json:"id"`
-	SessionID     string  `json:"session_id"`
-	Type          string  `json:"type"`
-	Version       int64   `json:"version"`
-	Position      int64   `json:"position"`
-	CorrelationID *string `json:"correlation_id"`
-	Payload       string  `json:"payload"`
-	CreatedAt     int64   `json:"created_at"`
-}
-
-type Summary struct {
-	ID              string `json:"id"`
-	SessionID       string `json:"session_id"`
-	Content         string `json:"content"`
-	MessagePosition int64  `json:"message_position"`
-	TokenCount      *int64 `json:"token_count"`
-	CreatedAt       int64  `json:"created_at"`
-}
-
 type Worktree struct {
 	ID               string `json:"id"`
 	ProjectID        string `json:"project_id"`
 	Path             string `json:"path"`
 	IsLinkedWorktree int64  `json:"is_linked_worktree"`
+	ExpandedState    int64  `json:"expanded_state"`
 	CreatedAt        int64  `json:"created_at"`
 }

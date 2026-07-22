@@ -1,4 +1,5 @@
 import type { PageLoad } from './$types';
+import { sessionsForWorktree } from '$lib/project-tree';
 
 export const ssr = false;
 
@@ -8,7 +9,7 @@ type WorktreeOption = {
 };
 
 export const load: PageLoad = async ({ url, parent }) => {
-	const { projectTree, projects } = await parent();
+	const { projectTree } = await parent();
 
 	const selectedProjectId = url.searchParams.get('project');
 	const selectedWorktreeIdParam = url.searchParams.get('worktreeId');
@@ -16,20 +17,10 @@ export const load: PageLoad = async ({ url, parent }) => {
 	const selectedProject = projectTree.find((p) => p.projectId === selectedProjectId) ?? null;
 
 	const worktrees: WorktreeOption[] = selectedProject
-		? [
-				...(selectedProject.mainWorktreeId
-					? [
-							{
-								id: selectedProject.mainWorktreeId,
-								branch: selectedProject.defaultBranchLabel ?? null
-							}
-						]
-					: []),
-				...selectedProject.worktrees.map((w) => ({
-					id: w.id,
-					branch: w.branch
-				}))
-			]
+		? selectedProject.worktrees.map((worktree) => ({
+				id: worktree.id,
+				branch: worktree.branch
+			}))
 		: [];
 
 	const selectedWorktree =
@@ -38,7 +29,7 @@ export const load: PageLoad = async ({ url, parent }) => {
 		null;
 
 	const firstSessionUnderWorktree = selectedProject
-		? countSessionsForWorktree(selectedProject, selectedWorktree?.id ?? null) === 0
+		? sessionsForWorktree(selectedProject, selectedWorktree?.id ?? null).length === 0
 		: true;
 
 	return {
@@ -48,20 +39,6 @@ export const load: PageLoad = async ({ url, parent }) => {
 		selectedWorktreeId: selectedWorktree?.id ?? null,
 		firstSessionUnderWorktree,
 		worktrees,
-		projects,
 		projectTree
 	};
 };
-
-function countSessionsForWorktree(
-	project: {
-		sessions: Array<{ worktreeId: string | null }>;
-		worktrees: Array<{ id: string; sessions: unknown[] }>;
-	},
-	worktreeId: string | null
-): number {
-	if (!worktreeId) return 0;
-	const nested = project.worktrees.find((worktree) => worktree.id === worktreeId);
-	if (nested) return nested.sessions.length;
-	return project.sessions.filter((session) => session.worktreeId === worktreeId).length;
-}

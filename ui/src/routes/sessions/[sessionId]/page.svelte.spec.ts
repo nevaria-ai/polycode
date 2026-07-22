@@ -9,11 +9,8 @@ const {
 	clearInitSessionFields,
 	replaceStateMock,
 	sendMessageMock,
-	invalidateAllMock
+	invalidateMock
 } = vi.hoisted(() => {
-	// Component reads page.state.initSessionFields and spreads page.state into
-	// replaceState, so the mock must expose a `state` object that survives
-	// across reads and writes within a test.
 	const state = {
 		url: { pathname: '/sessions/session-12345678' },
 		state: { initSessionFields: null as { prompt: string } | null }
@@ -29,7 +26,7 @@ const {
 		},
 		replaceStateMock: vi.fn(),
 		sendMessageMock: vi.fn(),
-		invalidateAllMock: vi.fn(async () => {})
+		invalidateMock: vi.fn(async () => {})
 	};
 });
 
@@ -39,7 +36,7 @@ vi.mock('$app/state', () => ({
 
 vi.mock('$app/navigation', () => ({
 	replaceState: replaceStateMock,
-	invalidateAll: invalidateAllMock
+	invalidate: invalidateMock
 }));
 
 vi.mock('$lib/services', () => ({
@@ -48,14 +45,12 @@ vi.mock('$lib/services', () => ({
 }));
 
 const baseData = {
-	projects: [],
 	projectTree: [],
 	initialSidebarOpen: true,
 	session: {
 		id: 'session-12345678',
 		projectId: 'project-1',
-		worktreePath: '/repo',
-		worktreeId: null,
+		worktreeId: 'wt-1',
 		title: 'Imported conversation layout',
 		status: 'active' as const,
 		version: 1,
@@ -76,6 +71,7 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 		clearInitSessionFields();
 		replaceStateMock.mockClear();
 		sendMessageMock.mockClear();
+		invalidateMock.mockClear();
 		sendMessageMock.mockResolvedValue({ messageId: 'msg-1', artifacts: [] });
 	});
 
@@ -144,21 +140,18 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 		expect(sendMessageMock).not.toHaveBeenCalled();
 	});
 
-	it('submits the init prompt and invalidates data so the message renders', async () => {
+	it('submits the init prompt and invalidates the session load key', async () => {
 		setInitSessionFields({ prompt: 'Build a login form' });
 		sendMessageMock.mockResolvedValue({ messageId: 'msg-1', artifacts: [] });
 
 		render(SessionPage, { data: baseData });
 
-		// In production, invalidateAll() reloads data.messages, which is what
-		// surfaces the submitted message in the conversation. With invalidateAll
-		// mocked, we verify the contract at that boundary instead of asserting
-		// DOM text that the mock environment cannot produce.
 		await expect.poll(() => sendMessageMock.mock.calls.length).toBeGreaterThan(0);
-		await expect.poll(() => invalidateAllMock.mock.calls.length).toBeGreaterThan(0);
+		await expect.poll(() => invalidateMock.mock.calls.length).toBeGreaterThan(0);
 
 		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
 			content: 'Build a login form'
 		});
+		expect(invalidateMock).toHaveBeenCalledWith('session:session-12345678');
 	});
 });

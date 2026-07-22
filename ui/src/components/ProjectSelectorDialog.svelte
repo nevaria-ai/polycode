@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { createProject, getDirectories } from '$lib/services';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Button } from '$components/ui/button';
 	import * as Command from '$components/ui/command';
@@ -166,14 +166,14 @@
 		submitting = true;
 		error = null;
 		try {
-			const { project } = await createProject(searchQuery.trim());
+			const { id } = await createProject(searchQuery.trim());
 			open = false;
 			// Refresh the cached projectTree first so the new (or reused) project
 			// is present in the layout data, then navigate. Navigating before
 			// invalidating would leave the composer with stale data and the
 			// selected project would not resolve.
-			await invalidateAll();
-			await goto(resolve(`/?project=${encodeURIComponent(project.id)}`));
+			await invalidate('projects:list');
+			await goto(resolve(`/?project=${encodeURIComponent(id)}`));
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to create project';
 		} finally {

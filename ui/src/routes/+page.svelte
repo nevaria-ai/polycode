@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { ChevronDown, Folder, FolderGit2, GitBranch } from '@lucide/svelte';
 	import { Button } from '$components/ui/button';
@@ -8,6 +8,7 @@
 	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
 	import { createSession } from '$lib/services';
+	import { unlinkedWorktree } from '$lib/project-tree';
 	import type { PageData } from './$types';
 
 	type HomepageHref = `/?${string}`;
@@ -28,12 +29,12 @@
 		data.worktrees.find(
 			(worktree: PageData['worktrees'][number]) => worktree.id === data.selectedWorktreeId
 		)?.branch ??
-			selectedProject?.defaultBranchLabel ??
+			unlinkedWorktree(selectedProject ?? { worktrees: [] })?.branch ??
 			null
 	);
 
 	function isGitProject(project: PageData['projectTree'][number] | null) {
-		return Boolean(project?.defaultBranchLabel || project?.worktrees.length);
+		return Boolean(project && project.worktrees.length > 0);
 	}
 
 	function getProjectHref(projectId: string): HomepageHref {
@@ -58,11 +59,11 @@
 		// parent/base worktree, create a nested worktree under it before creating the
 		// session, and persist the session against the new child worktree rather than
 		// the selected parent. The session should be created with the child worktree's
-		// worktreeId/worktreePath. Currently this is not implemented - silently ignore
+		// worktreeId. Currently this is not implemented - silently ignore
 		// if checkbox is true.
 		if (sessionAsWorktree) {
 			// TODO: Create nested worktree: createWorktree(data.selectedWorktreePath, branchName)
-			// TODO: Replace parent worktreeId/worktreePath with the new child worktree values
+			// TODO: Replace parent worktreeId with the new child worktree values
 			// For now, continue with the selected worktree as-is
 		}
 
@@ -94,7 +95,7 @@
 		);
 
 		// Refresh all load functions so the new session appears in the sidebar immediately
-		await invalidateAll();
+		await invalidate('projects:list');
 
 		promptText = '';
 	}
@@ -166,12 +167,12 @@
 								<span data-testid="composer-project-item" class="text-xs font-medium">
 									<ProjectName displayName={project.displayName} owner={project.owner} />
 								</span>
-								{#if project.defaultBranchLabel}
+								{#if unlinkedWorktree(project)?.branch}
 									<span
 										data-testid="composer-project-default-branch"
 										class="text-[10px] text-muted-foreground"
 									>
-										:{project.defaultBranchLabel}
+										:{unlinkedWorktree(project)?.branch}
 									</span>
 								{/if}
 							</DropdownMenu.Item>

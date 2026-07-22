@@ -4,7 +4,7 @@ import { page } from 'vitest/browser';
 import type { Snippet } from 'svelte';
 // LayoutData is the generated SvelteKit type for the layout's data prop.
 // Using it here types the test fixtures against the real contract instead
-// of the narrower ProjectTreeProjectInput, which avoids an unsafe cast.
+// of the narrower SidebarProjectInput, which avoids an unsafe cast.
 import type { LayoutData } from './$types';
 import RootLayout from './+layout.svelte';
 
@@ -23,19 +23,19 @@ function renderLayout(projectTree: LayoutProjectTree = []) {
 	// materializeProjectTree reads. Type the fixtures against LayoutData so
 	// they satisfy the real contract without an unsafe cast.
 	return render(RootLayout, {
-		data: { projects: [], initialSidebarOpen: true, projectTree },
+		data: { initialSidebarOpen: true, projectTree },
 		children: noopChildren
 	});
 }
 
-// Sidebar expand calls updateProjectExpandedState; pass everything else
+// Sidebar expand calls updateWorktreeExpandedState; pass everything else
 // through to the real implementations. Using importOriginal keeps the mock
 // self-maintaining as $lib/services grows.
 vi.mock('$lib/services', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('$lib/services')>();
 	return {
 		...actual,
-		updateProjectExpandedState: vi.fn(async () => ({}))
+		updateWorktreeExpandedState: vi.fn(async () => undefined)
 	};
 });
 
@@ -130,29 +130,23 @@ describe('font rendering', () => {
 	it('sidebar session title uses system font stack', async () => {
 		renderLayout([
 			{
-				id: 'repo-id',
 				displayName: 'acme/repo',
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				createdAt: '2026-04-09T10:00:00.000Z',
-				defaultBranchLabel: null,
-				mainWorktreeId: null,
-				sessions: [],
 				worktrees: [
 					{
 						id: 'test-wt-id',
 						branch: 'main',
+						isLinkedWorktree: false,
+						expandedState: false,
 						sessions: [
 							{
 								id: 'session-1',
 								title: 'Active Session Title Here',
-								projectId: 'repo-id',
-								worktreePath: '/repo',
 								status: 'active',
-								worktreeId: 'wt-1',
 								createdAt: '2026-04-09T10:00:00.000Z',
+								updatedAt: '2026-04-09T10:00:00.000Z',
 								lastActiveAt: '2026-04-09T10:00:00.000Z'
 							}
 						]
@@ -162,7 +156,6 @@ describe('font rendering', () => {
 		]);
 
 		await page.getByRole('button', { name: /repo/i }).click();
-		(document.querySelector('[aria-label="Expand main branch"]') as HTMLElement | null)?.click();
 
 		const sessionLink = document.querySelector('.sidebar-session-link');
 		expect(sessionLink).not.toBeNull();
@@ -175,20 +168,16 @@ describe('font rendering', () => {
 	it('sidebar project name uses system font stack', async () => {
 		renderLayout([
 			{
-				id: 'repo-id',
 				displayName: 'acme/repo',
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				createdAt: '2026-04-09T10:00:00.000Z',
-				defaultBranchLabel: null,
-				mainWorktreeId: null,
-				sessions: [],
 				worktrees: [
 					{
 						id: 'test-wt-id',
 						branch: 'main',
+						isLinkedWorktree: false,
+						expandedState: false,
 						sessions: []
 					}
 				]

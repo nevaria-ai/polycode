@@ -1,15 +1,7 @@
 import { api } from './api';
-import type { Worktree } from '$lib/types/api';
 
-export async function listWorktrees(projectId: string): Promise<Worktree[]> {
-	return api.get(`projects/${projectId}/worktrees`).json<Worktree[]>();
-}
-
-export async function createWorktree(
-	projectId: string,
-	data: { branch: string }
-): Promise<{ worktree: Worktree }> {
-	return api.post(`projects/${projectId}/worktrees/create`, { json: data }).json();
+export async function createWorktree(projectId: string, data: { branch: string }): Promise<void> {
+	await api.post(`projects/${projectId}/worktrees/create`, { json: data });
 }
 
 /** Rename the branch checked out in a worktree (`git branch -m`). Path and worktree id are unchanged. */
@@ -25,4 +17,15 @@ export async function renameWorktreeBranch(
 export async function deleteWorktree(projectId: string, worktreeId: string): Promise<void> {
 	const encoded = encodeURIComponent(worktreeId);
 	await api.delete(`projects/${projectId}/worktrees/${encoded}`);
+}
+
+export async function updateWorktreeExpandedState(
+	projectId: string,
+	worktreeId: string,
+	expandedState: boolean
+): Promise<void> {
+	const encoded = encodeURIComponent(worktreeId);
+	await api.patch(`projects/${projectId}/worktrees/${encoded}/expanded-state`, {
+		json: { expandedState }
+	});
 }

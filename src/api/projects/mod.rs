@@ -1,14 +1,16 @@
 mod model;
 mod service;
+mod tree;
 
 pub use model::{CreateProject, Project};
 pub use service::Service;
+pub use tree::ProjectTreeBuilder;
 
 use std::collections::HashMap;
 use std::path::Path;
 
 use axum::extract::{Path as AxumPath, State};
-use axum::routing::{get, patch};
+use axum::routing::{delete, get};
 use axum::{Json, Router};
 use tokio::task::JoinSet;
 
@@ -20,38 +22,19 @@ use crate::git::worktree::GitOps;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/projects", get(list_projects).post(create_project))
-        .route("/api/projects/{id}", get(get_project).delete(close_project))
-        .route(
-            "/api/projects/{id}/expanded-state",
-            patch(update_expanded_state),
-        )
+        .route("/api/projects/{id}", delete(close_project))
 }
 
-async fn list_projects(State(state): State<AppState>) -> Result<Json<Vec<ApiProject>>, AppError> {
-    let projects = Service::new(state.db).list().await?;
+async fn list_projects(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<ApiProjectTree>>, AppError> {
+    let projects = Service::new(state.db.clone()).list().await?;
     let labels = derive_base_labels_parallel(&projects).await;
     let display_names = compute_display_names(&projects, &labels);
-    let api_projects = projects
-        .into_iter()
-        .map(|p| {
-            let (label, owner) = labels
-                .get(&p.id)
-                .cloned()
-                .unwrap_or_else(|| (String::new(), None));
-            let display_name = display_names.get(&p.id).cloned().unwrap_or(label);
-            api_project_from_db(p, display_name, owner)
-        })
-        .collect();
-    Ok(Json(api_projects))
-}
-
-async fn get_project(
-    State(state): State<AppState>,
-    AxumPath(id): AxumPath<String>,
-) -> Result<Json<ApiProject>, AppError> {
-    let project = Service::new(state.db).get(&id).await?;
-    let (label, owner) = derive_base_label(&project.path);
-    Ok(Json(api_project_from_db(project, label, owner)))
+    let trees = ProjectTreeBuilder::new(state.db)
+        .build_all(projects, &labels, &display_names)
+        .await?;
+    Ok(Json(trees))
 }
 
 async fn create_project(
@@ -61,22 +44,7 @@ async fn create_project(
     let project = Service::new(state.db)
         .create(CreateProject { path: input.path })
         .await?;
-    let (label, owner) = derive_base_label(&project.path);
-    Ok(Json(CreateProjectResponse {
-        project: api_project_from_db(project, label, owner),
-    }))
-}
-
-async fn update_expanded_state(
-    State(state): State<AppState>,
-    AxumPath(id): AxumPath<String>,
-    Json(body): Json<UpdateExpandedStateRequest>,
-) -> Result<Json<ApiProject>, AppError> {
-    let project = Service::new(state.db)
-        .update_expanded_state(&id, body.expanded_state)
-        .await?;
-    let (label, owner) = derive_base_label(&project.path);
-    Ok(Json(api_project_from_db(project, label, owner)))
+    Ok(Json(CreateProjectResponse { id: project.id }))
 }
 
 async fn close_project(
@@ -87,23 +55,8 @@ async fn close_project(
     Ok(Json(serde_json::json!({"ok": true})))
 }
 
-fn api_project_from_db(
-    project: Project,
-    display_name: String,
-    owner: Option<String>,
-) -> ApiProject {
-    ApiProject {
-        id: project.id,
-        path: project.path,
-        expanded_state: project.expanded_state,
-        created_at: format_iso8601(project.created_at),
-        display_name,
-        owner,
-    }
-}
-
-/// Derives `(label, owner)` for a single project path — used by get/create (no collision pass).
-fn derive_base_label(path: &str) -> (String, Option<String>) {
+/// Derives `(label, owner)` for a single project path — used by list (collision pass uses labels).
+pub(crate) fn derive_base_label(path: &str) -> (String, Option<String>) {
     let path_obj = Path::new(path);
     if let Some(remote_name) = GitOps::get_remote_origin_name(path_obj) {
         let owner = owner_from_remote_name(&remote_name);
@@ -228,7 +181,6 @@ mod tests {
         Project {
             id: id.to_string(),
             path: path.to_string(),
-            expanded_state: false,
             created_at: 0,
             removed_at: None,
         }
