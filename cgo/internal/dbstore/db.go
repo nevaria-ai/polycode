@@ -38,7 +38,7 @@ func Open(path string) (cgo.Handle, error) {
 		conn.Close()
 		return 0, fmt.Errorf("ping db: %w", err)
 	}
-	if err := runMigrations(conn); err != nil {
+	if err := runMigrations(conn, path); err != nil {
 		conn.Close()
 		return 0, fmt.Errorf("migrate: %w", err)
 	}

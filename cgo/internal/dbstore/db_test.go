@@ -2,6 +2,7 @@ package dbstore
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"runtime/cgo"
@@ -61,16 +62,21 @@ func TestCloseZeroHandle(t *testing.T) {
 func TestMigrationsRecorded(t *testing.T) {
 	db, _ := openTestDB(t, ":memory:")
 
+	head, err := HeadVersion()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	var version int
 	var dirty int
-	err := db.Conn.QueryRow(
+	err = db.Conn.QueryRow(
 		`SELECT version, dirty FROM schema_migrations LIMIT 1`,
 	).Scan(&version, &dirty)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version < 1 || dirty != 0 {
-		t.Fatalf("schema_migrations: version=%d dirty=%d", version, dirty)
+	if uint(version) != head || dirty != 0 {
+		t.Fatalf("schema_migrations: version=%d dirty=%d want version=%d dirty=0", version, dirty, head)
 	}
 
 	var name string
@@ -79,14 +85,28 @@ func TestMigrationsRecorded(t *testing.T) {
 	).Scan(&name); err != nil || name != "projects" {
 		t.Fatalf("projects table: name=%q err=%v", name, err)
 	}
+
+	assertSQLiteIntegrity(t, db.Conn)
 }
 
 func TestReopenFileDBMigrations(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "polycode-migrate.db")
+	head, err := HeadVersion()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	h1, err := Open(path)
 	if err != nil {
 		t.Fatal(err)
+	}
+	db1 := h1.Value().(*DB)
+	var version1 int
+	if err := db1.Conn.QueryRow(`SELECT version, dirty FROM schema_migrations LIMIT 1`).Scan(&version1, new(int)); err != nil {
+		t.Fatal(err)
+	}
+	if uint(version1) != head {
+		t.Fatalf("after first open: version=%d want %d", version1, head)
 	}
 	if err := Close(h1); err != nil {
 		t.Fatal(err)
@@ -99,12 +119,95 @@ func TestReopenFileDBMigrations(t *testing.T) {
 	t.Cleanup(func() { _ = Close(h2) })
 
 	db := cgo.Handle(h2).Value().(*DB)
-	var version int
-	if err := db.Conn.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil {
+	var version2, dirty2 int
+	if err := db.Conn.QueryRow(`SELECT version, dirty FROM schema_migrations LIMIT 1`).Scan(&version2, &dirty2); err != nil {
 		t.Fatal(err)
 	}
-	if version < 1 {
-		t.Fatalf("version after reopen: %d", version)
+	if uint(version2) != head || dirty2 != 0 {
+		t.Fatalf("after reopen: version=%d dirty=%d want version=%d dirty=0", version2, dirty2, head)
+	}
+	if version2 != version1 {
+		t.Fatalf("version changed on reopen: %d → %d", version1, version2)
+	}
+	assertSQLiteIntegrity(t, db.Conn)
+
+	// Still queryable after no-op re-open.
+	if _, err := db.Q.ListProjects(context.Background()); err != nil {
+		t.Fatalf("ListProjects after reopen: %v", err)
+	}
+}
+
+func TestBackupSQLiteWritesSiblingFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "polycode.db")
+	db, _ := openTestDB(t, path)
+
+	if _, err := db.Q.CreateProject(context.Background(), polydb.CreateProjectParams{
+		ID: "proj-1", Path: "/tmp/p", CreatedAt: 1,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := backupSQLite(db.Conn, path); err != nil {
+		t.Fatal(err)
+	}
+
+	matches, err := filepath.Glob(path + ".bak-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 backup file, got %v", matches)
+	}
+
+	// Backup is a readable SQLite DB with the same project row.
+	bak, err := sql.Open("sqlite", matches[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = bak.Close() })
+	var id string
+	if err := bak.QueryRow(`SELECT id FROM projects WHERE id = 'proj-1'`).Scan(&id); err != nil {
+		t.Fatalf("read backup: %v", err)
+	}
+	if id != "proj-1" {
+		t.Fatalf("backup id=%q", id)
+	}
+}
+
+func TestHeadVersionFindsEmbeddedUps(t *testing.T) {
+	head, err := HeadVersion()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head < 1 {
+		t.Fatalf("head=%d", head)
+	}
+}
+
+func assertSQLiteIntegrity(t *testing.T, conn *sql.DB) {
+	t.Helper()
+
+	rows, err := conn.Query(`PRAGMA foreign_key_check`)
+	if err != nil {
+		t.Fatalf("foreign_key_check: %v", err)
+	}
+	defer rows.Close()
+	if rows.Next() {
+		var table, rowid, parent, fkid any
+		_ = rows.Scan(&table, &rowid, &parent, &fkid)
+		t.Fatalf("foreign_key_check reported violation: table=%v rowid=%v parent=%v fkid=%v", table, rowid, parent, fkid)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	var quick string
+	if err := conn.QueryRow(`PRAGMA quick_check`).Scan(&quick); err != nil {
+		t.Fatalf("quick_check: %v", err)
+	}
+	if quick != "ok" {
+		t.Fatalf("quick_check=%q want ok", quick)
 	}
 }
 
