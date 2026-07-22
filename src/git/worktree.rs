@@ -1,13 +1,15 @@
 //! Git worktree and branch helpers.
 //!
 //! Reads and ref lookups use [`gix`]. Mutations delegate to `git` where gitoxide has no API
-//! (worktree add/remove, worktree-aware branch rename) or where `git` is simpler (branch rename).
+//! (worktree add/remove, `git branch -d`) or where `git` is simpler (branch rename).
+//!
+//! Worktree delete preflights the same merge check as `git branch -d` (upstream if set, else
+//! `HEAD`) so an unmerged branch fails *before* `worktree remove`. If `-d` still fails after
+//! remove (race), the checkout is best-effort re-added so the tree stays consistent.
 
 use std::path::Path;
 
 use gix::reference::find::existing::Error as FindReferenceError;
-use gix::refs::transaction::{Change, PreviousValue, RefEdit, RefLog};
-use gix::refs::FullName;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,20 +65,64 @@ impl GitOps {
         }
     }
 
-    fn delete_local_branch(repo: &gix::Repository, branch: &str) -> Result<(), String> {
-        let name: FullName = format!("refs/heads/{branch}")
-            .try_into()
-            .map_err(|e: gix::validate::reference::name::Error| e.to_string())?;
-        repo.edit_reference(RefEdit {
-            change: Change::Delete {
-                expected: PreviousValue::MustExist,
-                log: RefLog::AndReference,
-            },
-            name,
-            deref: false,
-        })
-        .map_err(|e| e.to_string())?;
-        Ok(())
+    /// Tracking upstream for `branch`, if configured (`branch@{upstream}`).
+    fn branch_upstream(repo_path: &Path, branch: &str) -> Option<String> {
+        let output = std::process::Command::new("git")
+            .args([
+                "rev-parse",
+                "--abbrev-ref",
+                &format!("{branch}@{{upstream}}"),
+            ])
+            .current_dir(repo_path)
+            .output()
+            .ok()?;
+        if !output.status.success() {
+            return None;
+        }
+        let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if name.is_empty() {
+            None
+        } else {
+            Some(name)
+        }
+    }
+
+    /// Same merge gate as `git branch -d`: fully merged into upstream if set, else into `HEAD`.
+    fn ensure_branch_safe_to_delete(repo_path: &Path, branch: &str) -> Result<(), String> {
+        let into = Self::branch_upstream(repo_path, branch).unwrap_or_else(|| "HEAD".into());
+        let output = std::process::Command::new("git")
+            .args(["merge-base", "--is-ancestor", branch, &into])
+            .current_dir(repo_path)
+            .output()
+            .map_err(|e| format!("failed to run git merge-base --is-ancestor: {e}"))?;
+        if output.status.success() {
+            return Ok(());
+        }
+        Err(format!(
+            "git branch -d failed: the branch '{branch}' is not fully merged"
+        ))
+    }
+
+    /// `git branch -d` (`--delete`): refuse when not fully merged.
+    fn delete_local_branch_safe(repo_path: &Path, branch: &str) -> Result<(), String> {
+        let mut delete_cmd = std::process::Command::new("git");
+        delete_cmd
+            .args(["branch", "-d", branch])
+            .current_dir(repo_path);
+        Self::git_output_checked(&mut delete_cmd, "git branch -d")
+    }
+
+    /// Recreate a linked checkout at `worktree_path` on an existing local branch.
+    fn readd_linked_worktree(
+        repo_path: &Path,
+        worktree_path: &Path,
+        branch: &str,
+    ) -> Result<(), String> {
+        let mut add_cmd = std::process::Command::new("git");
+        add_cmd
+            .args(["worktree", "add", &worktree_path.to_string_lossy(), branch])
+            .current_dir(repo_path);
+        Self::git_output_checked(&mut add_cmd, "re-add worktree")
     }
 
     pub fn list_worktrees(repo_path: &Path) -> Result<Vec<WorktreeInfo>, String> {
@@ -160,6 +206,15 @@ impl GitOps {
             None
         };
 
+        // Refuse unmerged branches before removing the checkout so the worktree stays in the
+        // tree (sessions visible) until the user merges or otherwise resolves.
+        if let Some(ref branch) = branch {
+            let main_repo = Self::main_storage_repo(repo_path)?;
+            if Self::local_branch_exists(&main_repo, branch)? {
+                Self::ensure_branch_safe_to_delete(repo_path, branch)?;
+            }
+        }
+
         if worktree_path.exists() {
             // gix has no linked-worktree removal API; delegate to git.
             let mut remove_cmd = std::process::Command::new("git");
@@ -172,7 +227,12 @@ impl GitOps {
         if let Some(branch) = branch {
             let main_repo = Self::main_storage_repo(repo_path)?;
             if Self::local_branch_exists(&main_repo, &branch)? {
-                Self::delete_local_branch(&main_repo, &branch)?;
+                if let Err(err) = Self::delete_local_branch_safe(repo_path, &branch) {
+                    // Rare race: preflight passed but `-d` failed. Restore checkout so the
+                    // sidebar/tree still show the worktree for the user to fix.
+                    let _ = Self::readd_linked_worktree(repo_path, worktree_path, &branch);
+                    return Err(err);
+                }
             }
         }
         Ok(())
@@ -464,5 +524,200 @@ mod tests {
 
         let err = GitOps::create_worktree(dir.path(), &wt_path, "feature-a").unwrap_err();
         assert!(err.contains("repository has no commits yet"));
+    }
+
+    #[test]
+    fn test_delete_worktree_rejects_dirty_checkout() {
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        let wt_path = dir.path().join("dirty-wt");
+        GitOps::create_worktree(dir.path(), &wt_path, "dirty-branch").unwrap();
+
+        std::fs::write(wt_path.join("dirty.txt"), "uncommitted").unwrap();
+
+        let err = GitOps::delete_worktree(dir.path(), &wt_path).unwrap_err();
+        assert!(err.contains("modified or untracked"));
+        assert!(wt_path.exists(), "dirty checkout must not be removed");
+        let listed = GitOps::list_worktrees(dir.path()).unwrap();
+        assert!(listed.iter().any(|w| w.path == wt_path.to_string_lossy()));
+        let branch_list = Command::new("git")
+            .args(["branch", "--list", "dirty-branch"])
+            .current_dir(dir.path())
+            .output()
+            .expect("git branch");
+        assert!(String::from_utf8_lossy(&branch_list.stdout).contains("dirty-branch"));
+    }
+
+    #[test]
+    fn test_delete_worktree_rejects_unmerged_branch() {
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        let wt_path = dir.path().join("unmerged-wt");
+        GitOps::create_worktree(dir.path(), &wt_path, "unmerged-branch").unwrap();
+
+        std::fs::write(wt_path.join("feature.txt"), "feature work").unwrap();
+        Command::new("git")
+            .args(["add", "feature.txt"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "feature-only commit"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git commit");
+
+        let err = GitOps::delete_worktree(dir.path(), &wt_path).unwrap_err();
+        assert!(
+            err.contains("not fully merged"),
+            "expected -d-style message, got: {err}"
+        );
+        assert!(
+            err.contains("git branch -d failed"),
+            "preflight should surface as branch -d failure: {err}"
+        );
+        assert!(
+            wt_path.exists(),
+            "preflight must keep checkout so the worktree stays in the tree"
+        );
+        let branch_list = Command::new("git")
+            .args(["branch", "--list", "unmerged-branch"])
+            .current_dir(dir.path())
+            .output()
+            .expect("git branch");
+        assert!(String::from_utf8_lossy(&branch_list.stdout).contains("unmerged-branch"));
+        let listed = GitOps::list_worktrees(dir.path()).unwrap();
+        assert!(listed.iter().any(|w| w.path == wt_path.to_string_lossy()));
+    }
+
+    #[test]
+    fn test_delete_worktree_succeeds_after_merge_regression() {
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        let wt_path = dir.path().join("later-merged-wt");
+        GitOps::create_worktree(dir.path(), &wt_path, "later-merged").unwrap();
+
+        std::fs::write(wt_path.join("feature.txt"), "feature work").unwrap();
+        Command::new("git")
+            .args(["add", "feature.txt"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "feature-only commit"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git commit");
+
+        let err = GitOps::delete_worktree(dir.path(), &wt_path).unwrap_err();
+        assert!(err.contains("not fully merged"));
+        assert!(wt_path.exists());
+
+        Command::new("git")
+            .args(["merge", "--no-ff", "later-merged", "-m", "merge feature"])
+            .current_dir(dir.path())
+            .output()
+            .expect("git merge");
+
+        GitOps::delete_worktree(dir.path(), &wt_path).unwrap();
+        assert!(!wt_path.exists());
+        let branch_list = Command::new("git")
+            .args(["branch", "--list", "later-merged"])
+            .current_dir(dir.path())
+            .output()
+            .expect("git branch");
+        assert!(
+            !String::from_utf8_lossy(&branch_list.stdout).contains("later-merged"),
+            "branch should be deleted after merge + retry"
+        );
+        let listed = GitOps::list_worktrees(dir.path()).unwrap();
+        assert_eq!(listed.len(), 1);
+    }
+
+    #[test]
+    fn test_ensure_branch_safe_to_delete_matches_branch_d() {
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        let wt_path = dir.path().join("gate-wt");
+        GitOps::create_worktree(dir.path(), &wt_path, "gate-branch").unwrap();
+
+        GitOps::ensure_branch_safe_to_delete(dir.path(), "gate-branch").unwrap();
+
+        std::fs::write(wt_path.join("only-here.txt"), "x").unwrap();
+        Command::new("git")
+            .args(["add", "only-here.txt"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "ahead of main"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git commit");
+
+        let err = GitOps::ensure_branch_safe_to_delete(dir.path(), "gate-branch").unwrap_err();
+        assert!(err.contains("not fully merged"));
+    }
+
+    #[test]
+    fn test_readd_linked_worktree_restores_checkout_after_remove() {
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        let wt_path = dir.path().join("readd-wt");
+        GitOps::create_worktree(dir.path(), &wt_path, "readd-branch").unwrap();
+
+        Command::new("git")
+            .args(["worktree", "remove", wt_path.to_str().unwrap()])
+            .current_dir(dir.path())
+            .output()
+            .expect("git worktree remove");
+        assert!(!wt_path.exists());
+
+        GitOps::readd_linked_worktree(dir.path(), &wt_path, "readd-branch").unwrap();
+        assert!(wt_path.exists());
+        let listed = GitOps::list_worktrees(dir.path()).unwrap();
+        let wt = listed
+            .iter()
+            .find(|w| w.path == wt_path.to_string_lossy())
+            .expect("re-added worktree listed");
+        assert_eq!(wt.branch.as_deref(), Some("readd-branch"));
+        assert!(wt.is_linked_worktree);
+    }
+
+    #[test]
+    fn test_delete_worktree_readd_on_branch_d_race() {
+        // Simulate preflight-passed then `-d` failing: remove checkout first, leave an
+        // unmerged branch, then exercise the re-add recovery path used after `-d` errors.
+        let dir = TempDir::new().unwrap();
+        init_repo(&dir);
+        let wt_path = dir.path().join("race-wt");
+        GitOps::create_worktree(dir.path(), &wt_path, "race-branch").unwrap();
+
+        std::fs::write(wt_path.join("ahead.txt"), "ahead").unwrap();
+        Command::new("git")
+            .args(["add", "ahead.txt"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "ahead"])
+            .current_dir(&wt_path)
+            .output()
+            .expect("git commit");
+
+        Command::new("git")
+            .args(["worktree", "remove", wt_path.to_str().unwrap()])
+            .current_dir(dir.path())
+            .output()
+            .expect("git worktree remove");
+
+        let err = GitOps::delete_local_branch_safe(dir.path(), "race-branch").unwrap_err();
+        assert!(err.contains("not fully merged"));
+        GitOps::readd_linked_worktree(dir.path(), &wt_path, "race-branch").unwrap();
+        assert!(wt_path.exists());
+        assert_eq!(
+            GitOps::get_worktree_branch(&wt_path).unwrap().as_deref(),
+            Some("race-branch")
+        );
     }
 }

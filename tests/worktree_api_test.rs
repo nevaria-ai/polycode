@@ -66,6 +66,16 @@ async fn delete_worktree_api(
     project_id: &str,
     worktree_id: &str,
 ) -> StatusCode {
+    delete_worktree_api_with_body(app, project_id, worktree_id)
+        .await
+        .0
+}
+
+async fn delete_worktree_api_with_body(
+    app: &axum::Router,
+    project_id: &str,
+    worktree_id: &str,
+) -> (StatusCode, serde_json::Value) {
     let encoded = urlencoding::encode(worktree_id);
     let resp = app
         .clone()
@@ -76,7 +86,13 @@ async fn delete_worktree_api(
         ))
         .await
         .unwrap();
-    resp.status()
+    let status = resp.status();
+    let body = if status == StatusCode::NO_CONTENT {
+        serde_json::Value::Null
+    } else {
+        common::json_body(resp).await
+    };
+    (status, body)
 }
 
 async fn rename_branch_api(
@@ -554,4 +570,175 @@ async fn test_git_only_worktree_resolves_by_id() {
 
     let listed = list_worktrees_for_project(&app, &project_id).await;
     assert_eq!(listed.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn test_delete_worktree_api_rejects_dirty_worktree() {
+    let (app, dir, project_id, project_path) = setup_git_project().await;
+    let ext_path = dir.path().join("dirty-api-wt");
+    Command::new("git")
+        .args([
+            "worktree",
+            "add",
+            ext_path.to_str().unwrap(),
+            "-b",
+            "dirty-api-branch",
+        ])
+        .current_dir(&project_path)
+        .output()
+        .expect("git worktree add");
+
+    std::fs::write(ext_path.join("dirty.txt"), "uncommitted").unwrap();
+    let worktree_id = v5_id_for_path(ext_path.to_str().unwrap());
+
+    let (status, body) = delete_worktree_api_with_body(&app, &project_id, &worktree_id).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body["error"]
+        .as_str()
+        .unwrap()
+        .contains("modified or untracked"));
+    assert!(ext_path.exists());
+
+    let listed = list_worktrees_for_project(&app, &project_id).await;
+    assert!(
+        listed
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|w| w["id"].as_str() == Some(worktree_id.as_str())),
+        "dirty reject must keep worktree in nested tree"
+    );
+}
+
+#[tokio::test]
+async fn test_delete_worktree_api_rejects_unmerged_branch() {
+    let (app, dir, project_id, project_path) = setup_git_project().await;
+    let ext_path = dir.path().join("unmerged-api-wt");
+    Command::new("git")
+        .args([
+            "worktree",
+            "add",
+            ext_path.to_str().unwrap(),
+            "-b",
+            "unmerged-api-branch",
+        ])
+        .current_dir(&project_path)
+        .output()
+        .expect("git worktree add");
+
+    std::fs::write(ext_path.join("feature.txt"), "feature work").unwrap();
+    Command::new("git")
+        .args(["add", "feature.txt"])
+        .current_dir(&ext_path)
+        .output()
+        .expect("git add");
+    Command::new("git")
+        .args(["commit", "-m", "feature-only commit"])
+        .current_dir(&ext_path)
+        .output()
+        .expect("git commit");
+
+    let ext_path_str = ext_path.to_str().unwrap();
+    let worktree_id = v5_id_for_path(ext_path_str);
+    let session = create_session(&app, &project_id, &worktree_id, true).await;
+    let session_id = session["session"]["id"].as_str().unwrap().to_string();
+
+    let (status, body) = delete_worktree_api_with_body(&app, &project_id, &worktree_id).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let err = body["error"].as_str().unwrap();
+    assert!(err.contains("not fully merged"), "got: {err}");
+    assert!(err.contains("git branch -d failed"), "got: {err}");
+    assert!(
+        ext_path.exists(),
+        "preflight must keep checkout so the worktree stays in the tree"
+    );
+
+    let branch_list = Command::new("git")
+        .args(["branch", "--list", "unmerged-api-branch"])
+        .current_dir(&project_path)
+        .output()
+        .expect("git branch");
+    assert!(String::from_utf8_lossy(&branch_list.stdout).contains("unmerged-api-branch"));
+
+    let listed = list_worktrees_for_project(&app, &project_id).await;
+    let wt = listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|w| w["id"].as_str() == Some(worktree_id.as_str()))
+        .expect("unmerged branch keeps worktree visible in nested tree");
+    assert!(
+        wt["sessions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s["id"].as_str() == Some(session_id.as_str())),
+        "session must remain nested under the worktree until delete succeeds"
+    );
+}
+
+#[tokio::test]
+async fn test_delete_worktree_api_succeeds_after_merge_regression() {
+    let (app, dir, project_id, project_path) = setup_git_project().await;
+    let ext_path = dir.path().join("later-merged-api-wt");
+    Command::new("git")
+        .args([
+            "worktree",
+            "add",
+            ext_path.to_str().unwrap(),
+            "-b",
+            "later-merged-api",
+        ])
+        .current_dir(&project_path)
+        .output()
+        .expect("git worktree add");
+
+    std::fs::write(ext_path.join("feature.txt"), "feature work").unwrap();
+    Command::new("git")
+        .args(["add", "feature.txt"])
+        .current_dir(&ext_path)
+        .output()
+        .expect("git add");
+    Command::new("git")
+        .args(["commit", "-m", "feature-only commit"])
+        .current_dir(&ext_path)
+        .output()
+        .expect("git commit");
+
+    let worktree_id = v5_id_for_path(ext_path.to_str().unwrap());
+    let (status, _) = delete_worktree_api_with_body(&app, &project_id, &worktree_id).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(ext_path.exists());
+
+    Command::new("git")
+        .args([
+            "merge",
+            "--no-ff",
+            "later-merged-api",
+            "-m",
+            "merge feature",
+        ])
+        .current_dir(&project_path)
+        .output()
+        .expect("git merge");
+
+    assert_eq!(
+        delete_worktree_api(&app, &project_id, &worktree_id).await,
+        StatusCode::NO_CONTENT
+    );
+    assert!(!ext_path.exists());
+
+    let listed = list_worktrees_for_project(&app, &project_id).await;
+    assert!(listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|w| w["id"].as_str() != Some(worktree_id.as_str())));
+
+    let branch_list = Command::new("git")
+        .args(["branch", "--list", "later-merged-api"])
+        .current_dir(&project_path)
+        .output()
+        .expect("git branch");
+    assert!(!String::from_utf8_lossy(&branch_list.stdout).contains("later-merged-api"));
 }

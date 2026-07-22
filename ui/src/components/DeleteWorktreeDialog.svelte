@@ -13,15 +13,24 @@
 	let { info = $bindable(null) }: { info?: WorktreeDeleteTarget | null } = $props();
 
 	let submitting = $state(false);
+	let error = $state<string | null>(null);
+
+	function closeDialog() {
+		info = null;
+		error = null;
+	}
 
 	async function handleConfirm() {
 		if (!info) return;
 
 		submitting = true;
+		error = null;
 		try {
 			await deleteWorktree(info.projectId, info.worktreeId);
-			info = null;
+			closeDialog();
 			await invalidate('projects:list');
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to delete worktree or branch';
 		} finally {
 			submitting = false;
 		}
@@ -31,7 +40,7 @@
 <Dialog.Root
 	open={info !== null}
 	onOpenChange={(open) => {
-		if (!open) info = null;
+		if (!open) closeDialog();
 	}}
 >
 	<Dialog.Content class="sm:max-w-md">
@@ -39,12 +48,16 @@
 			<Dialog.Title>Delete Worktree</Dialog.Title>
 			<Dialog.Description
 				>Are you sure you want to delete the <strong>{info?.branch}</strong> worktree and its branch?
-				This action cannot be undone.</Dialog.Description
+				Delete fails if the checkout is dirty or the branch is not fully merged.</Dialog.Description
 			>
 		</Dialog.Header>
 
+		{#if error}
+			<p class="text-sm text-destructive">{error}</p>
+		{/if}
+
 		<Dialog.Footer>
-			<Button type="button" variant="outline" onclick={() => (info = null)}>Cancel</Button>
+			<Button type="button" variant="outline" onclick={closeDialog}>Cancel</Button>
 			<Button type="button" variant="destructive" onclick={handleConfirm} disabled={submitting}>
 				Delete</Button
 			>
