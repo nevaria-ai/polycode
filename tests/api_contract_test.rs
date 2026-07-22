@@ -200,7 +200,8 @@ async fn contract_session_no_snake_case_keys() {
     assert!(session.get("created_at").is_none(), "no created_at");
     assert!(session.get("last_active_at").is_none(), "no last_active_at");
     assert!(session.get("projectId").is_some(), "has projectId");
-    assert!(session.get("worktreePath").is_some(), "has worktreePath");
+    assert!(session.get("worktreeId").is_some(), "has worktreeId");
+    assert!(session.get("worktreePath").is_none(), "no worktreePath");
     assert!(session.get("createdAt").is_some(), "has createdAt");
     assert!(session.get("lastActiveAt").is_some(), "has lastActiveAt");
 }
@@ -240,13 +241,21 @@ async fn contract_list_projects_nested_tree_camel_case() {
     let project = &json.as_array().unwrap()[0];
     assert!(project["worktrees"].is_array());
     assert!(project.get("sessions").is_none());
-    let main = project["worktrees"]
+    assert!(
+        project.get("expandedState").is_none(),
+        "no project expandedState"
+    );
+    let unlinked = project["worktrees"]
         .as_array()
         .unwrap()
         .iter()
         .find(|wt| !wt["isLinkedWorktree"].as_bool().unwrap())
-        .expect("main worktree");
-    assert!(main["sessions"].is_array());
+        .expect("unlinked worktree");
+    assert!(unlinked["sessions"].is_array());
+    assert!(
+        unlinked.get("expandedState").is_some(),
+        "has worktree expandedState"
+    );
 }
 
 // ─── Message Contract ────────────────────────────────────────────

@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 pub struct Project {
     pub id: String,
     pub path: String,
-    #[serde(deserialize_with = "crate::api::serde_sqlite::bool_from_int")]
-    pub expanded_state: bool,
     pub created_at: i64,
     pub removed_at: Option<i64>,
 }

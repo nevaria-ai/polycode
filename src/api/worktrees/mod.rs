@@ -16,12 +16,13 @@ use std::path::Path as FsPath;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, post};
+use axum::routing::{delete, patch, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 
 use super::AppState;
 use crate::api::projects::Service as ProjectService;
+use crate::api::types::UpdateExpandedStateRequest;
 use crate::error::AppError;
 use crate::git::worktree::GitOps;
 use crate::paths;
@@ -46,6 +47,10 @@ pub fn router() -> Router<AppState> {
             "/api/projects/{id}/worktrees/{worktree_id}",
             delete(delete_one).patch(rename_checked_out_branch),
         )
+        .route(
+            "/api/projects/{id}/worktrees/{worktree_id}/expanded-state",
+            patch(update_expanded_state),
+        )
 }
 
 async fn create(
@@ -65,6 +70,15 @@ async fn create(
     GitOps::create_worktree(FsPath::new(&project.path), &worktree_path, &body.branch)
         .map_err(AppError::BadRequest)?;
 
+    Service::new(state.db)
+        .add_row(
+            &project_id,
+            &worktree_id,
+            worktree_path.to_str().unwrap(),
+            true,
+        )
+        .await?;
+
     Ok(StatusCode::CREATED)
 }
 
@@ -82,6 +96,10 @@ async fn delete_one(
 
     GitOps::delete_worktree(FsPath::new(&project.path), FsPath::new(&path))
         .map_err(AppError::BadRequest)?;
+
+    if svc.find_by_id(&worktree_id).await?.is_some() {
+        svc.delete_row(&worktree_id).await?;
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -107,5 +125,21 @@ async fn rename_checked_out_branch(
     )
     .map_err(AppError::BadRequest)?;
 
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn update_expanded_state(
+    State(state): State<AppState>,
+    Path((project_id, worktree_id)): Path<(String, String)>,
+    Json(body): Json<UpdateExpandedStateRequest>,
+) -> Result<StatusCode, AppError> {
+    let project = ProjectService::new(state.db.clone())
+        .get(&project_id)
+        .await?;
+    let svc = Service::new(state.db.clone());
+    svc.ensure_row_for_id(&project_id, &project.path, &worktree_id)
+        .await?;
+    svc.update_expanded_state(&worktree_id, body.expanded_state)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }

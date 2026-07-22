@@ -10,6 +10,14 @@ const session = {
 	lastActiveAt: '2026-04-09T10:00:00.000Z'
 };
 
+const unlinkedWorktree = (expandedState = false) => ({
+	id: 'test-wt-id',
+	branch: 'main',
+	isLinkedWorktree: false,
+	expandedState,
+	sessions: [] as (typeof session)[]
+});
+
 describe('materializeProjectTree', () => {
 	it('adds collapsed UI state by default', () => {
 		const tree = materializeProjectTree([
@@ -18,8 +26,7 @@ describe('materializeProjectTree', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
+				worktrees: [unlinkedWorktree()]
 			}
 		]);
 
@@ -27,15 +34,14 @@ describe('materializeProjectTree', () => {
 		expect(tree[0]?.worktrees[0]?.isExpanded).toBe(false);
 	});
 
-	it('hydrates project expansion from persisted expandedState', () => {
+	it('hydrates project expansion from unlinked worktree expandedState', () => {
 		const tree = materializeProjectTree([
 			{
 				displayName: 'acme/repo',
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: true,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
+				worktrees: [unlinkedWorktree(true)]
 			}
 		]);
 
@@ -49,8 +55,7 @@ describe('materializeProjectTree', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
+				worktrees: [unlinkedWorktree()]
 			}
 		]);
 
@@ -64,12 +69,9 @@ describe('materializeProjectTree', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: [
 						{
-							id: 'test-wt-id',
-							branch: 'main',
-							isLinkedWorktree: false,
+							...unlinkedWorktree(),
 							sessions: [session]
 						}
 					]

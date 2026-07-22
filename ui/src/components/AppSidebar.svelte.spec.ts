@@ -22,7 +22,7 @@ vi.mock('$lib/services', () => ({
 	getProjects: vi.fn(async () => []),
 	createProject: vi.fn(async () => ({ id: 'test' })),
 	closeProject: closeProjectMock,
-	updateProjectExpandedState: vi.fn(async () => undefined),
+	updateWorktreeExpandedState: vi.fn(async () => undefined),
 	createSession: vi.fn(async () => ({ session: {} })),
 	getSession: vi.fn(async () => ({})),
 	deleteSession: vi.fn(async () => undefined),
@@ -84,8 +84,15 @@ describe('AppSidebar', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
-				worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
+				worktrees: [
+					{
+						id: 'test-wt-id',
+						branch: 'main',
+						isLinkedWorktree: false,
+						expandedState: false,
+						sessions: []
+					}
+				]
 			}
 		];
 
@@ -107,9 +114,16 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
-					worktrees: [{ id: 'test-wt-id', branch: 'main', isLinkedWorktree: false, sessions: [] }]
+					worktrees: [
+						{
+							id: 'test-wt-id',
+							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						}
+					]
 				}
 			]
 		});
@@ -127,19 +141,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'main-wt',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: []
 						},
 						{
 							id: 'test-wt-id',
 							branch: 'feature',
 							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -162,13 +177,13 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
@@ -199,13 +214,13 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
@@ -234,9 +249,14 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: [
-						{ id: 'test-wt-id', branch: 'develop', isLinkedWorktree: false, sessions: [] }
+						{
+							id: 'test-wt-id',
+							branch: 'develop',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						}
 					]
 				}
 			]
@@ -266,12 +286,12 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: [
 						{
 							id: 'main-wt',
 							branch: 'develop',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
@@ -287,6 +307,7 @@ describe('AppSidebar', () => {
 							id: 'wt-feature',
 							branch: 'feature/auth',
 							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -327,19 +348,20 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'main-wt',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: []
 						},
 						{
 							id: 'test-wt-id',
 							branch: 'feature',
 							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -435,13 +457,13 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 's1',
@@ -471,13 +493,13 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',
@@ -511,7 +533,6 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: []
 				}
 			]
@@ -536,7 +557,6 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: []
 				}
 			]
@@ -567,18 +587,19 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: [
 						{
 							id: 'main-wt',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: []
 						},
 						{
 							id: 'wt-feature',
 							branch: 'feature/auth',
 							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -612,18 +633,19 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 					worktrees: [
 						{
 							id: 'main-wt',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: []
 						},
 						{
 							id: 'wt-feature',
 							branch: 'feature/auth',
 							isLinkedWorktree: true,
+							expandedState: false,
 							sessions: []
 						}
 					]
@@ -658,13 +680,13 @@ describe('AppSidebar', () => {
 					owner: 'acme',
 					path: '/repo',
 					projectId: 'repo-id',
-					expandedState: false,
 
 					worktrees: [
 						{
 							id: 'test-wt-id',
 							branch: 'main',
 							isLinkedWorktree: false,
+							expandedState: false,
 							sessions: [
 								{
 									id: 'session-1',

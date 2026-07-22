@@ -50,8 +50,7 @@ const baseData = {
 	session: {
 		id: 'session-12345678',
 		projectId: 'project-1',
-		worktreePath: '/repo',
-		worktreeId: null,
+		worktreeId: 'wt-1',
 		title: 'Imported conversation layout',
 		status: 'active' as const,
 		version: 1,

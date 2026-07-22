@@ -443,7 +443,7 @@ async fn test_list_projects_returns_nested_worktree_sessions() {
     let main = worktrees
         .iter()
         .find(|wt| !wt["isLinkedWorktree"].as_bool().unwrap())
-        .expect("main worktree present");
+        .expect("unlinked worktree present");
     assert_eq!(main["id"].as_str().unwrap(), main_worktree_id);
 
     let sessions = main["sessions"].as_array().unwrap();

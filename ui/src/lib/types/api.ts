@@ -11,13 +11,13 @@ export interface WorktreeWithSessions {
 	id: string;
 	branch: string | null;
 	isLinkedWorktree: boolean;
+	expandedState: boolean;
 	sessions: SessionMetadata[];
 }
 
 export interface ProjectTree {
 	id: string;
 	path: string;
-	expandedState: boolean;
 	createdAt: string;
 	displayName: string;
 	owner: string | null;
@@ -27,8 +27,7 @@ export interface ProjectTree {
 export interface Session {
 	id: string;
 	projectId: string;
-	worktreeId: string | null;
-	worktreePath: string;
+	worktreeId: string;
 	title: string | null;
 	status: 'active' | 'ended' | 'archived';
 	version: number;

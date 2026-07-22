@@ -19,7 +19,7 @@
 	import {
 		materializeProjectTree,
 		linkedWorktrees,
-		mainWorktree,
+		unlinkedWorktree,
 		type SidebarProject,
 		type SidebarProjectInput,
 		type ExpandedWorktree
@@ -33,7 +33,7 @@
 	import SidebarSessionList, {
 		type SidebarSessionEntry
 	} from '$components/SidebarSessionList.svelte';
-	import { closeProject, updateProjectExpandedState } from '$lib/services';
+	import { closeProject, updateWorktreeExpandedState } from '$lib/services';
 	import { goto, invalidate } from '$app/navigation';
 
 	const NOTREAL_SESSION: SidebarSessionEntry = {
@@ -42,7 +42,7 @@
 	};
 
 	function projectDisplaySessions(project: SidebarProject): SidebarSessionEntry[] {
-		const sessions = mainWorktree(project)?.sessions ?? [];
+		const sessions = unlinkedWorktree(project)?.sessions ?? [];
 		if (sessions.length === 0) return [NOTREAL_SESSION];
 		return sessions;
 	}
@@ -70,16 +70,25 @@
 
 	function toggleProject(projectId: string) {
 		const project = tree.find((item) => item.projectId === projectId);
-		if (project) {
+		const worktree = project ? unlinkedWorktree(project) : null;
+		if (project && worktree) {
 			project.isExpanded = !project.isExpanded;
-			void updateProjectExpandedState(projectId, project.isExpanded);
+			worktree.isExpanded = project.isExpanded;
+			void updateWorktreeExpandedState(projectId, worktree.id, project.isExpanded);
 		}
 	}
 
 	function toggleWorktree(projectId: string, worktreeId: string) {
 		const project = tree.find((item) => item.projectId === projectId);
 		const worktree = project?.worktrees.find((item) => item.id === worktreeId);
-		if (worktree) worktree.isExpanded = !worktree.isExpanded;
+		if (worktree) {
+			worktree.isExpanded = !worktree.isExpanded;
+			void updateWorktreeExpandedState(projectId, worktreeId, worktree.isExpanded);
+			const unlinked = project ? unlinkedWorktree(project) : null;
+			if (unlinked?.id === worktreeId && project) {
+				project.isExpanded = worktree.isExpanded;
+			}
+		}
 	}
 
 	function blurMouseClickTarget(event: MouseEvent) {
@@ -265,11 +274,11 @@
 								</Sidebar.MenuButton>
 
 								<Collapsible.Content>
-									{#if mainWorktree(project)?.branch}
+									{#if unlinkedWorktree(project)?.branch}
 										<div
 											class="project-default-branch mb-1 ml-[13px] text-[11px] text-sidebar-foreground/90"
 										>
-											:{mainWorktree(project)?.branch}
+											:{unlinkedWorktree(project)?.branch}
 										</div>
 									{/if}
 									<!-- Project-level sessions (default branch or non-git) -->

@@ -61,11 +61,10 @@ type PinnedContext struct {
 }
 
 type Project struct {
-	ID            string `json:"id"`
-	Path          string `json:"path"`
-	ExpandedState int64  `json:"expanded_state"`
-	CreatedAt     int64  `json:"created_at"`
-	RemovedAt     *int64 `json:"removed_at"`
+	ID        string `json:"id"`
+	Path      string `json:"path"`
+	CreatedAt int64  `json:"created_at"`
+	RemovedAt *int64 `json:"removed_at"`
 }
 
 type ProviderRun struct {
@@ -86,8 +85,7 @@ type ProviderRun struct {
 type Session struct {
 	ID           string  `json:"id"`
 	ProjectID    string  `json:"project_id"`
-	WorktreeID   *string `json:"worktree_id"`
-	WorktreePath string  `json:"worktree_path"`
+	WorktreeID   string  `json:"worktree_id"`
 	Title        *string `json:"title"`
 	Status       string  `json:"status"`
 	Version      int64   `json:"version"`
@@ -123,4 +121,5 @@ type Worktree struct {
 	Path             string `json:"path"`
 	IsLinkedWorktree int64  `json:"is_linked_worktree"`
 	CreatedAt        int64  `json:"created_at"`
+	ExpandedState    int64  `json:"expanded_state"`
 }

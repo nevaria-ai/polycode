@@ -63,7 +63,6 @@ impl Service {
                 &serde_json::json!({
                     "id": id,
                     "path": resolved_str,
-                    "expanded_state": 0,
                     "created_at": now,
                 }),
             )
@@ -94,19 +93,6 @@ impl Service {
         }
         Ok(())
     }
-
-    pub async fn update_expanded_state(&self, id: &str, expanded: bool) -> Result<(), AppError> {
-        self.db
-            .workspace(
-                "UpdateProjectExpandedState",
-                &serde_json::json!({
-                    "id": id,
-                    "expanded_state": i64::from(expanded),
-                }),
-            )
-            .map_err(AppError::from)?;
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -125,7 +111,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(project.path, "/tmp/my-project");
-        assert!(!project.expanded_state);
         assert!(!project.id.is_empty());
     }
 
@@ -194,18 +179,39 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn update_expanded_state() {
-        let svc = Service::new(memory_db());
-        let created = svc
+    async fn close_soft_removes_when_sessions_exist() {
+        let db = memory_db();
+        let svc = Service::new(db.clone());
+        let project = svc
             .create(CreateProject {
-                path: "/tmp/expanded".into(),
+                path: "/tmp/with-sessions".into(),
             })
             .await
             .unwrap();
-        assert!(!created.expanded_state);
-        svc.update_expanded_state(&created.id, true).await.unwrap();
-        let updated = svc.get(&created.id).await.unwrap();
-        assert!(updated.expanded_state);
+        let wt_id =
+            crate::api::worktrees::Service::worktree_id_for_path("/tmp/with-sessions", &project.id);
+        crate::api::worktrees::Service::new(db.clone())
+            .add_row(&project.id, &wt_id, "/tmp/with-sessions", false)
+            .await
+            .unwrap();
+        db.workspace_one::<serde_json::Value>(
+            "CreateSession",
+            &serde_json::json!({
+                "id": "sess-1",
+                "project_id": project.id,
+                "worktree_id": wt_id,
+                "created_at": 1,
+                "updated_at": 1,
+                "last_active_at": 1,
+            }),
+        )
+        .unwrap();
+
+        svc.close(&project.id).await.unwrap();
+
+        assert!(svc.list().await.unwrap().is_empty());
+        let fetched = svc.get(&project.id).await.unwrap();
+        assert!(fetched.removed_at.is_some());
     }
 
     #[tokio::test]
@@ -249,37 +255,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn close_soft_removes_when_sessions_exist() {
-        let db = memory_db();
-        let svc = Service::new(db.clone());
-        let project = svc
-            .create(CreateProject {
-                path: "/tmp/with-sessions".into(),
-            })
-            .await
-            .unwrap();
-        db.workspace_one::<serde_json::Value>(
-            "CreateSession",
-            &serde_json::json!({
-                "id": "sess-1",
-                "project_id": project.id,
-                "worktree_id": null,
-                "worktree_path": "/tmp/with-sessions",
-                "created_at": 1,
-                "updated_at": 1,
-                "last_active_at": 1,
-            }),
-        )
-        .unwrap();
-
-        svc.close(&project.id).await.unwrap();
-
-        assert!(svc.list().await.unwrap().is_empty());
-        let fetched = svc.get(&project.id).await.unwrap();
-        assert!(fetched.removed_at.is_some());
-    }
-
-    #[tokio::test]
     async fn create_reactivates_soft_removed_project() {
         let db = memory_db();
         let svc = Service::new(db.clone());
@@ -289,13 +264,18 @@ mod tests {
             })
             .await
             .unwrap();
+        let wt_id =
+            crate::api::worktrees::Service::worktree_id_for_path("/tmp/reactivate-me", &project.id);
+        crate::api::worktrees::Service::new(db.clone())
+            .add_row(&project.id, &wt_id, "/tmp/reactivate-me", false)
+            .await
+            .unwrap();
         db.workspace_one::<serde_json::Value>(
             "CreateSession",
             &serde_json::json!({
                 "id": "sess-1",
                 "project_id": project.id,
-                "worktree_id": null,
-                "worktree_path": "/tmp/reactivate-me",
+                "worktree_id": wt_id,
                 "created_at": 1,
                 "updated_at": 1,
                 "last_active_at": 1,

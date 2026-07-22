@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct Session {
     pub id: String,
     pub project_id: String,
-    pub worktree_id: Option<String>,
-    pub worktree_path: String,
+    pub worktree_id: String,
     pub title: Option<String>,
     pub status: String,
     pub version: i64,
@@ -20,8 +19,7 @@ pub struct Session {
 pub struct SessionMetadata {
     pub id: String,
     pub project_id: String,
-    pub worktree_id: Option<String>,
-    pub worktree_path: String,
+    pub worktree_id: String,
     pub title: Option<String>,
     pub status: String,
     pub created_at: i64,

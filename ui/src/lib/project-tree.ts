@@ -14,11 +14,10 @@ export type SidebarProject = {
 };
 
 export type SidebarProjectInput = Omit<SidebarProject, 'isExpanded' | 'worktrees'> & {
-	expandedState: boolean;
 	worktrees: WorktreeWithSessions[];
 };
 
-export function mainWorktree<T extends WorktreeWithSessions>(project: { worktrees: T[] }) {
+export function unlinkedWorktree<T extends WorktreeWithSessions>(project: { worktrees: T[] }) {
 	return project.worktrees.find((worktree) => !worktree.isLinkedWorktree) ?? null;
 }
 
@@ -46,13 +45,17 @@ export function materializeProjectTree(
 			(previousProject?.worktrees ?? []).map((worktree) => [worktree.id, worktree])
 		);
 
+		const worktrees = project.worktrees.map((worktree) => ({
+			...worktree,
+			isExpanded: previousWorktrees.get(worktree.id)?.isExpanded ?? worktree.expandedState ?? false
+		}));
+
+		const unlinked = worktrees.find((worktree) => !worktree.isLinkedWorktree);
+
 		return {
 			...project,
-			isExpanded: previousProject?.isExpanded ?? project.expandedState,
-			worktrees: project.worktrees.map((worktree) => ({
-				...worktree,
-				isExpanded: previousWorktrees.get(worktree.id)?.isExpanded ?? false
-			}))
+			isExpanded: previousProject?.isExpanded ?? unlinked?.isExpanded ?? false,
+			worktrees
 		};
 	});
 }

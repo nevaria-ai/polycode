@@ -22,14 +22,19 @@ impl Service {
 
     pub async fn create(&self, input: CreateSession) -> Result<Session, AppError> {
         let worktree_id = input.worktree_id.clone();
-        let worktree_path = if input.first_session_under_worktree {
+        if input.first_session_under_worktree {
             WorktreeService::new(self.db.clone())
-                .ensure_row_for_id(&input.project_id, &input.project_path, &worktree_id, true)
-                .await?
-                .path
-        } else {
-            String::new()
-        };
+                .ensure_row_for_id(&input.project_id, &input.project_path, &worktree_id)
+                .await?;
+        } else if WorktreeService::new(self.db.clone())
+            .find_by_id(&worktree_id)
+            .await?
+            .is_none()
+        {
+            return Err(AppError::NotFound(format!(
+                "worktree {worktree_id} not found"
+            )));
+        }
 
         let id = uuid::Uuid::new_v4().to_string();
         let now = unix_now();
@@ -40,7 +45,6 @@ impl Service {
                     "id": id,
                     "project_id": input.project_id,
                     "worktree_id": worktree_id,
-                    "worktree_path": worktree_path,
                     "created_at": now,
                     "updated_at": now,
                     "last_active_at": now,
@@ -122,14 +126,45 @@ mod tests {
                 project_id: project.id.clone(),
                 project_path: "/tmp/project".into(),
                 worktree_id: wt_id.clone(),
+                first_session_under_worktree: false,
+                title: None,
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(session.worktree_id, wt_id);
+    }
+
+    #[tokio::test]
+    async fn create_session_ensures_non_git_worktree_row() {
+        let db = memory_db();
+        let project = ProjectService::new(db.clone())
+            .create(CreateProject {
+                path: "/tmp/not-git".into(),
+            })
+            .await
+            .unwrap();
+        let wt_id = WorktreeService::worktree_id_for_path("/tmp/not-git", &project.id);
+
+        let session = Service::new(db.clone())
+            .create(CreateSession {
+                project_id: project.id.clone(),
+                project_path: "/tmp/not-git".into(),
+                worktree_id: wt_id.clone(),
                 first_session_under_worktree: true,
                 title: None,
             })
             .await
             .unwrap();
 
-        assert_eq!(session.worktree_id, Some(wt_id));
-        assert_eq!(session.worktree_path, "/tmp/wt");
+        assert_eq!(session.worktree_id, wt_id);
+        let row = WorktreeService::new(db)
+            .find_by_id(&wt_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(!row.is_linked_worktree);
+        assert_eq!(row.path, "/tmp/not-git");
     }
 
     #[tokio::test]
@@ -151,7 +186,7 @@ mod tests {
                 project_id: project.id.clone(),
                 project_path: "/tmp/p".into(),
                 worktree_id: wt_id,
-                first_session_under_worktree: true,
+                first_session_under_worktree: false,
                 title: None,
             })
             .await

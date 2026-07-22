@@ -11,7 +11,6 @@ const baseProjects: ProjectTree[] = [
 	{
 		id: polycodeProjectId,
 		path: '/Projects/polycode',
-		expandedState: false,
 		createdAt: '2026-04-09T10:00:00.000Z',
 		displayName: 'polycode',
 		owner: null,
@@ -20,12 +19,14 @@ const baseProjects: ProjectTree[] = [
 				id: 'main-wt-id',
 				branch: 'main',
 				isLinkedWorktree: false,
+				expandedState: false,
 				sessions: []
 			},
 			{
 				id: 'test-wt-id',
 				branch: 'feature/auth',
 				isLinkedWorktree: true,
+				expandedState: false,
 				sessions: []
 			}
 		]
@@ -33,7 +34,6 @@ const baseProjects: ProjectTree[] = [
 	{
 		id: docsProjectId,
 		path: '/Projects/docs',
-		expandedState: false,
 		createdAt: '2026-04-09T10:00:00.000Z',
 		displayName: 'docs',
 		owner: null,
@@ -42,19 +42,21 @@ const baseProjects: ProjectTree[] = [
 				id: 'docs-main-wt-id',
 				branch: 'develop',
 				isLinkedWorktree: false,
+				expandedState: false,
 				sessions: []
 			},
 			{
 				id: 'docs-wt-id',
 				branch: 'feature/api',
 				isLinkedWorktree: true,
+				expandedState: false,
 				sessions: []
 			}
 		]
 	}
 ];
 
-const mainWorktreeId = 'main-wt-id';
+const unlinkedWorktreeId = 'main-wt-id';
 
 const baseData = {
 	projectTree: [
@@ -63,7 +65,6 @@ const baseData = {
 			projectId: baseProjects[0].id,
 			displayName: baseProjects[0].displayName,
 			owner: baseProjects[0].owner,
-			expandedState: baseProjects[0].expandedState,
 			worktrees: baseProjects[0].worktrees
 		},
 		{
@@ -71,7 +72,6 @@ const baseData = {
 			projectId: baseProjects[1].id,
 			displayName: baseProjects[1].displayName,
 			owner: baseProjects[1].owner,
-			expandedState: baseProjects[1].expandedState,
 			worktrees: baseProjects[1].worktrees
 		}
 	],
@@ -79,11 +79,11 @@ const baseData = {
 	selectedProjectId: polycodeProjectId,
 	selectedProjectName: 'polycode',
 	selectedWorktreeLabel: 'main',
-	selectedWorktreeId: mainWorktreeId,
+	selectedWorktreeId: unlinkedWorktreeId,
 	firstSessionUnderWorktree: true,
 	worktrees: [
 		{
-			id: mainWorktreeId,
+			id: unlinkedWorktreeId,
 			branch: 'main'
 		},
 		{
@@ -188,7 +188,7 @@ describe('root homepage', () => {
 			),
 			worktrees: [
 				{
-					id: mainWorktreeId,
+					id: unlinkedWorktreeId,
 					branch: 'main'
 				}
 			]

@@ -10,8 +10,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use axum::extract::{Path as AxumPath, State};
-use axum::http::StatusCode;
-use axum::routing::{delete, get, patch};
+use axum::routing::{delete, get};
 use axum::{Json, Router};
 use tokio::task::JoinSet;
 
@@ -24,10 +23,6 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/projects", get(list_projects).post(create_project))
         .route("/api/projects/{id}", delete(close_project))
-        .route(
-            "/api/projects/{id}/expanded-state",
-            patch(update_expanded_state),
-        )
 }
 
 async fn list_projects(
@@ -50,17 +45,6 @@ async fn create_project(
         .create(CreateProject { path: input.path })
         .await?;
     Ok(Json(CreateProjectResponse { id: project.id }))
-}
-
-async fn update_expanded_state(
-    State(state): State<AppState>,
-    AxumPath(id): AxumPath<String>,
-    Json(body): Json<UpdateExpandedStateRequest>,
-) -> Result<StatusCode, AppError> {
-    Service::new(state.db)
-        .update_expanded_state(&id, body.expanded_state)
-        .await?;
-    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn close_project(
@@ -197,7 +181,6 @@ mod tests {
         Project {
             id: id.to_string(),
             path: path.to_string(),
-            expanded_state: false,
             created_at: 0,
             removed_at: None,
         }

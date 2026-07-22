@@ -14,11 +14,11 @@ export const load: LayoutLoad = async ({ depends }) => {
 		displayName: project.displayName,
 		owner: project.owner,
 		projectId: project.id,
-		expandedState: project.expandedState,
 		worktrees: project.worktrees.map((worktree) => ({
 			id: worktree.id,
 			branch: worktree.branch,
 			isLinkedWorktree: worktree.isLinkedWorktree,
+			expandedState: worktree.expandedState,
 			sessions: worktree.sessions
 		}))
 	}));

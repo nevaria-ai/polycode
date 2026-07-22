@@ -191,7 +191,7 @@ async fn test_nested_projects_returns_git_worktree_entries() {
         .unwrap()
         .iter()
         .find(|w| w["id"].as_str() == Some(expected_id.as_str()))
-        .expect("primary worktree in list");
+        .expect("unlinked worktree in list");
     assert_eq!(wt["id"].as_str().unwrap(), persisted_id);
 
     let listed_once_more = list_worktrees_for_project(&app, &project_id).await;
@@ -309,7 +309,7 @@ async fn test_session_creates_worktree_row_lazily() {
 }
 
 #[tokio::test]
-async fn test_delete_worktree_api_keeps_session_and_stable_id() {
+async fn test_delete_worktree_cascades_sessions() {
     let (app, dir, project_id, project_path) = setup_git_project().await;
     let ext_path = dir.path().join("api-delete-wt");
     Command::new("git")
@@ -325,16 +325,6 @@ async fn test_delete_worktree_api_keeps_session_and_stable_id() {
         .expect("git worktree add");
 
     let ext_path_str = ext_path.to_str().unwrap();
-    let listed = list_worktrees_for_project(&app, &project_id).await;
-    let _branch = listed
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|w| w["id"].as_str() == Some(&v5_id_for_path(ext_path_str)))
-        .unwrap()["branch"]
-        .as_str()
-        .unwrap()
-        .to_string();
     let expected_id = v5_id_for_path(ext_path_str);
 
     let session = create_session(&app, &project_id, &expected_id, true).await;
@@ -359,22 +349,52 @@ async fn test_delete_worktree_api_keeps_session_and_stable_id() {
         )
         .await
         .unwrap();
-    assert_eq!(get_resp.status(), StatusCode::OK);
-
-    Command::new("git")
-        .args(["worktree", "add", ext_path_str, "-b", "api-delete-branch-2"])
-        .current_dir(&project_path)
-        .output()
-        .expect("git worktree re-add");
+    assert_eq!(get_resp.status(), StatusCode::NOT_FOUND);
 
     let listed_again = list_worktrees_for_project(&app, &project_id).await;
-    let restored = listed_again
+    assert!(listed_again
         .as_array()
         .unwrap()
         .iter()
-        .find(|w| w["id"].as_str() == Some(&expected_id))
+        .all(|w| w["id"].as_str() != Some(expected_id.as_str())));
+}
+
+#[tokio::test]
+async fn test_patch_worktree_expanded_state() {
+    let (app, _dir, project_id, project_path) = setup_git_project().await;
+    let worktree_id = v5_id_for_path(&project_path);
+
+    let resp = app
+        .clone()
+        .oneshot(common::json_request(
+            "PATCH",
+            &format!("/api/projects/{project_id}/worktrees/{worktree_id}/expanded-state"),
+            Some(serde_json::json!({ "expandedState": true })),
+        ))
+        .await
         .unwrap();
-    assert_eq!(restored["id"].as_str().unwrap(), expected_id);
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+
+    let listed = list_worktrees_for_project(&app, &project_id).await;
+    let unlinked = listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|w| !w["isLinkedWorktree"].as_bool().unwrap())
+        .expect("unlinked worktree");
+    assert_eq!(unlinked["id"].as_str().unwrap(), worktree_id);
+    assert!(unlinked["expandedState"].as_bool().unwrap());
+
+    let project_expand = app
+        .clone()
+        .oneshot(common::json_request(
+            "PATCH",
+            &format!("/api/projects/{project_id}/expanded-state"),
+            Some(serde_json::json!({ "expandedState": true })),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(project_expand.status(), StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]

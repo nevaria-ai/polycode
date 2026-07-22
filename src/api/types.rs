@@ -24,6 +24,7 @@ pub struct ApiWorktreeWithSessions {
     pub id: String,
     pub branch: Option<String>,
     pub is_linked_worktree: bool,
+    pub expanded_state: bool,
     pub sessions: Vec<ApiSessionMetadata>,
 }
 
@@ -33,7 +34,6 @@ pub struct ApiWorktreeWithSessions {
 pub struct ApiProjectTree {
     pub id: String,
     pub path: String,
-    pub expanded_state: bool,
     pub created_at: String,
     pub display_name: String,
     pub owner: Option<String>,
@@ -45,8 +45,7 @@ pub struct ApiProjectTree {
 pub struct ApiSession {
     pub id: String,
     pub project_id: String,
-    pub worktree_id: Option<String>,
-    pub worktree_path: String,
+    pub worktree_id: String,
     pub title: Option<String>,
     pub status: String,
     pub version: i64,
@@ -213,7 +212,6 @@ impl From<DbSession> for ApiSession {
             id: s.id,
             project_id: s.project_id,
             worktree_id: s.worktree_id,
-            worktree_path: s.worktree_path,
             title: s.title,
             status: s.status,
             version: s.version,

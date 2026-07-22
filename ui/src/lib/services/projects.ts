@@ -12,10 +12,3 @@ export async function createProject(path: string): Promise<{ id: string }> {
 export async function closeProject(id: string): Promise<void> {
 	await api.delete(`projects/${id}`);
 }
-
-export async function updateProjectExpandedState(
-	id: string,
-	expandedState: boolean
-): Promise<void> {
-	await api.patch(`projects/${id}/expanded-state`, { json: { expandedState } });
-}

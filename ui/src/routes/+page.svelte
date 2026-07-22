@@ -8,7 +8,7 @@
 	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
 	import { createSession } from '$lib/services';
-	import { mainWorktree } from '$lib/project-tree';
+	import { unlinkedWorktree } from '$lib/project-tree';
 	import type { PageData } from './$types';
 
 	type HomepageHref = `/?${string}`;
@@ -29,7 +29,7 @@
 		data.worktrees.find(
 			(worktree: PageData['worktrees'][number]) => worktree.id === data.selectedWorktreeId
 		)?.branch ??
-			mainWorktree(selectedProject ?? { worktrees: [] })?.branch ??
+			unlinkedWorktree(selectedProject ?? { worktrees: [] })?.branch ??
 			null
 	);
 
@@ -59,11 +59,11 @@
 		// parent/base worktree, create a nested worktree under it before creating the
 		// session, and persist the session against the new child worktree rather than
 		// the selected parent. The session should be created with the child worktree's
-		// worktreeId/worktreePath. Currently this is not implemented - silently ignore
+		// worktreeId. Currently this is not implemented - silently ignore
 		// if checkbox is true.
 		if (sessionAsWorktree) {
 			// TODO: Create nested worktree: createWorktree(data.selectedWorktreePath, branchName)
-			// TODO: Replace parent worktreeId/worktreePath with the new child worktree values
+			// TODO: Replace parent worktreeId with the new child worktree values
 			// For now, continue with the selected worktree as-is
 		}
 
@@ -167,12 +167,12 @@
 								<span data-testid="composer-project-item" class="text-xs font-medium">
 									<ProjectName displayName={project.displayName} owner={project.owner} />
 								</span>
-								{#if mainWorktree(project)?.branch}
+								{#if unlinkedWorktree(project)?.branch}
 									<span
 										data-testid="composer-project-default-branch"
 										class="text-[10px] text-muted-foreground"
 									>
-										:{mainWorktree(project)?.branch}
+										:{unlinkedWorktree(project)?.branch}
 									</span>
 								{/if}
 							</DropdownMenu.Item>

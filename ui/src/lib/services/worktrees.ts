@@ -18,3 +18,14 @@ export async function deleteWorktree(projectId: string, worktreeId: string): Pro
 	const encoded = encodeURIComponent(worktreeId);
 	await api.delete(`projects/${projectId}/worktrees/${encoded}`);
 }
+
+export async function updateWorktreeExpandedState(
+	projectId: string,
+	worktreeId: string,
+	expandedState: boolean
+): Promise<void> {
+	const encoded = encodeURIComponent(worktreeId);
+	await api.patch(`projects/${projectId}/worktrees/${encoded}/expanded-state`, {
+		json: { expandedState }
+	});
+}

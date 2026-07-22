@@ -10,9 +10,9 @@ import (
 )
 
 const addWorktree = `-- name: AddWorktree :one
-INSERT INTO worktrees (id, project_id, path, is_linked_worktree, created_at)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, project_id, path, is_linked_worktree, created_at
+INSERT INTO worktrees (id, project_id, path, is_linked_worktree, expanded_state, created_at)
+VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, project_id, path, is_linked_worktree, expanded_state, created_at
 `
 
 type AddWorktreeParams struct {
@@ -20,23 +20,35 @@ type AddWorktreeParams struct {
 	ProjectID        string `json:"project_id"`
 	Path             string `json:"path"`
 	IsLinkedWorktree int64  `json:"is_linked_worktree"`
+	ExpandedState    int64  `json:"expanded_state"`
 	CreatedAt        int64  `json:"created_at"`
 }
 
-func (q *Queries) AddWorktree(ctx context.Context, arg AddWorktreeParams) (Worktree, error) {
+type AddWorktreeRow struct {
+	ID               string `json:"id"`
+	ProjectID        string `json:"project_id"`
+	Path             string `json:"path"`
+	IsLinkedWorktree int64  `json:"is_linked_worktree"`
+	ExpandedState    int64  `json:"expanded_state"`
+	CreatedAt        int64  `json:"created_at"`
+}
+
+func (q *Queries) AddWorktree(ctx context.Context, arg AddWorktreeParams) (AddWorktreeRow, error) {
 	row := q.db.QueryRowContext(ctx, addWorktree,
 		arg.ID,
 		arg.ProjectID,
 		arg.Path,
 		arg.IsLinkedWorktree,
+		arg.ExpandedState,
 		arg.CreatedAt,
 	)
-	var i Worktree
+	var i AddWorktreeRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
 		&i.Path,
 		&i.IsLinkedWorktree,
+		&i.ExpandedState,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -70,30 +82,23 @@ func (q *Queries) CountSessionsByProject(ctx context.Context, projectID string) 
 }
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO projects (id, path, expanded_state, created_at)
-VALUES (?, ?, ?, ?)
-RETURNING id, path, expanded_state, created_at, removed_at
+INSERT INTO projects (id, path, created_at)
+VALUES (?, ?, ?)
+RETURNING id, path, created_at, removed_at
 `
 
 type CreateProjectParams struct {
-	ID            string `json:"id"`
-	Path          string `json:"path"`
-	ExpandedState int64  `json:"expanded_state"`
-	CreatedAt     int64  `json:"created_at"`
+	ID        string `json:"id"`
+	Path      string `json:"path"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error) {
-	row := q.db.QueryRowContext(ctx, createProject,
-		arg.ID,
-		arg.Path,
-		arg.ExpandedState,
-		arg.CreatedAt,
-	)
+	row := q.db.QueryRowContext(ctx, createProject, arg.ID, arg.Path, arg.CreatedAt)
 	var i Project
 	err := row.Scan(
 		&i.ID,
 		&i.Path,
-		&i.ExpandedState,
 		&i.CreatedAt,
 		&i.RemovedAt,
 	)
@@ -102,22 +107,21 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (
-    id, project_id, worktree_id, worktree_path,
+    id, project_id, worktree_id,
     status, version, has_summary, created_at, updated_at, last_active_at
-) VALUES (?, ?, ?, ?, 'active', 1, 0, ?, ?, ?)
+) VALUES (?, ?, ?, 'active', 1, 0, ?, ?, ?)
 RETURNING
-    id, project_id, worktree_id, worktree_path,
+    id, project_id, worktree_id,
     title, status, version, has_summary, created_at, updated_at, last_active_at
 `
 
 type CreateSessionParams struct {
-	ID           string  `json:"id"`
-	ProjectID    string  `json:"project_id"`
-	WorktreeID   *string `json:"worktree_id"`
-	WorktreePath string  `json:"worktree_path"`
-	CreatedAt    int64   `json:"created_at"`
-	UpdatedAt    int64   `json:"updated_at"`
-	LastActiveAt int64   `json:"last_active_at"`
+	ID           string `json:"id"`
+	ProjectID    string `json:"project_id"`
+	WorktreeID   string `json:"worktree_id"`
+	CreatedAt    int64  `json:"created_at"`
+	UpdatedAt    int64  `json:"updated_at"`
+	LastActiveAt int64  `json:"last_active_at"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
@@ -125,7 +129,6 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		arg.ID,
 		arg.ProjectID,
 		arg.WorktreeID,
-		arg.WorktreePath,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.LastActiveAt,
@@ -135,7 +138,6 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.ID,
 		&i.ProjectID,
 		&i.WorktreeID,
-		&i.WorktreePath,
 		&i.Title,
 		&i.Status,
 		&i.Version,
@@ -165,8 +167,17 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteWorktreeById = `-- name: DeleteWorktreeById :exec
+DELETE FROM worktrees WHERE id = ?
+`
+
+func (q *Queries) DeleteWorktreeById(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteWorktreeById, id)
+	return err
+}
+
 const findProjectByPath = `-- name: FindProjectByPath :one
-SELECT id, path, expanded_state, created_at, removed_at
+SELECT id, path, created_at, removed_at
 FROM projects
 WHERE path = ?
 `
@@ -177,7 +188,6 @@ func (q *Queries) FindProjectByPath(ctx context.Context, path string) (Project, 
 	err := row.Scan(
 		&i.ID,
 		&i.Path,
-		&i.ExpandedState,
 		&i.CreatedAt,
 		&i.RemovedAt,
 	)
@@ -185,25 +195,35 @@ func (q *Queries) FindProjectByPath(ctx context.Context, path string) (Project, 
 }
 
 const findWorktreeById = `-- name: FindWorktreeById :one
-SELECT id, project_id, path, is_linked_worktree, created_at
+SELECT id, project_id, path, is_linked_worktree, expanded_state, created_at
 FROM worktrees WHERE id = ?
 `
 
-func (q *Queries) FindWorktreeById(ctx context.Context, id string) (Worktree, error) {
+type FindWorktreeByIdRow struct {
+	ID               string `json:"id"`
+	ProjectID        string `json:"project_id"`
+	Path             string `json:"path"`
+	IsLinkedWorktree int64  `json:"is_linked_worktree"`
+	ExpandedState    int64  `json:"expanded_state"`
+	CreatedAt        int64  `json:"created_at"`
+}
+
+func (q *Queries) FindWorktreeById(ctx context.Context, id string) (FindWorktreeByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, findWorktreeById, id)
-	var i Worktree
+	var i FindWorktreeByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
 		&i.Path,
 		&i.IsLinkedWorktree,
+		&i.ExpandedState,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, path, expanded_state, created_at, removed_at
+SELECT id, path, created_at, removed_at
 FROM projects
 WHERE id = ?
 `
@@ -214,7 +234,6 @@ func (q *Queries) GetProject(ctx context.Context, id string) (Project, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Path,
-		&i.ExpandedState,
 		&i.CreatedAt,
 		&i.RemovedAt,
 	)
@@ -223,7 +242,7 @@ func (q *Queries) GetProject(ctx context.Context, id string) (Project, error) {
 
 const getSession = `-- name: GetSession :one
 SELECT
-    id, project_id, worktree_id, worktree_path,
+    id, project_id, worktree_id,
     title, status, version, has_summary, created_at, updated_at, last_active_at
 FROM sessions
 WHERE id = ?
@@ -236,7 +255,6 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 		&i.ID,
 		&i.ProjectID,
 		&i.WorktreeID,
-		&i.WorktreePath,
 		&i.Title,
 		&i.Status,
 		&i.Version,
@@ -249,7 +267,7 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, path, expanded_state, created_at, removed_at
+SELECT id, path, created_at, removed_at
 FROM projects
 WHERE removed_at IS NULL
 ORDER BY created_at DESC, rowid DESC
@@ -267,7 +285,6 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Path,
-			&i.ExpandedState,
 			&i.CreatedAt,
 			&i.RemovedAt,
 		); err != nil {
@@ -286,7 +303,7 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 
 const listSessionMetadata = `-- name: ListSessionMetadata :many
 SELECT
-    id, project_id, worktree_id, worktree_path,
+    id, project_id, worktree_id,
     title, status, created_at, updated_at, last_active_at
 FROM sessions
 ORDER BY last_active_at DESC
@@ -295,8 +312,7 @@ ORDER BY last_active_at DESC
 type ListSessionMetadataRow struct {
 	ID           string  `json:"id"`
 	ProjectID    string  `json:"project_id"`
-	WorktreeID   *string `json:"worktree_id"`
-	WorktreePath string  `json:"worktree_path"`
+	WorktreeID   string  `json:"worktree_id"`
 	Title        *string `json:"title"`
 	Status       string  `json:"status"`
 	CreatedAt    int64   `json:"created_at"`
@@ -318,7 +334,6 @@ func (q *Queries) ListSessionMetadata(ctx context.Context) ([]ListSessionMetadat
 			&i.ID,
 			&i.ProjectID,
 			&i.WorktreeID,
-			&i.WorktreePath,
 			&i.Title,
 			&i.Status,
 			&i.CreatedAt,
@@ -338,9 +353,55 @@ func (q *Queries) ListSessionMetadata(ctx context.Context) ([]ListSessionMetadat
 	return items, nil
 }
 
+const listWorktreesByProject = `-- name: ListWorktreesByProject :many
+SELECT id, project_id, path, is_linked_worktree, expanded_state, created_at
+FROM worktrees
+WHERE project_id = ?
+ORDER BY is_linked_worktree ASC, created_at ASC
+`
+
+type ListWorktreesByProjectRow struct {
+	ID               string `json:"id"`
+	ProjectID        string `json:"project_id"`
+	Path             string `json:"path"`
+	IsLinkedWorktree int64  `json:"is_linked_worktree"`
+	ExpandedState    int64  `json:"expanded_state"`
+	CreatedAt        int64  `json:"created_at"`
+}
+
+func (q *Queries) ListWorktreesByProject(ctx context.Context, projectID string) ([]ListWorktreesByProjectRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWorktreesByProject, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWorktreesByProjectRow
+	for rows.Next() {
+		var i ListWorktreesByProjectRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.Path,
+			&i.IsLinkedWorktree,
+			&i.ExpandedState,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reactivateProject = `-- name: ReactivateProject :one
 UPDATE projects SET removed_at = NULL WHERE id = ?
-RETURNING id, path, expanded_state, created_at, removed_at
+RETURNING id, path, created_at, removed_at
 `
 
 func (q *Queries) ReactivateProject(ctx context.Context, id string) (Project, error) {
@@ -349,7 +410,6 @@ func (q *Queries) ReactivateProject(ctx context.Context, id string) (Project, er
 	err := row.Scan(
 		&i.ID,
 		&i.Path,
-		&i.ExpandedState,
 		&i.CreatedAt,
 		&i.RemovedAt,
 	)
@@ -358,7 +418,7 @@ func (q *Queries) ReactivateProject(ctx context.Context, id string) (Project, er
 
 const softRemoveProject = `-- name: SoftRemoveProject :one
 UPDATE projects SET removed_at = ? WHERE id = ?
-RETURNING id, path, expanded_state, created_at, removed_at
+RETURNING id, path, created_at, removed_at
 `
 
 type SoftRemoveProjectParams struct {
@@ -372,27 +432,10 @@ func (q *Queries) SoftRemoveProject(ctx context.Context, arg SoftRemoveProjectPa
 	err := row.Scan(
 		&i.ID,
 		&i.Path,
-		&i.ExpandedState,
 		&i.CreatedAt,
 		&i.RemovedAt,
 	)
 	return i, err
-}
-
-const updateProjectExpandedState = `-- name: UpdateProjectExpandedState :exec
-UPDATE projects
-SET expanded_state = ?
-WHERE id = ?
-`
-
-type UpdateProjectExpandedStateParams struct {
-	ExpandedState int64  `json:"expanded_state"`
-	ID            string `json:"id"`
-}
-
-func (q *Queries) UpdateProjectExpandedState(ctx context.Context, arg UpdateProjectExpandedStateParams) error {
-	_, err := q.db.ExecContext(ctx, updateProjectExpandedState, arg.ExpandedState, arg.ID)
-	return err
 }
 
 const updateSessionTitle = `-- name: UpdateSessionTitle :exec
@@ -415,5 +458,21 @@ func (q *Queries) UpdateSessionTitle(ctx context.Context, arg UpdateSessionTitle
 		arg.LastActiveAt,
 		arg.ID,
 	)
+	return err
+}
+
+const updateWorktreeExpandedState = `-- name: UpdateWorktreeExpandedState :exec
+UPDATE worktrees
+SET expanded_state = ?
+WHERE id = ?
+`
+
+type UpdateWorktreeExpandedStateParams struct {
+	ExpandedState int64  `json:"expanded_state"`
+	ID            string `json:"id"`
+}
+
+func (q *Queries) UpdateWorktreeExpandedState(ctx context.Context, arg UpdateWorktreeExpandedStateParams) error {
+	_, err := q.db.ExecContext(ctx, updateWorktreeExpandedState, arg.ExpandedState, arg.ID)
 	return err
 }

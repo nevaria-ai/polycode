@@ -28,14 +28,14 @@ function renderLayout(projectTree: LayoutProjectTree = []) {
 	});
 }
 
-// Sidebar expand calls updateProjectExpandedState; pass everything else
+// Sidebar expand calls updateWorktreeExpandedState; pass everything else
 // through to the real implementations. Using importOriginal keeps the mock
 // self-maintaining as $lib/services grows.
 vi.mock('$lib/services', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('$lib/services')>();
 	return {
 		...actual,
-		updateProjectExpandedState: vi.fn(async () => undefined)
+		updateWorktreeExpandedState: vi.fn(async () => undefined)
 	};
 });
 
@@ -134,12 +134,12 @@ describe('font rendering', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
 				worktrees: [
 					{
 						id: 'test-wt-id',
 						branch: 'main',
 						isLinkedWorktree: false,
+						expandedState: false,
 						sessions: [
 							{
 								id: 'session-1',
@@ -172,12 +172,12 @@ describe('font rendering', () => {
 				owner: 'acme',
 				path: '/repo',
 				projectId: 'repo-id',
-				expandedState: false,
 				worktrees: [
 					{
 						id: 'test-wt-id',
 						branch: 'main',
 						isLinkedWorktree: false,
+						expandedState: false,
 						sessions: []
 					}
 				]

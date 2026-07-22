@@ -270,10 +270,9 @@ func TestQueriesWorkspace(t *testing.T) {
 	ctx := context.Background()
 
 	created, err := db.Q.CreateProject(ctx, polydb.CreateProjectParams{
-		ID:            "proj-1",
-		Path:          "/tmp/polycode",
-		ExpandedState: 0,
-		CreatedAt:     100,
+		ID:        "proj-1",
+		Path:      "/tmp/polycode",
+		CreatedAt: 100,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -302,25 +301,37 @@ func TestQueriesWorkspace(t *testing.T) {
 		t.Fatal("expected no rows error for missing path")
 	}
 
-	err = db.Q.UpdateProjectExpandedState(ctx, polydb.UpdateProjectExpandedStateParams{
-		ExpandedState: 1,
-		ID:            "proj-1",
+	_, err = db.Q.AddWorktree(ctx, polydb.AddWorktreeParams{
+		ID:               "wt-1",
+		ProjectID:        "proj-1",
+		Path:             "/tmp/polycode/wt",
+		IsLinkedWorktree: 0,
+		ExpandedState:    0,
+		CreatedAt:        100,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err = db.Q.GetProject(ctx, "proj-1")
+
+	err = db.Q.UpdateWorktreeExpandedState(ctx, polydb.UpdateWorktreeExpandedStateParams{
+		ExpandedState: 1,
+		ID:            "wt-1",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.ExpandedState != 1 {
-		t.Fatalf("UpdateProjectExpandedState: %+v", got)
+	wt, err := db.Q.FindWorktreeById(ctx, "wt-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if wt.ExpandedState != 1 {
+		t.Fatalf("UpdateWorktreeExpandedState: %+v", wt)
 	}
 
 	session, err := db.Q.CreateSession(ctx, polydb.CreateSessionParams{
 		ID:           "sess-1",
 		ProjectID:    "proj-1",
-		WorktreePath: "/tmp/polycode/wt",
+		WorktreeID:   "wt-1",
 		CreatedAt:    100,
 		UpdatedAt:    100,
 		LastActiveAt: 100,
@@ -388,8 +399,19 @@ func TestQueriesTranscript(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, err = db.Q.AddWorktree(ctx, polydb.AddWorktreeParams{
+		ID:               "wt-1",
+		ProjectID:        "proj-1",
+		Path:             "/p",
+		IsLinkedWorktree: 0,
+		ExpandedState:    0,
+		CreatedAt:        1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = db.Q.CreateSession(ctx, polydb.CreateSessionParams{
-		ID: "sess-1", ProjectID: "proj-1", WorktreePath: "/p",
+		ID: "sess-1", ProjectID: "proj-1", WorktreeID: "wt-1",
 		CreatedAt: 1, UpdatedAt: 1, LastActiveAt: 1,
 	})
 	if err != nil {
