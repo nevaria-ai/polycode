@@ -24,16 +24,7 @@ type AddWorktreeParams struct {
 	CreatedAt        int64  `json:"created_at"`
 }
 
-type AddWorktreeRow struct {
-	ID               string `json:"id"`
-	ProjectID        string `json:"project_id"`
-	Path             string `json:"path"`
-	IsLinkedWorktree int64  `json:"is_linked_worktree"`
-	ExpandedState    int64  `json:"expanded_state"`
-	CreatedAt        int64  `json:"created_at"`
-}
-
-func (q *Queries) AddWorktree(ctx context.Context, arg AddWorktreeParams) (AddWorktreeRow, error) {
+func (q *Queries) AddWorktree(ctx context.Context, arg AddWorktreeParams) (Worktree, error) {
 	row := q.db.QueryRowContext(ctx, addWorktree,
 		arg.ID,
 		arg.ProjectID,
@@ -42,7 +33,7 @@ func (q *Queries) AddWorktree(ctx context.Context, arg AddWorktreeParams) (AddWo
 		arg.ExpandedState,
 		arg.CreatedAt,
 	)
-	var i AddWorktreeRow
+	var i Worktree
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
@@ -199,18 +190,9 @@ SELECT id, project_id, path, is_linked_worktree, expanded_state, created_at
 FROM worktrees WHERE id = ?
 `
 
-type FindWorktreeByIdRow struct {
-	ID               string `json:"id"`
-	ProjectID        string `json:"project_id"`
-	Path             string `json:"path"`
-	IsLinkedWorktree int64  `json:"is_linked_worktree"`
-	ExpandedState    int64  `json:"expanded_state"`
-	CreatedAt        int64  `json:"created_at"`
-}
-
-func (q *Queries) FindWorktreeById(ctx context.Context, id string) (FindWorktreeByIdRow, error) {
+func (q *Queries) FindWorktreeById(ctx context.Context, id string) (Worktree, error) {
 	row := q.db.QueryRowContext(ctx, findWorktreeById, id)
-	var i FindWorktreeByIdRow
+	var i Worktree
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
@@ -360,24 +342,15 @@ WHERE project_id = ?
 ORDER BY is_linked_worktree ASC, created_at ASC
 `
 
-type ListWorktreesByProjectRow struct {
-	ID               string `json:"id"`
-	ProjectID        string `json:"project_id"`
-	Path             string `json:"path"`
-	IsLinkedWorktree int64  `json:"is_linked_worktree"`
-	ExpandedState    int64  `json:"expanded_state"`
-	CreatedAt        int64  `json:"created_at"`
-}
-
-func (q *Queries) ListWorktreesByProject(ctx context.Context, projectID string) ([]ListWorktreesByProjectRow, error) {
+func (q *Queries) ListWorktreesByProject(ctx context.Context, projectID string) ([]Worktree, error) {
 	rows, err := q.db.QueryContext(ctx, listWorktreesByProject, projectID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListWorktreesByProjectRow
+	var items []Worktree
 	for rows.Next() {
-		var i ListWorktreesByProjectRow
+		var i Worktree
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
