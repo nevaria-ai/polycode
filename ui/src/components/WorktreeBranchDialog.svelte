@@ -69,7 +69,7 @@
 		</Dialog.Header>
 
 		{#if error}
-			<p class="text-sm break-words text-red-400">{error}</p>
+			<p class="text-sm break-words text-destructive">{error}</p>
 		{/if}
 
 		<div class="grid gap-4 py-4">

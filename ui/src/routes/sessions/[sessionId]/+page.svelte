@@ -126,7 +126,7 @@
 					class="flex-1 rounded bg-transparent px-2 py-1 text-sm font-medium text-zinc-200 ring-1 ring-white/20 outline-none"
 				/>
 				{#if renameError}
-					<span class="text-xs text-red-400">{renameError}</span>
+					<span class="text-xs break-words text-destructive">{renameError}</span>
 				{/if}
 			{:else}
 				<h1 class="flex-1 text-sm font-medium text-zinc-200">{displayTitle}</h1>
@@ -207,7 +207,7 @@
 		{#if session.status === 'active'}
 			<div class="border-t border-white/8 px-6 py-4">
 				{#if submitError}
-					<p class="mb-2 text-xs text-red-400">{submitError}</p>
+					<p class="mb-2 text-xs break-words text-destructive">{submitError}</p>
 				{/if}
 				<PromptPanel
 					bind:value={messageText}

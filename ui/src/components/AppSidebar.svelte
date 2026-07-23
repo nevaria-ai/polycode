@@ -68,26 +68,67 @@
 		);
 	});
 
-	function toggleProject(projectId: string) {
+	let openProjectSelector = $state(false);
+
+	type BranchDialogMode =
+		| { mode: 'create'; projectId: string }
+		| { mode: 'rename'; projectId: string; worktreeId: string }
+		| null;
+	let branchDialogState = $state<BranchDialogMode>(null);
+
+	type WorktreeDeleteTarget = { projectId: string; worktreeId: string; branch: string };
+	let deleteWorktreeInfo = $state<WorktreeDeleteTarget | null>(null);
+	let openSettings = $state(false);
+	let actionError = $state<string | null>(null);
+
+	async function toggleProject(projectId: string) {
 		const project = tree.find((item) => item.projectId === projectId);
 		const worktree = project ? unlinkedWorktree(project) : null;
-		if (project && worktree) {
-			project.isExpanded = !project.isExpanded;
-			worktree.isExpanded = project.isExpanded;
-			void updateWorktreeExpandedState(projectId, worktree.id, project.isExpanded);
+		if (!project || !worktree) return;
+
+		const next = !project.isExpanded;
+		project.isExpanded = next;
+		worktree.isExpanded = next;
+		actionError = null;
+		try {
+			await updateWorktreeExpandedState(projectId, worktree.id, next);
+		} catch (e) {
+			project.isExpanded = !next;
+			worktree.isExpanded = !next;
+			actionError = e instanceof Error ? e.message : 'Failed to update worktree';
 		}
 	}
 
-	function toggleWorktree(projectId: string, worktreeId: string) {
+	async function toggleWorktree(projectId: string, worktreeId: string) {
 		const project = tree.find((item) => item.projectId === projectId);
 		const worktree = project?.worktrees.find((item) => item.id === worktreeId);
-		if (worktree) {
-			worktree.isExpanded = !worktree.isExpanded;
-			void updateWorktreeExpandedState(projectId, worktreeId, worktree.isExpanded);
-			const unlinked = project ? unlinkedWorktree(project) : null;
+		if (!worktree) return;
+
+		const next = !worktree.isExpanded;
+		worktree.isExpanded = next;
+		const unlinked = project ? unlinkedWorktree(project) : null;
+		if (unlinked?.id === worktreeId && project) {
+			project.isExpanded = next;
+		}
+		actionError = null;
+		try {
+			await updateWorktreeExpandedState(projectId, worktreeId, next);
+		} catch (e) {
+			worktree.isExpanded = !next;
 			if (unlinked?.id === worktreeId && project) {
-				project.isExpanded = worktree.isExpanded;
+				project.isExpanded = !next;
 			}
+			actionError = e instanceof Error ? e.message : 'Failed to update worktree';
+		}
+	}
+
+	async function removeProject(projectId: string) {
+		actionError = null;
+		try {
+			await closeProject(projectId);
+			await invalidate('projects:list');
+		} catch (e) {
+			actionError = e instanceof Error ? e.message : 'Failed to close project';
 		}
 	}
 
@@ -111,23 +152,6 @@
 
 	function isNewSessionActive() {
 		return page.url.pathname === '/';
-	}
-
-	let openProjectSelector = $state(false);
-
-	type BranchDialogMode =
-		| { mode: 'create'; projectId: string }
-		| { mode: 'rename'; projectId: string; worktreeId: string }
-		| null;
-	let branchDialogState = $state<BranchDialogMode>(null);
-
-	type WorktreeDeleteTarget = { projectId: string; worktreeId: string; branch: string };
-	let deleteWorktreeInfo = $state<WorktreeDeleteTarget | null>(null);
-	let openSettings = $state(false);
-
-	async function removeProject(projectId: string) {
-		await closeProject(projectId);
-		await invalidate('projects:list');
 	}
 
 	function newProjectSession(projectId: string) {
@@ -399,6 +423,10 @@
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
 	</Sidebar.Content>
+
+	{#if actionError}
+		<p class="px-3 pb-2 text-xs break-words text-destructive">{actionError}</p>
+	{/if}
 
 	<Sidebar.Footer>
 		<Sidebar.Menu>

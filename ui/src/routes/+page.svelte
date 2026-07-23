@@ -215,7 +215,7 @@
 		</div>
 
 		{#if submitError}
-			<p class="px-2 text-xs text-red-400">{submitError}</p>
+			<p class="px-2 text-xs break-words text-destructive">{submitError}</p>
 		{/if}
 		<PromptPanel
 			bind:value={promptText}

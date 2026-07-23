@@ -199,7 +199,7 @@
 		</Dialog.Header>
 
 		{#if error}
-			<p class="text-sm break-words text-red-400">{error}</p>
+			<p class="text-sm break-words text-destructive">{error}</p>
 		{/if}
 
 		<form id="open-project-form" class="grid gap-4 py-4" onsubmit={handleFormSubmit}>

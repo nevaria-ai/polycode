@@ -53,7 +53,7 @@
 		</Dialog.Header>
 
 		{#if error}
-			<p class="text-sm text-destructive">{error}</p>
+			<p class="text-sm break-words text-destructive">{error}</p>
 		{/if}
 
 		<Dialog.Footer>
