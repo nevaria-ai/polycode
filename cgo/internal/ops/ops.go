@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	polydb "github.com/nevaria-ai/polycode/cgo/internal/db"
-	"github.com/nevaria-ai/polycode/cgo/internal/dbstore"
+	polydb "github.com/radch-ai/esk-code/cgo/internal/db"
+	"github.com/radch-ai/esk-code/cgo/internal/dbstore"
 )
 
 const okJSON = `{"ok":true}`

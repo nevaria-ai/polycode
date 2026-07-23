@@ -10,8 +10,8 @@ import (
 	"unsafe"
 
 	"github.com/codeignus/ffi/boundary"
-	"github.com/nevaria-ai/polycode/cgo/internal/dbstore"
-	"github.com/nevaria-ai/polycode/cgo/internal/ops"
+	"github.com/radch-ai/esk-code/cgo/internal/dbstore"
+	"github.com/radch-ai/esk-code/cgo/internal/ops"
 )
 
 //export db_open

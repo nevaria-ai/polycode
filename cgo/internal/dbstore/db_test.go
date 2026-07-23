@@ -8,7 +8,7 @@ import (
 	"runtime/cgo"
 	"testing"
 
-	polydb "github.com/nevaria-ai/polycode/cgo/internal/db"
+	polydb "github.com/radch-ai/esk-code/cgo/internal/db"
 )
 
 func strPtr(s string) *string { return &s }

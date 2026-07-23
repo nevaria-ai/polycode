@@ -1,4 +1,4 @@
-module github.com/nevaria-ai/polycode/cgo
+module github.com/radch-ai/esk-code/cgo
 
 go 1.26.1
 

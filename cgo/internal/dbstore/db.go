@@ -7,7 +7,7 @@ import (
 	"runtime/cgo"
 	"strings"
 
-	polydb "github.com/nevaria-ai/polycode/cgo/internal/db"
+	polydb "github.com/radch-ai/esk-code/cgo/internal/db"
 
 	_ "modernc.org/sqlite"
 )
