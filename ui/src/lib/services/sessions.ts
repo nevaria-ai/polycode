@@ -17,21 +17,10 @@ export async function getSession(projectId: string, sessionId: string): Promise<
 	return api.get(`projects/${projectId}/sessions/${sessionId}`).json();
 }
 
-export async function deleteSession(projectId: string, sessionId: string): Promise<void> {
-	await api.delete(`projects/${projectId}/sessions/${sessionId}`);
-}
-
 export async function updateSessionTitle(
 	projectId: string,
 	sessionId: string,
 	input: RenameSessionApiInput
 ): Promise<{ session: Session }> {
 	return api.patch(`projects/${projectId}/sessions/${sessionId}/title`, { json: input }).json();
-}
-
-export async function archiveSession(
-	projectId: string,
-	sessionId: string
-): Promise<{ session: Session }> {
-	return api.post(`projects/${projectId}/sessions/${sessionId}/archive`, { json: {} }).json();
 }

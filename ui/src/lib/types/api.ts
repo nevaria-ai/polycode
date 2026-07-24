@@ -1,4 +1,4 @@
-export interface SessionMetadata {
+interface SessionMetadata {
 	id: string;
 	title: string | null;
 	status: 'active' | 'ended' | 'archived';
@@ -37,7 +37,7 @@ export interface Session {
 	lastActiveAt: string;
 }
 
-export interface MessageView {
+interface MessageView {
 	id: string;
 	role: 'user' | 'assistant' | 'system';
 	position: number;
@@ -47,7 +47,7 @@ export interface MessageView {
 	createdAt: string;
 }
 
-export interface PartViewItem {
+interface PartViewItem {
 	id: string;
 	type: string;
 	content: string;
@@ -57,7 +57,7 @@ export interface PartViewItem {
 	createdAt: string;
 }
 
-export interface PinnedContextViewItem {
+interface PinnedContextViewItem {
 	id: string;
 	type: string;
 	source: string;
@@ -67,7 +67,7 @@ export interface PinnedContextViewItem {
 	pinnedAt: string;
 }
 
-export interface ProviderRunViewItem {
+interface ProviderRunViewItem {
 	id: string;
 	adapterType: string;
 	status: string;

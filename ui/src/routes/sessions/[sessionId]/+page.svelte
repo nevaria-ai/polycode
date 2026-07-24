@@ -23,7 +23,6 @@
 	const messages = $derived(data.messages);
 	const pinnedContext = $derived(data.pinnedContext);
 	const hasSummary = $derived(data.hasSummary);
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const _providerRuns = $derived(data.providerRuns);
 
 	const displayTitle = $derived(session?.title ?? `Session ${session?.id.slice(0, 8) ?? ''}`);

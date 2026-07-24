@@ -333,6 +333,9 @@ describe('ProjectSelectorDialog', () => {
 
 		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
 		await input.fill('/workspace');
+		// Wait for the directory fetch so Tab can accept the highlighted suggestion
+		// and close the popover (same race as the Open / Enter submit tests).
+		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
 
 		// Close the popover first so its floating layer doesn't intercept the click.
 		await pressInputKey('Tab');

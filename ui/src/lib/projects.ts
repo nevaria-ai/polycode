@@ -1,15 +1,5 @@
 import path from 'node:path';
 
-export type StoredProject = {
-	name: string;
-	path: string;
-};
-
-export type ResolvedProjectInput = {
-	name: string;
-	path: string;
-};
-
 export function normalizeProjectPath(input: string): string {
 	return path.normalize(path.resolve(input)).replace(/\/$/, '') || '/';
 }
