@@ -1,4 +1,4 @@
-//! Polycode `cgo/` exports — layouts from `github.com/codeignus/ffi/types.h`.
+//! ESK CODE `cgo/` exports — layouts from `github.com/codeignus/ffi/types.h`.
 
 use ffi::CallCtxHeader;
 

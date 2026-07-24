@@ -246,10 +246,10 @@ async fn test_create_worktree_persists_uuid_v4_id() {
     let id = wt["id"].as_str().unwrap();
     let parsed = Uuid::parse_str(id).expect("valid uuid");
     assert_eq!(parsed.get_version(), Some(uuid::Version::Random));
-    let created_path = polycode::paths::worktree_dir(&project_id, id);
+    let created_path = esk_code::paths::worktree_dir(&project_id, id);
     assert_eq!(
         id,
-        polycode::api::worktrees::Service::worktree_id_for_path(
+        esk_code::api::worktrees::Service::worktree_id_for_path(
             created_path.to_str().unwrap(),
             &project_id
         )

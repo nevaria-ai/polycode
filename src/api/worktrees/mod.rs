@@ -4,7 +4,7 @@
 //! usually the **branch checked out** in that worktree, not the folder path. Branch rename is a
 //! git-only operation (`git branch -m`): the worktree path and stable worktree id stay the same, so
 //! sessions and app storage never need to move. App-created worktrees use opaque UUID directory
-//! names under `~/.polycode/projects/<id>/worktrees/` so display renames never depend on paths.
+//! names under `~/.esk-code/projects/<id>/worktrees/` so display renames never depend on paths.
 
 mod model;
 mod service;

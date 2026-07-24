@@ -25,7 +25,9 @@ const config = {
 		}),
 		alias: {
 			$lib: './src/lib',
-			$components: './src/components'
+			$components: './src/components',
+			// Repo-root shared product constants (Vite + TS via SvelteKit alias)
+			$constants: '../constants.json'
 		}
 	}
 };

@@ -9,7 +9,7 @@ describe('normalizeProjectPath', () => {
 
 describe('projectId helpers', () => {
 	it('round-trips a normalized absolute path through base64url encoding', () => {
-		const path = '/Projects/opensource-projects/polycode';
+		const path = '/Projects/opensource-projects/esk-code';
 		const projectId = encodeProjectId(path);
 
 		expect(projectId).not.toContain('=');

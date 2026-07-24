@@ -1,17 +1,19 @@
 use std::path::PathBuf;
 
+use crate::constants::CONSTANTS;
+
 pub fn data_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("POLYCODE_DATA_DIR") {
+    if let Ok(dir) = std::env::var(&CONSTANTS.env_data_dir) {
         PathBuf::from(dir)
     } else {
         dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join(".polycode")
+            .join(&CONSTANTS.data_dir_dot_name)
     }
 }
 
 pub fn db_path() -> PathBuf {
-    data_dir().join("polycode.db")
+    data_dir().join(&CONSTANTS.db_file_name)
 }
 
 pub fn project_dir(project_id: &str) -> PathBuf {

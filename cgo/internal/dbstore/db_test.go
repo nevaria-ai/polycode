@@ -36,13 +36,13 @@ func TestSQLiteURI(t *testing.T) {
 		t.Fatalf("memory: got %q err=%v", got, err)
 	}
 
-	got, err = SQLiteURI("/var/lib/polycode/polycode.db")
-	if err != nil || got != "file:/var/lib/polycode/polycode.db?mode=rwc" {
+	got, err = SQLiteURI("/var/lib/esk-code/esk-code.db")
+	if err != nil || got != "file:/var/lib/esk-code/esk-code.db?mode=rwc" {
 		t.Fatalf("bare path: got %q err=%v", got, err)
 	}
 
-	got, err = SQLiteURI("file:///tmp/polycode.db?mode=rwc")
-	if err != nil || got != "file:///tmp/polycode.db?mode=rwc" {
+	got, err = SQLiteURI("file:///tmp/esk-code.db?mode=rwc")
+	if err != nil || got != "file:///tmp/esk-code.db?mode=rwc" {
 		t.Fatalf("file uri: got %q err=%v", got, err)
 	}
 }
@@ -90,7 +90,7 @@ func TestMigrationsRecorded(t *testing.T) {
 }
 
 func TestReopenFileDBMigrations(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "polycode-migrate.db")
+	path := filepath.Join(t.TempDir(), "esk-code-migrate.db")
 	head, err := HeadVersion()
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestReopenFileDBMigrations(t *testing.T) {
 
 func TestBackupSQLiteWritesSiblingFile(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "polycode.db")
+	path := filepath.Join(dir, "esk-code.db")
 	db, _ := openTestDB(t, path)
 
 	if _, err := db.Q.CreateProject(context.Background(), polydb.CreateProjectParams{
@@ -246,7 +246,7 @@ func TestTuneSQLiteMemory(t *testing.T) {
 }
 
 func TestTuneSQLiteFileWAL(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "polycode-test.db")
+	path := filepath.Join(t.TempDir(), "esk-code-test.db")
 	db, _ := openTestDB(t, path)
 
 	var mode string
@@ -271,13 +271,13 @@ func TestQueriesWorkspace(t *testing.T) {
 
 	created, err := db.Q.CreateProject(ctx, polydb.CreateProjectParams{
 		ID:        "proj-1",
-		Path:      "/tmp/polycode",
+		Path:      "/tmp/esk-code",
 		CreatedAt: 100,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.ID != "proj-1" || created.Path != "/tmp/polycode" {
+	if created.ID != "proj-1" || created.Path != "/tmp/esk-code" {
 		t.Fatalf("CreateProject: %+v", created)
 	}
 
@@ -285,11 +285,11 @@ func TestQueriesWorkspace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Path != "/tmp/polycode" {
+	if got.Path != "/tmp/esk-code" {
 		t.Fatalf("GetProject: %+v", got)
 	}
 
-	byPath, err := db.Q.FindProjectByPath(ctx, "/tmp/polycode")
+	byPath, err := db.Q.FindProjectByPath(ctx, "/tmp/esk-code")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,7 +304,7 @@ func TestQueriesWorkspace(t *testing.T) {
 	_, err = db.Q.AddWorktree(ctx, polydb.AddWorktreeParams{
 		ID:               "wt-1",
 		ProjectID:        "proj-1",
-		Path:             "/tmp/polycode/wt",
+		Path:             "/tmp/esk-code/wt",
 		IsLinkedWorktree: 0,
 		ExpandedState:    0,
 		CreatedAt:        100,
