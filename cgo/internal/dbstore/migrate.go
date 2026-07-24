@@ -13,7 +13,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	migrations "github.com/nevaria-ai/polycode/cgo/migrations"
+	migrations "github.com/radch-ai/esk-code/cgo/migrations"
 	moderncsqlite "modernc.org/sqlite"
 )
 

@@ -10,6 +10,7 @@
 	import * as Tooltip from '$components/ui/tooltip';
 	import type { Pane } from 'paneforge';
 	import AppSidebar from '$components/AppSidebar.svelte';
+	import { SIDEBAR_LAYOUT_ID } from '$lib/constants';
 
 	let { children, data } = $props();
 	const initialSidebarOpen = () => data.initialSidebarOpen;
@@ -100,7 +101,7 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <SidebarProvider bind:open={sidebarOpen}>
-	<Resizable.PaneGroup autoSaveId="polycode-shell-sidebar" direction="horizontal">
+	<Resizable.PaneGroup autoSaveId={SIDEBAR_LAYOUT_ID} direction="horizontal">
 		<Resizable.Pane
 			bind:this={sidebarPane}
 			class="min-w-0 overflow-hidden"

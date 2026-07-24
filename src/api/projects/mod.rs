@@ -333,15 +333,15 @@ mod tests {
     #[test]
     fn owner_from_remote_name_owner_repo_form() {
         assert_eq!(
-            owner_from_remote_name("nevaria/polycode"),
-            Some("nevaria".to_string())
+            owner_from_remote_name("radch-ai/esk-code"),
+            Some("radch-ai".to_string())
         );
     }
 
     #[test]
     fn owner_from_remote_name_rejects_malformed() {
-        assert_eq!(owner_from_remote_name("nevaria/"), None);
-        assert_eq!(owner_from_remote_name("/polycode"), None);
+        assert_eq!(owner_from_remote_name("radch-ai/"), None);
+        assert_eq!(owner_from_remote_name("/esk-code"), None);
     }
 
     #[test]

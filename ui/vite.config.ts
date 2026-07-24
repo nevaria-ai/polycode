@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
@@ -7,9 +9,15 @@ import { sveltekit } from '@sveltejs/kit/vite';
 // Load .env file
 dotenv.config();
 
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
+		// Allow importing repo-root `constants.json` from `ui/`
+		fs: {
+			allow: [repoRoot]
+		},
 		proxy: {
 			'/api': {
 				target: 'http://127.0.0.1:3001',

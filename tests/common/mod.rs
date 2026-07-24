@@ -5,15 +5,15 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::Router;
-use polycode::api::AppState;
-use polycode::db::DbHandle;
+use esk_code::api::AppState;
+use esk_code::db::DbHandle;
 use serde_json::{json, Value};
 use std::process::Command;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 pub fn memory_db() -> DbHandle {
-    polycode::db::init_memory().expect("open test database")
+    esk_code::db::init_memory().expect("open test database")
 }
 
 pub fn app() -> Router {
@@ -21,7 +21,7 @@ pub fn app() -> Router {
 }
 
 pub fn app_with(db: DbHandle) -> Router {
-    polycode::api::routes().with_state(AppState { db })
+    esk_code::api::routes().with_state(AppState { db })
 }
 
 pub fn json_request(method: &str, uri: &str, body: Option<Value>) -> Request<Body> {

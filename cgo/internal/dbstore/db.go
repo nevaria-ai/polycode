@@ -7,7 +7,7 @@ import (
 	"runtime/cgo"
 	"strings"
 
-	polydb "github.com/nevaria-ai/polycode/cgo/internal/db"
+	polydb "github.com/radch-ai/esk-code/cgo/internal/db"
 
 	_ "modernc.org/sqlite"
 )
@@ -92,7 +92,7 @@ func Close(h cgo.Handle) (err error) {
 //   - ":memory:" — in-memory database (must be given explicitly)
 //   - "file:…" — SQLite file URI (pass-through)
 //   - "file:///…" — absolute file URL (pass-through)
-//   - "/data/polycode.db" — bare filesystem path → file URI with create-if-missing
+//   - "/data/esk-code.db" — bare filesystem path → file URI with create-if-missing
 //
 // An empty path is an error; in-memory is never implied.
 func SQLiteURI(path string) (string, error) {

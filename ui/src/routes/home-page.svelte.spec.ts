@@ -4,15 +4,15 @@ import { page } from 'vitest/browser';
 import HomePage from './+page.svelte';
 import type { ProjectTree } from '$lib/types/api';
 
-const polycodeProjectId = 'polycode-id';
+const eskCodeProjectId = 'esk-code-id';
 const docsProjectId = 'docs-id';
 
 const baseProjects: ProjectTree[] = [
 	{
-		id: polycodeProjectId,
-		path: '/Projects/polycode',
+		id: eskCodeProjectId,
+		path: '/Projects/esk-code',
 		createdAt: '2026-04-09T10:00:00.000Z',
-		displayName: 'polycode',
+		displayName: 'esk-code',
 		owner: null,
 		worktrees: [
 			{
@@ -76,8 +76,8 @@ const baseData = {
 		}
 	],
 	initialSidebarOpen: true,
-	selectedProjectId: polycodeProjectId,
-	selectedProjectName: 'polycode',
+	selectedProjectId: eskCodeProjectId,
+	selectedProjectName: 'esk-code',
 	selectedWorktreeLabel: 'main',
 	selectedWorktreeId: unlinkedWorktreeId,
 	firstSessionUnderWorktree: true,
@@ -99,9 +99,9 @@ describe('root homepage', () => {
 		const headerRow = container.querySelector('[data-testid="homepage-header-row"]');
 		const trigger = container.querySelector('[data-slot="dropdown-menu-trigger"]');
 
-		expect(container.textContent).toContain('polycode');
+		expect(container.textContent).toContain('esk-code');
 		expect(headerRow?.textContent).not.toContain('Select worktree');
-		expect(trigger?.textContent).toContain('polycode');
+		expect(trigger?.textContent).toContain('esk-code');
 		expect(trigger?.textContent).toContain(':main');
 		expect(container.querySelector('textarea[placeholder="Enter your query!"]')).not.toBeNull();
 	});
@@ -127,7 +127,7 @@ describe('root homepage', () => {
 		expect(stack?.className).toContain('mx-auto');
 		expect(stack?.className).toContain('my-auto');
 		expect(stack?.className).toContain('flex-col');
-		expect(headerRow?.textContent).toContain('polycode');
+		expect(headerRow?.textContent).toContain('esk-code');
 		expect(headerRow?.textContent).toContain('Session-as-worktree');
 		expect(headerRow?.contains(promptPanel)).toBe(false);
 		expect(promptPanel?.contains(headerRow)).toBe(false);
@@ -163,7 +163,7 @@ describe('root homepage', () => {
 		expect(projectDefaultBranch?.className).toContain('text-[10px]');
 		expect(projectItem?.className).toContain('text-xs');
 		expect(projectLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(polycodeProjectId)}`
+			`/?project=${encodeURIComponent(eskCodeProjectId)}`
 		);
 
 		const nestedWorktreeItem = document.querySelector(
@@ -171,7 +171,7 @@ describe('root homepage', () => {
 		) as HTMLElement | null;
 		expect(nestedWorktreeItem?.className).toContain('text-xs');
 		expect(worktreeLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(polycodeProjectId)}&worktreeId=${encodeURIComponent('main-wt-id')}`
+			`/?project=${encodeURIComponent(eskCodeProjectId)}&worktreeId=${encodeURIComponent('main-wt-id')}`
 		);
 	});
 
@@ -179,7 +179,7 @@ describe('root homepage', () => {
 		const noWorktreeData = {
 			...baseData,
 			projectTree: baseData.projectTree.map((p) =>
-				p.projectId === polycodeProjectId
+				p.projectId === eskCodeProjectId
 					? {
 							...p,
 							worktrees: p.worktrees.filter((worktree) => !worktree.isLinkedWorktree)
@@ -202,7 +202,7 @@ describe('root homepage', () => {
 		) as HTMLElement | null;
 		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(3);
 		expect(projectLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(polycodeProjectId)}`
+			`/?project=${encodeURIComponent(eskCodeProjectId)}`
 		);
 	});
 });

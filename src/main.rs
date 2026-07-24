@@ -5,8 +5,8 @@ use axum::http::header;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Router;
-use polycode::api::AppState;
-use polycode::db::DbHandle;
+use esk_code::api::AppState;
+use esk_code::db::DbHandle;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
 
     let addr = std::env::var("ADDR").unwrap_or_else(|_| "127.0.0.1:3001".into());
 
-    let db = polycode::db::init_db()?;
+    let db = esk_code::db::init_db()?;
     let app = web_app(db);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 pub fn web_app(db: DbHandle) -> Router {
-    let app = polycode::api::routes().with_state(AppState { db });
+    let app = esk_code::api::routes().with_state(AppState { db });
 
     #[cfg(debug_assertions)]
     let app = app.fallback_service(axum::routing::get(dev_spa_disabled));
@@ -48,7 +48,7 @@ async fn serve_spa(path: &str) -> Result<impl IntoResponse, StatusCode> {
     } else {
         path
     };
-    let file = polycode::embed::Assets::get(asset).ok_or(StatusCode::NOT_FOUND)?;
+    let file = esk_code::embed::Assets::get(asset).ok_or(StatusCode::NOT_FOUND)?;
     let mime = mime_guess::from_path(asset).first_or_octet_stream();
     let mut headers = axum::http::HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, mime.as_ref().parse().unwrap());

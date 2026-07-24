@@ -24,7 +24,7 @@
 		type SidebarProjectInput,
 		type ExpandedWorktree
 	} from '$lib/project-tree';
-	import { APP_NAME } from '$lib/config';
+	import { APP_NAME } from '$lib/constants';
 	import ProjectSelectorDialog from '$components/ProjectSelectorDialog.svelte';
 	import ProjectName from '$components/ProjectName.svelte';
 	import WorktreeBranchDialog from '$components/WorktreeBranchDialog.svelte';

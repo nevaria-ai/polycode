@@ -78,6 +78,6 @@ describe('root layout sidebar shell', () => {
 		renderLayout({ initialSidebarOpen: true });
 		const appName = document.querySelector('[data-testid="sidebar-app-name"]');
 		expect(appName).not.toBeNull();
-		expect(appName?.textContent).toBe('POLYCODE');
+		expect(appName?.textContent).toBe('ESK CODE');
 	});
 });

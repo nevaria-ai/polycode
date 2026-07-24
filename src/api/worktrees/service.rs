@@ -37,7 +37,7 @@ impl Service {
     }
 
     /// App-managed checkout path when `worktree_id` is a v4 UUID folder name under
-    /// `~/.polycode/projects/<project_id>/worktrees/`. Avoids DB lookup and git scan.
+    /// `~/.esk-code/projects/<project_id>/worktrees/`. Avoids DB lookup and git scan.
     pub fn managed_path_for_id(project_id: &str, worktree_id: &str) -> Option<String> {
         let parsed = uuid::Uuid::parse_str(worktree_id).ok()?;
         if parsed.get_version() != Some(uuid::Version::Random) {
@@ -185,7 +185,7 @@ impl Service {
             .map_err(AppError::from)
     }
 
-    /// Lazy worktree row on first session or expand toggle: app-managed ids use the `.polycode`
+    /// Lazy worktree row on first session or expand toggle: app-managed ids use the `.esk-code`
     /// path convention; external ids git-scan once (or use project path for non-git), then
     /// `AddWorktree`.
     pub async fn ensure_row_for_id(
@@ -246,7 +246,7 @@ mod tests {
     }
 
     #[test]
-    fn managed_path_for_id_returns_polycode_worktree_dir() {
+    fn managed_path_for_id_returns_esk_code_worktree_dir() {
         let wt_uuid = "550e8400-e29b-41d4-a716-446655440000";
         let path = Service::managed_path_for_id("proj-1", wt_uuid).unwrap();
         assert_eq!(

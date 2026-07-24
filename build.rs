@@ -1,22 +1,34 @@
 //! Builds the Go c-archive in OUT_DIR and links it into the Rust crate.
-//! Optional env: `POLYCODE_SKIP_GO_BUILD`
 
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
+use serde::Deserialize;
+
 const CGO_DIR: &str = "cgo";
-const ARCHIVE: &str = "libpolycode_cgo.a";
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Constants {
+    env_prefix: String,
+}
 
 fn main() {
+    let Constants { env_prefix } =
+        serde_json::from_str(include_str!("constants.json")).expect("constants.json");
+    let app_id = env_prefix.to_ascii_lowercase();
+    let cgo_archive = format!("lib{app_id}_cgo.a");
+    let env_skip_go_build = format!("{env_prefix}_SKIP_GO_BUILD");
+
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let go_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join(CGO_DIR);
-    let archive = out_dir.join(ARCHIVE);
+    let archive = out_dir.join(&cgo_archive);
 
-    if env::var_os("POLYCODE_SKIP_GO_BUILD").is_some() {
+    if env::var_os(&env_skip_go_build).is_some() {
         assert!(
             archive.is_file(),
-            "POLYCODE_SKIP_GO_BUILD: missing {}; run `cargo build` first",
+            "{env_skip_go_build}: missing {}; run `cargo build` first",
             archive.display()
         );
     } else {
@@ -31,7 +43,11 @@ fn main() {
         assert!(status.success(), "`go build -buildmode=c-archive` failed");
     }
 
-    let link_name = static_lib_name(ARCHIVE);
+    let link_name = cgo_archive
+        .strip_prefix("lib")
+        .unwrap_or(&cgo_archive)
+        .strip_suffix(".a")
+        .unwrap_or(&cgo_archive);
     println!("cargo:rustc-link-search=native={}", out_dir.display());
     println!("cargo:rustc-link-lib=static={link_name}");
 
@@ -41,7 +57,8 @@ fn main() {
         println!("cargo:rustc-link-lib=dylib=m");
     }
 
-    println!("cargo:rerun-if-env-changed=POLYCODE_SKIP_GO_BUILD");
+    println!("cargo:rerun-if-changed=constants.json");
+    println!("cargo:rerun-if-env-changed={env_skip_go_build}");
     for path in [
         "main.go",
         "payload.go",
@@ -52,11 +69,4 @@ fn main() {
     ] {
         println!("cargo:rerun-if-changed={}", go_dir.join(path).display());
     }
-}
-
-/// `libpolycode_cgo.a` → `polycode_cgo` for `cargo:rustc-link-lib=static=…`
-fn static_lib_name(archive: &str) -> String {
-    let base = archive.strip_prefix("lib").unwrap_or(archive);
-    let base = base.strip_suffix(".a").unwrap_or(base);
-    base.into()
 }

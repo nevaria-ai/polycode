@@ -1,5 +1,5 @@
 [package]
-name = "polycode"
+name = "esk-code"
 version = "0.1.0"
 edition = "2021"
 
@@ -20,6 +20,10 @@ rust-embed = { version = "8", features = ["debug-embed"] }
 mime_guess = "2"
 urlencoding = "2"
 ffi = { git = "ssh://git@github.com/codeignus/ffi.git", branch = "main" }
+
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [dev-dependencies]
 axum-test = "16"
