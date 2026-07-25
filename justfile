@@ -1,29 +1,28 @@
 set shell := ["/bin/bash", "-euo", "pipefail", "-c"]
 set dotenv-load := true
 
-# --- cgo ---
+tauri_cli := "./ui/node_modules/.bin/tauri"
+tauri_config := "tauri.conf.json"
 
+## --- cgo ---
+
+# Diff and regenerate cgo SQL bindings
 sqlc:
     cd cgo && sqlc diff
     cd cgo && sqlc generate
 
-# --- app ---
+## --- desktop (Tauri) ---
 
-# Vite (ui) + API; Vite proxies /api to the API bind addr (default 127.0.0.1:3001)
+# Vite (ui, port 1420) + desktop_app via Tauri CLI
 [default]
 dev:
-    #!/usr/bin/env bash
-    ( cd ui && bun run dev ) &
-    WEB_PID=$!
-    cargo run &
-    API_PID=$!
-    trap 'kill $WEB_PID $API_PID 2>/dev/null || true' INT TERM EXIT
-    wait $WEB_PID $API_PID
+    {{ tauri_cli }} dev --config {{ tauri_config }}
 
-# SvelteKit static build + release binary (embedded frontend)
+# Production UI build + packaged desktop app
 build:
-    ( cd ui && bun run build )
-    cargo build --release
+    {{ tauri_cli }} build --config {{ tauri_config }}
+
+## --- quality ---
 
 # Test ui, rust, and cgo sources
 test:

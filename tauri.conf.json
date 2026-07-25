@@ -5,7 +5,7 @@
   "identifier": "ai.radch.eskcode",
   "build": {
     "beforeDevCommand": {
-      "script": "bun run dev:tauri",
+      "script": "bun run dev",
       "cwd": "ui"
     },
     "devUrl": "http://localhost:1420",

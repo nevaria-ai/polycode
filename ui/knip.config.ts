@@ -3,8 +3,9 @@ import type { KnipConfig } from 'knip';
 export default {
 	// Generated shadcn-svelte primitives — treat as intentionally public surface
 	ignore: ['src/components/ui/**'],
-	// Used by gitignored tauri-specta bindings (`src/lib/bindings.ts`)
-	ignoreDependencies: ['@tauri-apps/api'],
+	// @tauri-apps/api: used by specta bindings (src/lib/bindings.ts)
+	// @tauri-apps/cli: used by justfile / package scripts
+	ignoreDependencies: ['@tauri-apps/api', '@tauri-apps/cli'],
 	paths: {
 		$components: ['src/components'],
 		'$components/*': ['src/components/*'],

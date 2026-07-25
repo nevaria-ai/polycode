@@ -83,15 +83,12 @@ async fn session_lazy_creates_row_for_external_git_worktree() {
         .await
         .expect("list_trees");
     assert!(
-        trees[0]
-            .worktrees
-            .iter()
-            .any(|w| w.id == list_id),
+        trees[0].worktrees.iter().any(|w| w.id == list_id),
         "external worktree visible in tree before DB row"
     );
 
-    let session1 = common::create_session(db.clone(), &project_id, &project_path, &list_id, true)
-        .await;
+    let session1 =
+        common::create_session(db.clone(), &project_id, &project_path, &list_id, true).await;
     assert_eq!(session1.worktree_id, list_id);
 
     let row = WorktreeService::new(db.clone())
@@ -114,14 +111,8 @@ async fn delete_checkout_keeps_session_and_stable_worktree_id() {
     common::git_worktree_add(&project_path, &ext_path, "api-delete-branch");
 
     let expected_id = common::v5_id_for_path(ext_path.to_str().unwrap());
-    let session = common::create_session(
-        db.clone(),
-        &project_id,
-        &project_path,
-        &expected_id,
-        true,
-    )
-    .await;
+    let session =
+        common::create_session(db.clone(), &project_id, &project_path, &expected_id, true).await;
     assert_eq!(session.worktree_id, expected_id);
 
     WorktreeService::new(db.clone())
@@ -133,10 +124,7 @@ async fn delete_checkout_keeps_session_and_stable_worktree_id() {
         .list_trees()
         .await
         .expect("list_trees");
-    assert!(trees[0]
-        .worktrees
-        .iter()
-        .all(|w| w.id != expected_id));
+    assert!(trees[0].worktrees.iter().all(|w| w.id != expected_id));
 
     let sessions = SessionService::new(db.clone());
     let got = sessions.get(&session.id).await.expect("session remains");
@@ -164,8 +152,7 @@ async fn path_reuse_reattaches_new_session_to_immortal_row() {
     common::git_worktree_remove(&project_path, ext_path_str);
     common::git_worktree_add(&project_path, &ext_path, "reuse-branch-2");
 
-    let session2 =
-        common::create_session(db, &project_id, &project_path, &first_id, false).await;
+    let session2 = common::create_session(db, &project_id, &project_path, &first_id, false).await;
     assert_eq!(session2.worktree_id, first_id);
 }
 

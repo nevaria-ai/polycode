@@ -81,13 +81,7 @@ pub async fn create_session(
 
 pub fn git_worktree_add(repo: &str, path: &std::path::Path, branch: &str) {
     let status = Command::new("git")
-        .args([
-            "worktree",
-            "add",
-            path.to_str().unwrap(),
-            "-b",
-            branch,
-        ])
+        .args(["worktree", "add", path.to_str().unwrap(), "-b", branch])
         .current_dir(repo)
         .status()
         .expect("git worktree add");
