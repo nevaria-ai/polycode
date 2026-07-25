@@ -28,16 +28,13 @@ function renderLayout(projectTree: LayoutProjectTree = []) {
 	});
 }
 
-// Sidebar expand calls updateWorktreeExpandedState; pass everything else
-// through to the real implementations. Using importOriginal keeps the mock
-// self-maintaining as $lib/services grows.
-vi.mock('$lib/services', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('$lib/services')>();
-	return {
-		...actual,
-		updateWorktreeExpandedState: vi.fn(async () => undefined)
-	};
-});
+// Sidebar expand calls updateWorktreeExpandedState; mock just that command.
+vi.mock('$lib/bindings', () => ({
+	commands: {
+		updateWorktreeExpandedState: vi.fn(async () => ({ status: 'ok' as const, data: null })),
+		closeProject: vi.fn(async () => ({ status: 'ok' as const, data: null }))
+	}
+}));
 
 const SYSTEM_FONT_STACK =
 	'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';

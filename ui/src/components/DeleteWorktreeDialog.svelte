@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$components/ui/button';
 	import * as Dialog from '$components/ui/dialog';
-	import { deleteWorktree } from '$lib/services';
+	import { commands, unwrapCommand } from '$lib/command';
 	import { invalidate } from '$app/navigation';
 
 	type WorktreeDeleteTarget = {
@@ -26,7 +26,7 @@
 		submitting = true;
 		error = null;
 		try {
-			await deleteWorktree(info.projectId, info.worktreeId);
+			await commands.deleteWorktree(info.projectId, info.worktreeId).then(unwrapCommand);
 			closeDialog();
 			await invalidate('projects:list');
 		} catch (e) {

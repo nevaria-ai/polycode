@@ -17,12 +17,6 @@ export default defineConfig({
 		// Allow importing repo-root `constants.json` from `ui/`
 		fs: {
 			allow: [repoRoot]
-		},
-		proxy: {
-			'/api': {
-				target: 'http://127.0.0.1:3001',
-				changeOrigin: true
-			}
 		}
 	},
 	test: {

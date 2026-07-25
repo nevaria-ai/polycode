@@ -2,7 +2,7 @@
 	import { Button } from '$components/ui/button';
 	import { Input } from '$components/ui/input';
 	import * as Dialog from '$components/ui/dialog';
-	import { createWorktree, renameWorktreeBranch } from '$lib/services';
+	import { commands, unwrapCommand } from '$lib/command';
 	import { invalidate } from '$app/navigation';
 
 	type BranchDialogMode =
@@ -30,15 +30,17 @@
 		error = null;
 		try {
 			if (branchDialogState.mode === 'create') {
-				await createWorktree(branchDialogState.projectId, {
-					branch: branchName.trim()
-				});
+				await commands
+					.createWorktree(branchDialogState.projectId, {
+						branch: branchName.trim()
+					})
+					.then(unwrapCommand);
 			} else {
-				await renameWorktreeBranch(
-					branchDialogState.projectId,
-					branchDialogState.worktreeId,
-					branchName.trim()
-				);
+				await commands
+					.renameWorktreeBranch(branchDialogState.projectId, branchDialogState.worktreeId, {
+						newBranch: branchName.trim()
+					})
+					.then(unwrapCommand);
 			}
 			branchDialogState = null;
 			await invalidate('projects:list');

@@ -10,3 +10,6 @@ bun.lockb
 
 # UI Components (shadcn)
 src/components/ui/
+
+# tauri-specta generated bindings
+src/lib/bindings.ts

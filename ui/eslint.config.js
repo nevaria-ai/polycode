@@ -52,6 +52,12 @@ export default defineConfig(
 		}
 	},
 	{
-		ignores: ['build/', 'node_modules/', '.svelte-kit/', 'src/components/ui/']
+		ignores: [
+			'build/',
+			'node_modules/',
+			'.svelte-kit/',
+			'src/components/ui/',
+			'src/lib/bindings.ts'
+		]
 	}
 );

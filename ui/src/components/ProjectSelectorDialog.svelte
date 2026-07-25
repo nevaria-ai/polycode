@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { createProject, getDirectories } from '$lib/services';
+	import { commands, unwrapCommand } from '$lib/command';
 	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Button } from '$components/ui/button';
@@ -92,7 +92,7 @@
 		}
 
 		try {
-			const { suggestions, exists } = await getDirectories(query);
+			const { suggestions, exists } = await commands.listDirectories(query).then(unwrapCommand);
 			if (requestId !== latestRequestId) return;
 
 			pathExists = exists;
@@ -166,7 +166,7 @@
 		submitting = true;
 		error = null;
 		try {
-			const { id } = await createProject(searchQuery.trim());
+			const { id } = await commands.createProject({ path: searchQuery.trim() }).then(unwrapCommand);
 			open = false;
 			// Refresh the cached projectTree first so the new (or reused) project
 			// is present in the layout data, then navigate. Navigating before

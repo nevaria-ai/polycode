@@ -10,7 +10,7 @@ const { appPage, setPathname, closeProjectMock } = vi.hoisted(() => {
 		setPathname: (pathname: string) => {
 			state.url.pathname = pathname;
 		},
-		closeProjectMock: vi.fn(async () => undefined)
+		closeProjectMock: vi.fn(async () => ({ status: 'ok' as const, data: null }))
 	};
 });
 
@@ -18,19 +18,11 @@ vi.mock('$app/state', () => ({
 	page: appPage
 }));
 
-vi.mock('$lib/services', () => ({
-	getProjects: vi.fn(async () => []),
-	createProject: vi.fn(async () => ({ id: 'test' })),
-	closeProject: closeProjectMock,
-	updateWorktreeExpandedState: vi.fn(async () => undefined),
-	createSession: vi.fn(async () => ({ session: {} })),
-	getSession: vi.fn(async () => ({})),
-	updateSessionTitle: vi.fn(async () => ({ session: {} })),
-	createWorktree: vi.fn(async () => undefined),
-	renameWorktreeBranch: vi.fn(async () => undefined),
-	deleteWorktree: vi.fn(async () => undefined),
-	sendMessage: vi.fn(async () => undefined),
-	getDirectories: vi.fn(async () => ({ suggestions: [], exists: false }))
+vi.mock('$lib/bindings', () => ({
+	commands: {
+		closeProject: closeProjectMock,
+		updateWorktreeExpandedState: vi.fn(async () => ({ status: 'ok' as const, data: null }))
+	}
 }));
 
 vi.mock('$app/navigation', () => ({

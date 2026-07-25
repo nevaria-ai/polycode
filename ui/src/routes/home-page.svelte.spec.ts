@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import HomePage from './+page.svelte';
-import type { ProjectTree } from '$lib/types/api';
+import type { ApiProjectTree } from '$lib/command';
 
 const eskCodeProjectId = 'esk-code-id';
 const docsProjectId = 'docs-id';
 
-const baseProjects: ProjectTree[] = [
+const baseProjects: ApiProjectTree[] = [
 	{
 		id: eskCodeProjectId,
 		path: '/Projects/esk-code',

@@ -10,6 +10,3 @@ Thumbs.db
 
 # Tauri: generated schemas (from tauri-build)
 /gen
-
-# tauri-specta: regenerated on debug desktop_app run
-ui/src/lib/bindings.ts

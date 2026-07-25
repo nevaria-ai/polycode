@@ -3,12 +3,14 @@ import { cleanup, render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 
 const { deleteWorktreeMock, invalidateMock } = vi.hoisted(() => ({
-	deleteWorktreeMock: vi.fn(async () => undefined),
+	deleteWorktreeMock: vi.fn(async () => ({ status: 'ok' as const, data: null })),
 	invalidateMock: vi.fn(async () => {})
 }));
 
-vi.mock('$lib/services', () => ({
-	deleteWorktree: deleteWorktreeMock
+vi.mock('$lib/bindings', () => ({
+	commands: {
+		deleteWorktree: deleteWorktreeMock
+	}
 }));
 
 vi.mock('$app/navigation', () => ({
@@ -27,7 +29,7 @@ describe('DeleteWorktreeDialog', () => {
 	beforeEach(() => {
 		cleanup();
 		deleteWorktreeMock.mockReset();
-		deleteWorktreeMock.mockResolvedValue(undefined);
+		deleteWorktreeMock.mockResolvedValue({ status: 'ok' as const, data: null });
 		invalidateMock.mockReset();
 		invalidateMock.mockResolvedValue(undefined);
 	});
