@@ -1,8 +1,0 @@
-{
-  "identifier": "default",
-  "description": "Main window capability. Custom commands are callable by default once this exists; core:event enables the app-wide event broadcasts (emit/listen).",
-  "windows": ["main"],
-  "permissions": [
-    "core:event:default"
-  ]
-}
