@@ -515,7 +515,7 @@ describe('AppSidebar', () => {
 		expect(sessionLink?.closest('[data-active="true"]')).toBeInTheDocument();
 	});
 
-	it('remove project fires fetch without a confirmation dialog', async () => {
+	it('remove project invokes close without a confirmation dialog', async () => {
 		render(AppSidebarTestWrapper, {
 			projectTree: [
 				{

@@ -4,12 +4,13 @@
 // `#[cfg_attr(mobile, tauri::mobile_entry_point)]` when that lands.
 //
 // `esk_code` (lib) exposes shared modules this binary uses: db, git, cgo, feature
-// modules, commands, error type, etc. Side binaries (`remote_server`, etc.) reuse the lib
-// without pulling in this desktop-specific entry.
+// modules, commands, error type, etc. Other binaries (`remote_server`, etc.) can reuse the lib
+// without this desktop-specific entry.
 
 // Prevents an additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(debug_assertions)]
 use specta_typescript::Typescript;
 use tauri_specta::{collect_commands, Builder};
 

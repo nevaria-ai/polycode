@@ -17,14 +17,14 @@ export default defineConfig({
 	// Tauri expects a fixed port; don't clear the screen over rust errors.
 	clearScreen: false,
 	server: {
-		port: 1420,
+		port: 5173,
 		strictPort: true,
 		host: host || false,
 		hmr: host
 			? {
 					protocol: 'ws',
 					host,
-					port: 1421
+					port: 5174
 				}
 			: undefined,
 		// Allow importing repo-root `constants.json` from `ui/`

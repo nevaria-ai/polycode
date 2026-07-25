@@ -5,12 +5,12 @@
   "identifier": "ai.radch.eskcode",
   "build": {
     "beforeDevCommand": {
-      "script": "bun run dev",
+      "script": "bun --bun run vite dev",
       "cwd": "ui"
     },
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:5173",
     "beforeBuildCommand": {
-      "script": "bun run build",
+      "script": "bun --bun run vite build",
       "cwd": "ui"
     },
     "frontendDist": "ui/build"

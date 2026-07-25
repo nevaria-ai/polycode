@@ -5,9 +5,6 @@ yarn.lock
 bun.lock
 bun.lockb
 
-# Miscellaneous
-/static/
-
 # UI Components (shadcn)
 src/components/ui/
 

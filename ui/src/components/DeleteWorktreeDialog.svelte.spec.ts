@@ -44,7 +44,7 @@ describe('DeleteWorktreeDialog', () => {
 			.toBeInTheDocument();
 	});
 
-	it('shows API error and keeps dialog open on delete failure', async () => {
+	it('shows command error and keeps dialog open on delete failure', async () => {
 		deleteWorktreeMock.mockRejectedValueOnce(
 			new Error("git branch -d failed: the branch 'feature-x' is not fully merged")
 		);

@@ -13,7 +13,7 @@ sqlc:
 
 ## --- desktop (Tauri) ---
 
-# Vite (ui, port 1420) + desktop_app via Tauri CLI
+# Vite (ui, port 5173) + desktop_app via Tauri CLI
 [default]
 dev:
     {{ tauri_cli }} dev --config {{ tauri_config }}
