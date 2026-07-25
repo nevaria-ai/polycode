@@ -7,3 +7,6 @@ Thumbs.db
 !.env.test
 
 /target
+
+# Tauri: generated schemas (from tauri-build)
+/gen

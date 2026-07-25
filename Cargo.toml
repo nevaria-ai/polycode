@@ -2,14 +2,15 @@
 name = "esk-code"
 version = "0.1.0"
 edition = "2021"
+default-run = "desktop_app"
 
 [lib]
 name = "esk_code"
 path = "src/lib.rs"
 
 [[bin]]
-name = "tauri"
-path = "src/bin/tauri.rs"
+name = "desktop_app"
+path = "src/bin/desktop_app.rs"
 
 [dependencies]
 # Tauri + typesafe IPC bindings
