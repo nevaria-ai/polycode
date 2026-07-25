@@ -16,6 +16,7 @@ path = "src/bin/desktop_app.rs"
 # Tauri + typesafe IPC bindings
 tauri = { version = "2", features = [] }
 specta = "=2.0.0-rc.25"
+specta-typescript = "0.0.12"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["javascript", "typescript"] }
 thiserror = "2"
 

@@ -50,6 +50,7 @@ pub struct ApiSession {
     pub worktree_id: String,
     pub title: Option<String>,
     pub status: String,
+    #[specta(type = specta_typescript::Number)]
     pub version: i64,
     pub has_summary: bool,
     pub created_at: String,
@@ -63,6 +64,7 @@ pub struct ApiMessage {
     pub id: String,
     pub session_id: String,
     pub role: String,
+    #[specta(type = specta_typescript::Number)]
     pub position: i64,
     pub content: String,
     pub provider_run_id: Option<String>,
@@ -77,6 +79,7 @@ pub struct ApiPart {
     pub message_id: String,
     pub r#type: String,
     pub content: String,
+    #[specta(type = specta_typescript::Number)]
     pub position: i64,
     pub provider_run_id: Option<String>,
     pub metadata: Option<String>,
@@ -103,6 +106,7 @@ pub struct ApiProviderRun {
     pub status: String,
     pub started_at: String,
     pub finished_at: Option<String>,
+    #[specta(type = specta_typescript::Number)]
     pub duration_ms: Option<i64>,
 }
 
@@ -156,6 +160,18 @@ pub struct SlashCommandInput {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateExpandedStateRequest {
     pub expanded_state: bool,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateWorktreeRequest {
+    pub branch: String,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameWorktreeBranchRequest {
+    pub new_branch: String,
 }
 
 #[derive(Debug, Serialize, specta::Type)]

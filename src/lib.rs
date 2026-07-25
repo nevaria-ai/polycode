@@ -4,6 +4,7 @@ mod test_support;
 extern crate self as esk_code;
 
 pub mod cgo;
+pub mod commands;
 pub mod constants;
 pub mod db;
 pub mod error;

@@ -6,7 +6,7 @@ use crate::db::DbError;
 ///
 /// Commands return `Result<T, AppError>`; `Serialize` is required so errors
 /// cross the IPC boundary. Prefer this over `anyhow`/`String` at the command edge.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, specta::Type)]
 pub enum AppError {
     #[error("{0}")]
     NotFound(String),
