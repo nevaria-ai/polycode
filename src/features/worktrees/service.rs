@@ -1,8 +1,9 @@
 use std::path::Path;
 
-use crate::api::worktrees::model::WorktreeRow;
 use crate::db::DbHandle;
 use crate::error::AppError;
+use crate::features::projects::Service as ProjectService;
+use crate::features::worktrees::model::WorktreeRow;
 use crate::git::worktree::{GitOps, WorktreeInfo};
 use crate::paths;
 use crate::utils::unix_now;
@@ -207,6 +208,76 @@ impl Service {
 
         self.add_row(project_id, worktree_id, &path, is_linked_worktree)
             .await
+    }
+
+    /// Create a managed worktree checkout and DB row under the project.
+    pub async fn create(&self, project_id: &str, branch: &str) -> Result<String, AppError> {
+        let project = ProjectService::new(self.db.clone()).get(project_id).await?;
+
+        let worktree_id = uuid::Uuid::new_v4().to_string();
+        let worktree_path = paths::worktree_dir(project_id, &worktree_id);
+        std::fs::create_dir_all(worktree_path.parent().unwrap()).map_err(|e| {
+            AppError::BadRequest(format!("failed to create worktree storage dir: {e}"))
+        })?;
+
+        GitOps::create_worktree(Path::new(&project.path), &worktree_path, branch)
+            .map_err(AppError::BadRequest)?;
+
+        self.add_row(
+            project_id,
+            &worktree_id,
+            worktree_path.to_str().unwrap(),
+            true,
+        )
+        .await?;
+
+        Ok(worktree_id)
+    }
+
+    /// Remove the git checkout for a worktree. DB row and sessions are kept.
+    pub async fn delete_checkout(
+        &self,
+        project_id: &str,
+        worktree_id: &str,
+    ) -> Result<(), AppError> {
+        let project = ProjectService::new(self.db.clone()).get(project_id).await?;
+        let path = self
+            .path_for_id(project_id, &project.path, worktree_id)
+            .await?;
+
+        GitOps::delete_worktree(Path::new(&project.path), Path::new(&path))
+            .map_err(AppError::BadRequest)?;
+        Ok(())
+    }
+
+    /// Rename the branch checked out in a worktree. Path and worktree id are unchanged.
+    pub async fn rename_checked_out_branch(
+        &self,
+        project_id: &str,
+        worktree_id: &str,
+        new_branch: &str,
+    ) -> Result<(), AppError> {
+        let project = ProjectService::new(self.db.clone()).get(project_id).await?;
+        let path = self
+            .path_for_id(project_id, &project.path, worktree_id)
+            .await?;
+
+        GitOps::rename_worktree_branch(Path::new(&project.path), Path::new(&path), new_branch)
+            .map_err(AppError::BadRequest)?;
+        Ok(())
+    }
+
+    /// Ensure a worktree row exists, then set its sidebar expanded state.
+    pub async fn set_expanded_state(
+        &self,
+        project_id: &str,
+        worktree_id: &str,
+        expanded: bool,
+    ) -> Result<(), AppError> {
+        let project = ProjectService::new(self.db.clone()).get(project_id).await?;
+        self.ensure_row_for_id(project_id, &project.path, worktree_id)
+            .await?;
+        self.update_expanded_state(worktree_id, expanded).await
     }
 }
 

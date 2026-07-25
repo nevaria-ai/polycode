@@ -1,7 +1,7 @@
-use crate::api::sessions::model::{CreateSession, Session, SessionMetadata};
-use crate::api::worktrees::Service as WorktreeService;
 use crate::db::DbHandle;
 use crate::error::AppError;
+use crate::features::sessions::model::{CreateSession, Session, SessionMetadata};
+use crate::features::worktrees::Service as WorktreeService;
 use crate::utils::unix_now;
 
 #[derive(Clone)]
@@ -101,9 +101,9 @@ impl Service {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::projects::CreateProject;
-    use crate::api::projects::Service as ProjectService;
-    use crate::api::worktrees::Service as WorktreeService;
+    use crate::features::projects::CreateProject;
+    use crate::features::projects::Service as ProjectService;
+    use crate::features::worktrees::Service as WorktreeService;
     use crate::test_support::memory_db;
 
     #[tokio::test]

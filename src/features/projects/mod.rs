@@ -9,51 +9,9 @@ pub use tree::ProjectTreeBuilder;
 use std::collections::HashMap;
 use std::path::Path;
 
-use axum::extract::{Path as AxumPath, State};
-use axum::routing::{delete, get};
-use axum::{Json, Router};
 use tokio::task::JoinSet;
 
-use super::AppState;
-use crate::api::types::*;
-use crate::error::AppError;
 use crate::git::worktree::GitOps;
-
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/api/projects", get(list_projects).post(create_project))
-        .route("/api/projects/{id}", delete(close_project))
-}
-
-async fn list_projects(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<ApiProjectTree>>, AppError> {
-    let projects = Service::new(state.db.clone()).list().await?;
-    let labels = derive_base_labels_parallel(&projects).await;
-    let display_names = compute_display_names(&projects, &labels);
-    let trees = ProjectTreeBuilder::new(state.db)
-        .build_all(projects, &labels, &display_names)
-        .await?;
-    Ok(Json(trees))
-}
-
-async fn create_project(
-    State(state): State<AppState>,
-    Json(input): Json<CreateProjectRequest>,
-) -> Result<Json<CreateProjectResponse>, AppError> {
-    let project = Service::new(state.db)
-        .create(CreateProject { path: input.path })
-        .await?;
-    Ok(Json(CreateProjectResponse { id: project.id }))
-}
-
-async fn close_project(
-    State(state): State<AppState>,
-    AxumPath(id): AxumPath<String>,
-) -> Result<Json<serde_json::Value>, AppError> {
-    Service::new(state.db).close(&id).await?;
-    Ok(Json(serde_json::json!({"ok": true})))
-}
 
 /// Derives `(label, owner)` for a single project path — used by list (collision pass uses labels).
 pub(crate) fn derive_base_label(path: &str) -> (String, Option<String>) {
@@ -68,7 +26,9 @@ pub(crate) fn derive_base_label(path: &str) -> (String, Option<String>) {
 /// `(display label, optional git owner)`
 type ProjectLabel = (String, Option<String>);
 
-async fn derive_base_labels_parallel(projects: &[Project]) -> HashMap<String, ProjectLabel> {
+pub(crate) async fn derive_base_labels_parallel(
+    projects: &[Project],
+) -> HashMap<String, ProjectLabel> {
     let mut tasks: JoinSet<(String, ProjectLabel)> = JoinSet::new();
     for p in projects {
         let (id, path) = (p.id.clone(), p.path.clone());
@@ -109,7 +69,7 @@ fn folder_basename(path: &str) -> String {
 /// Uses derived base labels for collision detection; the result is keyed by
 /// project id. Unique labels keep the base name; collisions fall back to
 /// `parentdir/foldername`, then to the full absolute `path`.
-fn compute_display_names(
+pub(crate) fn compute_display_names(
     projects: &[Project],
     labels: &HashMap<String, (String, Option<String>)>,
 ) -> HashMap<String, String> {

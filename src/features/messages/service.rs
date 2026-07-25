@@ -1,8 +1,8 @@
 use serde::Deserialize;
 
-use crate::api::messages::model::{Message, Part};
 use crate::db::DbHandle;
 use crate::error::AppError;
+use crate::features::messages::model::{Message, Part};
 
 #[derive(Clone)]
 pub struct Service {

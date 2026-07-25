@@ -1,9 +1,9 @@
 //! Shared fixtures for `#[cfg(test)]` unit tests (not part of the public API).
 
-use crate::api::projects::{CreateProject, Service as ProjectService};
-use crate::api::sessions::{CreateSession, Service as SessionService};
-use crate::api::worktrees::Service as WorktreeService;
 use crate::db::DbHandle;
+use crate::features::projects::{CreateProject, Service as ProjectService};
+use crate::features::sessions::{CreateSession, Service as SessionService};
+use crate::features::worktrees::Service as WorktreeService;
 
 pub fn memory_db() -> DbHandle {
     crate::db::init_memory().expect("open test database")

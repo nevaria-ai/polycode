@@ -1,8 +1,11 @@
 use std::path::Path;
 
-use crate::api::projects::model::{CreateProject, Project};
 use crate::db::DbHandle;
 use crate::error::AppError;
+use crate::features::projects::model::{CreateProject, Project};
+use crate::features::projects::tree::ProjectTreeBuilder;
+use crate::features::projects::{compute_display_names, derive_base_labels_parallel};
+use crate::features::types::ApiProjectTree;
 use crate::git::worktree::GitOps;
 use crate::utils::unix_now;
 
@@ -20,6 +23,16 @@ impl Service {
         self.db
             .workspace_many("ListProjects", &serde_json::json!({}))
             .map_err(AppError::from)
+    }
+
+    /// Sidebar project tree: projects with nested worktrees and session metadata.
+    pub async fn list_trees(&self) -> Result<Vec<ApiProjectTree>, AppError> {
+        let projects = self.list().await?;
+        let labels = derive_base_labels_parallel(&projects).await;
+        let display_names = compute_display_names(&projects, &labels);
+        ProjectTreeBuilder::new(self.db.clone())
+            .build_all(projects, &labels, &display_names)
+            .await
     }
 
     pub async fn get(&self, id: &str) -> Result<Project, AppError> {
@@ -188,9 +201,11 @@ mod tests {
             })
             .await
             .unwrap();
-        let wt_id =
-            crate::api::worktrees::Service::worktree_id_for_path("/tmp/with-sessions", &project.id);
-        crate::api::worktrees::Service::new(db.clone())
+        let wt_id = crate::features::worktrees::Service::worktree_id_for_path(
+            "/tmp/with-sessions",
+            &project.id,
+        );
+        crate::features::worktrees::Service::new(db.clone())
             .add_row(&project.id, &wt_id, "/tmp/with-sessions", false)
             .await
             .unwrap();
@@ -264,9 +279,11 @@ mod tests {
             })
             .await
             .unwrap();
-        let wt_id =
-            crate::api::worktrees::Service::worktree_id_for_path("/tmp/reactivate-me", &project.id);
-        crate::api::worktrees::Service::new(db.clone())
+        let wt_id = crate::features::worktrees::Service::worktree_id_for_path(
+            "/tmp/reactivate-me",
+            &project.id,
+        );
+        crate::features::worktrees::Service::new(db.clone())
             .add_row(&project.id, &wt_id, "/tmp/reactivate-me", false)
             .await
             .unwrap();

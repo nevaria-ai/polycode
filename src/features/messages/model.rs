@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::api::types::{format_iso8601, ApiMessage};
+use crate::features::types::{format_iso8601, ApiMessage};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {

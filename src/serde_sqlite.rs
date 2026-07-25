@@ -17,6 +17,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub fn bool_to_int<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,

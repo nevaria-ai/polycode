@@ -1,32 +1,13 @@
-use axum::extract::{Query, State};
-use axum::routing::get;
-use axum::{Json, Router};
-use serde::Deserialize;
-
-use super::AppState;
-use crate::api::types::DirectoryResponse;
 use crate::error::AppError;
+use crate::features::types::DirectoryResponse;
 
-#[derive(Deserialize)]
-struct DirQuery {
-    q: Option<String>,
-}
-
-pub fn router() -> Router<AppState> {
-    Router::new().route("/api/directories", get(list))
-}
-
-async fn list(
-    _state: State<AppState>,
-    Query(query): Query<DirQuery>,
-) -> Result<Json<DirectoryResponse>, AppError> {
-    let q = query.q.unwrap_or_default();
-
+/// List directory suggestions for a typed path query (`~` expanded).
+pub fn list_directories(q: &str) -> Result<DirectoryResponse, AppError> {
     if q.is_empty() {
-        return Ok(Json(DirectoryResponse {
+        return Ok(DirectoryResponse {
             suggestions: vec![],
             exists: false,
-        }));
+        });
     }
 
     let starts_with_tilde = q.starts_with('~');
@@ -36,7 +17,7 @@ async fn list(
     let expanded = if starts_with_tilde {
         format!("{}{}", home, &q[1..])
     } else {
-        q.clone()
+        q.to_string()
     };
 
     let ends_with_slash = expanded.ends_with('/');
@@ -117,8 +98,8 @@ async fn list(
         suggestions.insert(0, exact);
     }
 
-    Ok(Json(DirectoryResponse {
+    Ok(DirectoryResponse {
         suggestions,
         exists: path_exists,
-    }))
+    })
 }

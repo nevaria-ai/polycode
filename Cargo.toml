@@ -19,12 +19,7 @@ specta = "=2.0.0-rc.25"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["javascript", "typescript"] }
 thiserror = "2"
 
-# Web stack retained only until section 3 removes the last axum usage.
-axum = "0.8"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
-tower = "0.5"
-rust-embed = { version = "8", features = ["debug-embed"] }
-mime_guess = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -44,5 +39,4 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [dev-dependencies]
-axum-test = "16"
 tempfile = "3"

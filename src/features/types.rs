@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::features::sessions::{Session as DbSession, SessionMetadata};
+
 pub fn format_iso8601(epoch_secs: i64) -> String {
     chrono::DateTime::from_timestamp(epoch_secs, 0)
         .map(|dt| dt.to_rfc3339())
@@ -7,7 +9,7 @@ pub fn format_iso8601(epoch_secs: i64) -> String {
 }
 
 /// Slim session row for sidebar nesting under worktrees.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiSessionMetadata {
     pub id: String,
@@ -18,7 +20,7 @@ pub struct ApiSessionMetadata {
     pub last_active_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiWorktreeWithSessions {
     pub id: String,
@@ -29,7 +31,7 @@ pub struct ApiWorktreeWithSessions {
 }
 
 /// Project with nested worktrees and session metadata for the sidebar tree.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiProjectTree {
     pub id: String,
@@ -40,7 +42,7 @@ pub struct ApiProjectTree {
     pub worktrees: Vec<ApiWorktreeWithSessions>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiSession {
     pub id: String,
@@ -55,7 +57,7 @@ pub struct ApiSession {
     pub last_active_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiMessage {
     pub id: String,
@@ -68,7 +70,7 @@ pub struct ApiMessage {
     pub parts: Vec<ApiPart>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiPart {
     pub id: String,
@@ -81,7 +83,7 @@ pub struct ApiPart {
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiPinnedContext {
     pub id: String,
@@ -93,7 +95,7 @@ pub struct ApiPinnedContext {
     pub pinned_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiProviderRun {
     pub id: String,
@@ -104,13 +106,13 @@ pub struct ApiProviderRun {
     pub duration_ms: Option<i64>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateProjectRequest {
     pub path: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSessionRequest {
     pub worktree_id: String,
@@ -118,17 +120,17 @@ pub struct CreateSessionRequest {
     pub title: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTitleRequest {
     pub title: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ArchiveSessionRequest {}
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SubmitMessageRequest {
     pub content: String,
@@ -136,45 +138,45 @@ pub struct SubmitMessageRequest {
     pub slash_command: Option<SlashCommandInput>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct MentionInput {
     pub r#type: String,
     pub r#ref: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SlashCommandInput {
     pub command: String,
     pub argument: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateExpandedStateRequest {
     pub expanded_state: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateProjectResponse {
     pub id: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSessionResponse {
     pub session: ApiSession,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSessionResponse {
     pub session: ApiSession,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionViewResponse {
     pub session: ApiSession,
@@ -184,14 +186,12 @@ pub struct SessionViewResponse {
     pub provider_runs: Vec<ApiProviderRun>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DirectoryResponse {
     pub suggestions: Vec<String>,
     pub exists: bool,
 }
-
-use crate::api::sessions::{Session as DbSession, SessionMetadata};
 
 impl From<&SessionMetadata> for ApiSessionMetadata {
     fn from(s: &SessionMetadata) -> Self {

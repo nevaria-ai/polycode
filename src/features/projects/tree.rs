@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::api::projects::model::Project;
-use crate::api::sessions::{Service as SessionService, SessionMetadata};
-use crate::api::types::*;
-use crate::api::worktrees::{Service as WorktreeService, WorktreeRow};
 use crate::db::DbHandle;
 use crate::error::AppError;
+use crate::features::projects::model::Project;
+use crate::features::sessions::{Service as SessionService, SessionMetadata};
+use crate::features::types::*;
+use crate::features::worktrees::{Service as WorktreeService, WorktreeRow};
 use crate::git::worktree::{GitOps, WorktreeInfo};
 
 pub struct ProjectTreeBuilder {
@@ -118,7 +118,7 @@ fn list_git_worktrees(project_path: &str) -> Vec<WorktreeInfo> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::projects::model::Project;
+    use crate::features::projects::model::Project;
     use crate::test_support::memory_db;
 
     fn session(
