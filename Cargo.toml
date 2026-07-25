@@ -3,25 +3,42 @@ name = "esk-code"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "esk_code"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tauri"
+path = "src/bin/tauri.rs"
+
 [dependencies]
+# Tauri + typesafe IPC bindings
+tauri = { version = "2", features = [] }
+specta = "=2.0.0-rc.25"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["javascript", "typescript"] }
+thiserror = "2"
+
+# Web stack retained only until section 3 removes the last axum usage.
 axum = "0.8"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+tower = "0.5"
+rust-embed = { version = "8", features = ["debug-embed"] }
+mime_guess = "2"
+
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
 chrono = { version = "0.4", features = ["serde"] }
-tower = "0.5"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"
 dirs = "6"
 gix = { version = "0.81", features = ["worktree-mutation"] }
-rust-embed = { version = "8", features = ["debug-embed"] }
-mime_guess = "2"
 urlencoding = "2"
 ffi = { git = "ssh://git@github.com/codeignus/ffi.git", branch = "main" }
 
 [build-dependencies]
+tauri-build = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
