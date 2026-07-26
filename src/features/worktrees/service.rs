@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::db::DbHandle;
 use crate::error::AppError;
 use crate::features::projects::Service as ProjectService;
-use crate::features::worktrees::model::WorktreeRow;
+use crate::features::worktrees::model::{UpdateWorktreeExpandedStateArgs, WorktreeRow};
 use crate::git::worktree::{GitOps, WorktreeInfo};
 use crate::paths;
 use crate::utils::unix_now;
@@ -70,10 +70,10 @@ impl Service {
         self.db
             .workspace(
                 "UpdateWorktreeExpandedState",
-                &serde_json::json!({
-                    "id": id,
-                    "expanded_state": i64::from(expanded),
-                }),
+                &UpdateWorktreeExpandedStateArgs {
+                    id,
+                    expanded_state: expanded,
+                },
             )
             .map_err(AppError::from)?;
         Ok(())
@@ -174,14 +174,14 @@ impl Service {
         self.db
             .workspace_one(
                 "AddWorktree",
-                &serde_json::json!({
-                    "id": id,
-                    "project_id": project_id,
-                    "path": path,
-                    "is_linked_worktree": i64::from(is_linked_worktree),
-                    "expanded_state": 0,
-                    "created_at": now,
-                }),
+                &WorktreeRow {
+                    id: id.to_string(),
+                    project_id: project_id.to_string(),
+                    path: path.to_string(),
+                    is_linked_worktree,
+                    expanded_state: false,
+                    created_at: now,
+                },
             )
             .map_err(AppError::from)
     }

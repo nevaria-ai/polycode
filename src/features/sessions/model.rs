@@ -8,7 +8,11 @@ pub struct Session {
     pub title: Option<String>,
     pub status: String,
     pub version: i64,
-    pub has_summary: i64,
+    #[serde(
+        serialize_with = "crate::serde_sqlite::bool_to_int",
+        deserialize_with = "crate::serde_sqlite::bool_from_int"
+    )]
+    pub has_summary: bool,
     pub created_at: i64,
     pub updated_at: i64,
     pub last_active_at: i64,

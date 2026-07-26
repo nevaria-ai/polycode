@@ -221,7 +221,7 @@ impl From<DbSession> for SessionDto {
             title: s.title,
             status: s.status,
             version: s.version,
-            has_summary: s.has_summary != 0,
+            has_summary: s.has_summary,
             created_at: format_iso8601(s.created_at),
             updated_at: format_iso8601(s.updated_at),
             last_active_at: format_iso8601(s.last_active_at),

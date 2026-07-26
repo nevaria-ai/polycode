@@ -1,6 +1,10 @@
 use serde::{Deserialize, Deserializer, Serializer};
 
-/// SQLite / Go sqlc often stores booleans as 0/1 integers.
+/// SQLite / Go sqlc store booleans as `INTEGER` 0/1.
+///
+/// Use these helpers only for that wire shape (`serialize_with` /
+/// `deserialize_with` on DB row / op-arg fields). Do not use them for
+/// ordinary Rust bool↔int conversions unrelated to SQLite.
 pub fn bool_from_int<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: Deserializer<'de>,
@@ -17,7 +21,6 @@ where
     }
 }
 
-#[allow(dead_code)]
 pub fn bool_to_int<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
