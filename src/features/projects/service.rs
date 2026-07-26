@@ -5,7 +5,7 @@ use crate::error::AppError;
 use crate::features::projects::model::{CreateProject, Project};
 use crate::features::projects::tree::ProjectTreeBuilder;
 use crate::features::projects::{compute_display_names, derive_base_labels_parallel};
-use crate::features::types::ApiProjectTree;
+use crate::features::types::ProjectTree;
 use crate::git::worktree::GitOps;
 use crate::utils::unix_now;
 
@@ -26,7 +26,7 @@ impl Service {
     }
 
     /// Sidebar project tree: projects with nested worktrees and session metadata.
-    pub async fn list_trees(&self) -> Result<Vec<ApiProjectTree>, AppError> {
+    pub async fn list_trees(&self) -> Result<Vec<ProjectTree>, AppError> {
         let projects = self.list().await?;
         let labels = derive_base_labels_parallel(&projects).await;
         let display_names = compute_display_names(&projects, &labels);

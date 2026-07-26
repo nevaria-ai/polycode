@@ -3,7 +3,7 @@ use tauri::State;
 use crate::db::DbHandle;
 use crate::error::AppError;
 use crate::features::messages::{SendMessageRequest, Service};
-use crate::features::types::{ApiMessage, SubmitMessageRequest};
+use crate::features::types::{MessageDto, SubmitMessageRequest};
 
 #[tauri::command]
 #[specta::specta]
@@ -12,7 +12,7 @@ pub async fn send_message(
     _project_id: String,
     session_id: String,
     input: SubmitMessageRequest,
-) -> Result<ApiMessage, AppError> {
+) -> Result<MessageDto, AppError> {
     let service_req = SendMessageRequest {
         content: input.content,
         mentions: input
@@ -23,5 +23,5 @@ pub async fn send_message(
     let msg = Service::new(db.inner().clone())
         .send_message(&session_id, &service_req)
         .await?;
-    Ok(ApiMessage::from(msg))
+    Ok(MessageDto::from(msg))
 }

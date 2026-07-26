@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::features::types::{format_iso8601, ApiMessage};
+use crate::features::types::{format_iso8601, MessageDto};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
@@ -13,7 +13,7 @@ pub struct Message {
     pub created_at: i64,
 }
 
-impl From<Message> for ApiMessage {
+impl From<Message> for MessageDto {
     fn from(m: Message) -> Self {
         Self {
             id: m.id,

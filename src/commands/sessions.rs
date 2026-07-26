@@ -5,7 +5,7 @@ use crate::error::AppError;
 use crate::features::projects::Service as ProjectService;
 use crate::features::sessions::{CreateSession, Service};
 use crate::features::types::{
-    ApiSession, CreateSessionRequest, CreateSessionResponse, SessionViewResponse,
+    CreateSessionRequest, CreateSessionResponse, SessionDto, SessionViewResponse,
     UpdateSessionResponse, UpdateTitleRequest,
 };
 
@@ -29,7 +29,7 @@ pub async fn create_session(
         })
         .await?;
     Ok(CreateSessionResponse {
-        session: ApiSession::from(session),
+        session: SessionDto::from(session),
     })
 }
 
@@ -44,7 +44,7 @@ pub async fn get_session(
     // scope until session page work lands. Only the session row is populated.
     let session = Service::new(db.inner().clone()).get(&session_id).await?;
     Ok(SessionViewResponse {
-        session: ApiSession::from(session),
+        session: SessionDto::from(session),
         messages: vec![],
         pinned_context: vec![],
         has_summary: false,
@@ -64,7 +64,7 @@ pub async fn update_session_title(
         .update_title(&session_id, &input.title)
         .await?;
     Ok(UpdateSessionResponse {
-        session: ApiSession::from(session),
+        session: SessionDto::from(session),
     })
 }
 
@@ -79,7 +79,7 @@ pub async fn archive_session(
         .archive(&session_id)
         .await?;
     Ok(UpdateSessionResponse {
-        session: ApiSession::from(session),
+        session: SessionDto::from(session),
     })
 }
 

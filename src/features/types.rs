@@ -11,7 +11,7 @@ pub fn format_iso8601(epoch_secs: i64) -> String {
 /// Slim session row for sidebar nesting under worktrees.
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiSessionMetadata {
+pub struct SessionSummary {
     pub id: String,
     pub title: Option<String>,
     pub status: String,
@@ -22,29 +22,29 @@ pub struct ApiSessionMetadata {
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiWorktreeWithSessions {
+pub struct WorktreeWithSessions {
     pub id: String,
     pub branch: Option<String>,
     pub is_linked_worktree: bool,
     pub expanded_state: bool,
-    pub sessions: Vec<ApiSessionMetadata>,
+    pub sessions: Vec<SessionSummary>,
 }
 
 /// Project with nested worktrees and session metadata for the sidebar tree.
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiProjectTree {
+pub struct ProjectTree {
     pub id: String,
     pub path: String,
     pub created_at: String,
     pub display_name: String,
     pub owner: Option<String>,
-    pub worktrees: Vec<ApiWorktreeWithSessions>,
+    pub worktrees: Vec<WorktreeWithSessions>,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiSession {
+pub struct SessionDto {
     pub id: String,
     pub project_id: String,
     pub worktree_id: String,
@@ -60,7 +60,7 @@ pub struct ApiSession {
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiMessage {
+pub struct MessageDto {
     pub id: String,
     pub session_id: String,
     pub role: String,
@@ -69,12 +69,12 @@ pub struct ApiMessage {
     pub content: String,
     pub provider_run_id: Option<String>,
     pub created_at: String,
-    pub parts: Vec<ApiPart>,
+    pub parts: Vec<PartDto>,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiPart {
+pub struct PartDto {
     pub id: String,
     pub message_id: String,
     pub r#type: String,
@@ -88,7 +88,7 @@ pub struct ApiPart {
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiPinnedContext {
+pub struct PinnedContext {
     pub id: String,
     pub r#type: String,
     pub source: String,
@@ -100,7 +100,7 @@ pub struct ApiPinnedContext {
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiProviderRun {
+pub struct ProviderRun {
     pub id: String,
     pub adapter_type: String,
     pub status: String,
@@ -183,23 +183,23 @@ pub struct CreateProjectResponse {
 #[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSessionResponse {
-    pub session: ApiSession,
+    pub session: SessionDto,
 }
 
 #[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSessionResponse {
-    pub session: ApiSession,
+    pub session: SessionDto,
 }
 
 #[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionViewResponse {
-    pub session: ApiSession,
-    pub messages: Vec<ApiMessage>,
-    pub pinned_context: Vec<ApiPinnedContext>,
+    pub session: SessionDto,
+    pub messages: Vec<MessageDto>,
+    pub pinned_context: Vec<PinnedContext>,
     pub has_summary: bool,
-    pub provider_runs: Vec<ApiProviderRun>,
+    pub provider_runs: Vec<ProviderRun>,
 }
 
 #[derive(Debug, Serialize, specta::Type)]
@@ -209,7 +209,7 @@ pub struct DirectoryResponse {
     pub exists: bool,
 }
 
-impl From<&SessionMetadata> for ApiSessionMetadata {
+impl From<&SessionMetadata> for SessionSummary {
     fn from(s: &SessionMetadata) -> Self {
         Self {
             id: s.id.clone(),
@@ -222,7 +222,7 @@ impl From<&SessionMetadata> for ApiSessionMetadata {
     }
 }
 
-impl From<DbSession> for ApiSession {
+impl From<DbSession> for SessionDto {
     fn from(s: DbSession) -> Self {
         Self {
             id: s.id,

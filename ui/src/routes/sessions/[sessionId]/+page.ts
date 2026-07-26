@@ -1,10 +1,10 @@
-import { commands, unwrapCommand, type ApiSession, type SessionViewResponse } from '$lib/command';
+import { commands, unwrapCommand, type SessionDto, type SessionViewResponse } from '$lib/command';
 import type { PageLoad } from './$types';
 
 export const ssr = false;
 
 export type SessionPageData = Omit<SessionViewResponse, 'session'> & {
-	session: ApiSession | null;
+	session: SessionDto | null;
 };
 
 export const load: PageLoad = async ({ params, url, depends }): Promise<SessionPageData> => {

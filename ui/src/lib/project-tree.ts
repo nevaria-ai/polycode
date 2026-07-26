@@ -1,6 +1,6 @@
-import type { ApiWorktreeWithSessions } from '$lib/command';
+import type { WorktreeWithSessions } from '$lib/command';
 
-export type ExpandedWorktree = ApiWorktreeWithSessions & {
+export type ExpandedWorktree = WorktreeWithSessions & {
 	isExpanded: boolean;
 };
 
@@ -14,21 +14,21 @@ export type SidebarProject = {
 };
 
 export type SidebarProjectInput = Omit<SidebarProject, 'isExpanded' | 'worktrees'> & {
-	worktrees: ApiWorktreeWithSessions[];
+	worktrees: WorktreeWithSessions[];
 };
 
-export function unlinkedWorktree<T extends ApiWorktreeWithSessions>(project: { worktrees: T[] }) {
+export function unlinkedWorktree<T extends WorktreeWithSessions>(project: { worktrees: T[] }) {
 	return project.worktrees.find((worktree) => !worktree.isLinkedWorktree) ?? null;
 }
 
-export function linkedWorktrees<T extends ApiWorktreeWithSessions>(project: { worktrees: T[] }) {
+export function linkedWorktrees<T extends WorktreeWithSessions>(project: { worktrees: T[] }) {
 	return project.worktrees.filter((worktree) => worktree.isLinkedWorktree);
 }
 
 export function sessionsForWorktree(
-	project: { worktrees: ApiWorktreeWithSessions[] },
+	project: { worktrees: WorktreeWithSessions[] },
 	worktreeId: string | null
-): ApiWorktreeWithSessions['sessions'] {
+): WorktreeWithSessions['sessions'] {
 	if (!worktreeId) return [];
 	return project.worktrees.find((worktree) => worktree.id === worktreeId)?.sessions ?? [];
 }
