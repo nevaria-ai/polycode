@@ -132,10 +132,6 @@ pub struct UpdateTitleRequest {
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ArchiveSessionRequest {}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct SubmitMessageRequest {
     pub content: String,
     pub mentions: Option<Vec<MentionInput>>,
@@ -154,12 +150,6 @@ pub struct MentionInput {
 pub struct SlashCommandInput {
     pub command: String,
     pub argument: Option<String>,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateExpandedStateRequest {
-    pub expanded_state: bool,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]
