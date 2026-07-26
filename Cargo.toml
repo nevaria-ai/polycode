@@ -2,29 +2,43 @@
 name = "esk-code"
 version = "0.1.0"
 edition = "2021"
+default-run = "desktop_app"
+
+[lib]
+name = "esk_code"
+path = "src/lib.rs"
+
+[[bin]]
+name = "desktop_app"
+path = "src/bin/desktop_app.rs"
 
 [dependencies]
-axum = "0.8"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+# Tauri + typesafe IPC bindings
+tauri = { version = "2" }
+specta = "=2.0.0-rc.25"
+specta-typescript = "0.0.12"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["javascript", "typescript"] }
+thiserror = "2"
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
 chrono = { version = "0.4", features = ["serde"] }
-tower = "0.5"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"
 dirs = "6"
 gix = { version = "0.81", features = ["worktree-mutation"] }
-rust-embed = { version = "8", features = ["debug-embed"] }
-mime_guess = "2"
-urlencoding = "2"
 ffi = { git = "ssh://git@github.com/codeignus/ffi.git", branch = "main" }
 
 [build-dependencies]
+tauri-build = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [dev-dependencies]
-axum-test = "16"
+# `test` feature only for command smoke tests (`tauri::test::mock_app`); not in release.
+tauri = { version = "2", features = ["test"] }
 tempfile = "3"

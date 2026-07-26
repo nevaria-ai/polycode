@@ -2,7 +2,7 @@
 	import type { PageData } from './$types';
 	import { page } from '$app/state';
 	import { replaceState, invalidate } from '$app/navigation';
-	import { sendMessage, updateSessionTitle } from '$lib/services';
+	import { commands, unwrapCommand } from '$lib/command';
 	import { Pin, FileText, Bot, User, Pencil } from '@lucide/svelte';
 	import PromptPanel from '$components/PromptPanel.svelte';
 	import { tick } from 'svelte';
@@ -47,9 +47,13 @@
 		submitError = null;
 
 		try {
-			await sendMessage(session.projectId, session.id, {
-				content
-			});
+			await commands
+				.sendMessage(session.projectId, session.id, {
+					content,
+					mentions: null,
+					slashCommand: null
+				})
+				.then(unwrapCommand);
 			messageText = '';
 			await invalidate(`session:${session.id}`);
 		} catch (err: unknown) {
@@ -81,9 +85,11 @@
 		}
 
 		try {
-			await updateSessionTitle(session.projectId, session.id, {
-				title: editTitle.trim()
-			});
+			await commands
+				.updateSessionTitle(session.projectId, session.id, {
+					title: editTitle.trim()
+				})
+				.then(unwrapCommand);
 			isEditingTitle = false;
 			await invalidate(`session:${session.id}`);
 			await invalidate('projects:list');

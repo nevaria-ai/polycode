@@ -1,55 +1,21 @@
-//! Shared helpers for integration tests (`tests/*.rs`).
-//!
-//! Integration tests use only the crate's public API (`api::routes`, `init_memory`).
+//! Shared helpers for feature-module integration tests (`tests/*.rs`).
+#![allow(dead_code)]
 
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
-use axum::Router;
-use esk_code::api::AppState;
 use esk_code::db::DbHandle;
-use serde_json::{json, Value};
+use esk_code::features::projects::{CreateProject, Service as ProjectService};
+use esk_code::features::sessions::{CreateSession, Service as SessionService};
 use std::process::Command;
-use tower::ServiceExt;
 use uuid::Uuid;
 
 pub fn memory_db() -> DbHandle {
     esk_code::db::init_memory().expect("open test database")
 }
 
-pub fn app() -> Router {
-    app_with(memory_db())
-}
-
-pub fn app_with(db: DbHandle) -> Router {
-    esk_code::api::routes().with_state(AppState { db })
-}
-
-pub fn json_request(method: &str, uri: &str, body: Option<Value>) -> Request<Body> {
-    let mut builder = Request::builder().method(method).uri(uri);
-    let body = match body {
-        Some(v) => {
-            builder = builder.header("content-type", "application/json");
-            Body::from(serde_json::to_vec(&v).unwrap())
-        }
-        None => Body::empty(),
-    };
-    builder.body(body).unwrap()
-}
-
-pub async fn json_body(resp: axum::http::Response<Body>) -> Value {
-    let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    serde_json::from_slice(&bytes).unwrap()
-}
-
 pub fn v5_id_for_path(path: &str) -> String {
     Uuid::new_v5(&Uuid::NAMESPACE_URL, path.as_bytes()).to_string()
 }
 
-pub async fn setup_git_project(app: &Router) -> (tempfile::TempDir, String, String) {
-    let dir = tempfile::TempDir::new().unwrap();
-    let path = dir.path();
+pub fn init_git_repo(path: &std::path::Path) {
     Command::new("git")
         .args(["init", "-b", "main"])
         .current_dir(path)
@@ -79,59 +45,54 @@ pub async fn setup_git_project(app: &Router) -> (tempfile::TempDir, String, Stri
         .current_dir(path)
         .output()
         .expect("git commit");
-
-    let project_path = path.to_string_lossy().to_string();
-    let project_id = seed_project_with(app, &project_path).await;
-    (dir, project_id, project_path)
 }
 
-pub async fn seed_project(app: &Router) -> String {
-    seed_project_with(app, "/tmp/test-project").await
-}
-
-pub async fn seed_project_with(app: &Router, path: &str) -> String {
-    let resp = app
-        .clone()
-        .oneshot(json_request(
-            "POST",
-            "/api/projects",
-            Some(json!({"path": path})),
-        ))
+pub async fn setup_git_project(db: DbHandle) -> (tempfile::TempDir, String, String) {
+    let dir = tempfile::TempDir::new().unwrap();
+    init_git_repo(dir.path());
+    let project_path = dir.path().to_string_lossy().to_string();
+    let project = ProjectService::new(db)
+        .create(CreateProject {
+            path: project_path.clone(),
+        })
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
-    json_body(resp).await["id"].as_str().unwrap().to_string()
+        .expect("create project");
+    (dir, project.id, project_path)
 }
 
-pub async fn seed_session(
-    app: &Router,
+pub async fn create_session(
+    db: DbHandle,
     project_id: &str,
+    project_path: &str,
     worktree_id: &str,
     first_session_under_worktree: bool,
-) -> String {
-    let uri = format!("/api/projects/{project_id}/sessions");
-    let resp = app
-        .clone()
-        .oneshot(json_request(
-            "POST",
-            &uri,
-            Some(json!({
-                "worktreeId": worktree_id,
-                "firstSessionUnderWorktree": first_session_under_worktree,
-            })),
-        ))
+) -> esk_code::features::sessions::Session {
+    SessionService::new(db)
+        .create(CreateSession {
+            project_id: project_id.to_string(),
+            project_path: project_path.to_string(),
+            worktree_id: worktree_id.to_string(),
+            first_session_under_worktree,
+            title: None,
+        })
         .await
-        .unwrap();
-    assert_eq!(resp.status(), StatusCode::CREATED);
-    json_body(resp).await["session"]["id"]
-        .as_str()
-        .unwrap()
-        .to_string()
+        .expect("create session")
 }
 
-pub async fn seed_project_and_session(app: &Router) -> (tempfile::TempDir, String, String) {
-    let (dir, project_id, project_path) = setup_git_project(app).await;
-    let worktree_id = v5_id_for_path(&project_path);
-    let session_id = seed_session(app, &project_id, &worktree_id, true).await;
-    (dir, project_id, session_id)
+pub fn git_worktree_add(repo: &str, path: &std::path::Path, branch: &str) {
+    let status = Command::new("git")
+        .args(["worktree", "add", path.to_str().unwrap(), "-b", branch])
+        .current_dir(repo)
+        .status()
+        .expect("git worktree add");
+    assert!(status.success(), "git worktree add failed");
+}
+
+pub fn git_worktree_remove(repo: &str, path: &str) {
+    let status = Command::new("git")
+        .args(["worktree", "remove", path, "--force"])
+        .current_dir(repo)
+        .status()
+        .expect("git worktree remove");
+    assert!(status.success(), "git worktree remove failed");
 }

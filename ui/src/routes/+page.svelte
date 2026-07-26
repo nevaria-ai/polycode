@@ -7,7 +7,7 @@
 	import PromptPanel from '$components/PromptPanel.svelte';
 	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
-	import { createSession } from '$lib/services';
+	import { commands, unwrapCommand } from '$lib/command';
 	import { unlinkedWorktree } from '$lib/project-tree';
 	import type { PageData } from './$types';
 
@@ -69,10 +69,13 @@
 
 		let createResult;
 		try {
-			createResult = await createSession(data.selectedProjectId, {
-				worktreeId: data.selectedWorktreeId,
-				firstSessionUnderWorktree: data.firstSessionUnderWorktree
-			});
+			createResult = await commands
+				.createSession(data.selectedProjectId, {
+					worktreeId: data.selectedWorktreeId,
+					firstSessionUnderWorktree: data.firstSessionUnderWorktree,
+					title: null
+				})
+				.then(unwrapCommand);
 		} catch (err: unknown) {
 			submitError = err instanceof Error ? err.message : 'Failed to create session';
 			submitting = false;

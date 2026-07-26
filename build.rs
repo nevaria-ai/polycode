@@ -1,4 +1,5 @@
-//! Builds the Go c-archive in OUT_DIR and links it into the Rust crate.
+//! Build script: runs `tauri-build`, then builds the Go c-archive in OUT_DIR and
+//! links it into the Rust crate.
 
 use std::env;
 use std::path::PathBuf;
@@ -15,6 +16,13 @@ struct Constants {
 }
 
 fn main() {
+    tauri_build::build();
+
+    build_cgo();
+}
+
+/// Builds the Go c-archive in OUT_DIR and links it into the Rust crate.
+fn build_cgo() {
     let Constants { env_prefix } =
         serde_json::from_str(include_str!("constants.json")).expect("constants.json");
     let app_id = env_prefix.to_ascii_lowercase();

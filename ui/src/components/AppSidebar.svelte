@@ -33,7 +33,7 @@
 	import SidebarSessionList, {
 		type SidebarSessionEntry
 	} from '$components/SidebarSessionList.svelte';
-	import { closeProject, updateWorktreeExpandedState } from '$lib/services';
+	import { commands, unwrapCommand } from '$lib/command';
 	import { goto, invalidate } from '$app/navigation';
 
 	const NOTREAL_SESSION: SidebarSessionEntry = {
@@ -91,7 +91,7 @@
 		worktree.isExpanded = next;
 		actionError = null;
 		try {
-			await updateWorktreeExpandedState(projectId, worktree.id, next);
+			await commands.updateWorktreeExpandedState(projectId, worktree.id, next).then(unwrapCommand);
 		} catch (e) {
 			project.isExpanded = !next;
 			worktree.isExpanded = !next;
@@ -112,7 +112,7 @@
 		}
 		actionError = null;
 		try {
-			await updateWorktreeExpandedState(projectId, worktreeId, next);
+			await commands.updateWorktreeExpandedState(projectId, worktreeId, next).then(unwrapCommand);
 		} catch (e) {
 			worktree.isExpanded = !next;
 			if (unlinked?.id === worktreeId && project) {
@@ -125,7 +125,7 @@
 	async function removeProject(projectId: string) {
 		actionError = null;
 		try {
-			await closeProject(projectId);
+			await commands.closeProject(projectId).then(unwrapCommand);
 			await invalidate('projects:list');
 		} catch (e) {
 			actionError = e instanceof Error ? e.message : 'Failed to close project';

@@ -2,23 +2,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 
-const { createProjectMock, invalidateMock, gotoMock } = vi.hoisted(() => ({
-	createProjectMock: vi.fn(async () => ({ id: 'test-project-id' })),
+const { createProjectMock, listDirectoriesMock, invalidateMock, gotoMock } = vi.hoisted(() => ({
+	createProjectMock: vi.fn(async () => ({
+		status: 'ok' as const,
+		data: { id: 'test-project-id' }
+	})),
+	listDirectoriesMock: vi.fn(),
 	invalidateMock: vi.fn(async () => {}),
 	gotoMock: vi.fn(async () => {})
 }));
 
-// Mock $lib/services but pass getDirectories through to the real impl so the
-// existing suggestion-flow tests can keep driving it via the globalThis.fetch
-// stub in beforeEach. createProject is mocked so submit-behavior tests can
-// assert against it directly.
-vi.mock('$lib/services', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('$lib/services')>();
-	return {
-		...actual,
-		createProject: createProjectMock
-	};
-});
+vi.mock('$lib/bindings', () => ({
+	commands: {
+		createProject: createProjectMock,
+		listDirectories: listDirectoriesMock
+	}
+}));
 
 vi.mock('$app/navigation', () => ({
 	invalidate: invalidateMock,
@@ -40,19 +39,11 @@ const manySuggestions = Array.from(
 
 let scrollIntoViewMock: ReturnType<typeof vi.fn>;
 
-function createFetchResponse(suggestions: string[], exists = false) {
-	return Promise.resolve(
-		new Response(
-			JSON.stringify({
-				suggestions,
-				exists
-			}),
-			{
-				status: 200,
-				headers: { 'Content-Type': 'application/json' }
-			}
-		)
-	);
+function okDirectories(suggestions: string[], exists = false) {
+	return Promise.resolve({
+		status: 'ok' as const,
+		data: { suggestions, exists }
+	});
 }
 
 async function pressInputKey(key: string) {
@@ -71,7 +62,10 @@ describe('ProjectSelectorDialog', () => {
 		// the default resolved value. Without this, one-shot handlers can leak
 		// across tests when the file runs alongside others in the same suite.
 		createProjectMock.mockReset();
-		createProjectMock.mockResolvedValue({ id: 'test-project-id' });
+		createProjectMock.mockResolvedValue({
+			status: 'ok' as const,
+			data: { id: 'test-project-id' }
+		});
 		invalidateMock.mockReset();
 		invalidateMock.mockResolvedValue();
 		gotoMock.mockReset();
@@ -80,40 +74,40 @@ describe('ProjectSelectorDialog', () => {
 		HTMLElement.prototype.scrollIntoView =
 			scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
 
-		globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
-			const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-			const query = new URL(url, 'http://localhost').searchParams.get('q') ?? '';
+		listDirectoriesMock.mockReset();
+		listDirectoriesMock.mockImplementation(async (query: string | null) => {
+			const q = query ?? '';
 
-			if (query === '/work') {
-				return createFetchResponse(['/workspace', '/worktree']);
+			if (q === '/work') {
+				return okDirectories(['/workspace', '/worktree']);
 			}
 
-			if (query === '/workspace') {
-				return createFetchResponse(['/workspace'], true);
+			if (q === '/workspace') {
+				return okDirectories(['/workspace'], true);
 			}
 
-			if (query === '/workspace/') {
-				return createFetchResponse(['/workspace/apps', '/workspace/docs'], true);
+			if (q === '/workspace/') {
+				return okDirectories(['/workspace/apps', '/workspace/docs'], true);
 			}
 
-			if (query === '/workspac') {
-				return createFetchResponse(['/workspace']);
+			if (q === '/workspac') {
+				return okDirectories(['/workspace']);
 			}
 
-			if (query === '/does-not-exist') {
-				return createFetchResponse([]);
+			if (q === '/does-not-exist') {
+				return okDirectories([]);
 			}
 
-			if (query === '/server-error') {
-				return Promise.resolve(new Response(null, { status: 500 }));
+			if (q === '/server-error') {
+				return Promise.reject(new Error('server error'));
 			}
 
-			if (query === '/many/') {
-				return createFetchResponse(manySuggestions, true);
+			if (q === '/many/') {
+				return okDirectories(manySuggestions, true);
 			}
 
-			return createFetchResponse([]);
-		}) as unknown as typeof fetch;
+			return okDirectories([]);
+		});
 	});
 
 	it('keeps Open disabled until the typed path exists on disk', async () => {
@@ -262,7 +256,7 @@ describe('ProjectSelectorDialog', () => {
 		form?.requestSubmit();
 
 		await expect.poll(() => createProjectMock.mock.calls.length).toBe(1);
-		expect(createProjectMock).toHaveBeenCalledWith('/workspace');
+		expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
 		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
 		expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
 		// invalidate must run before goto so the layout's projectTree refresh
@@ -301,14 +295,17 @@ describe('ProjectSelectorDialog', () => {
 		await page.getByRole('button', { name: 'Open' }).click();
 
 		await expect.poll(() => createProjectMock.mock.calls.length).toBe(1);
-		expect(createProjectMock).toHaveBeenCalledWith('/workspace');
+		expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
 	});
 
 	it('navigates to a new session for the returned project id on submit (covers create-new and reuse)', async () => {
 		// The backend returns the existing project when the path is already added;
 		// since the response shape is identical to a fresh create, the frontend
 		// treats both cases the same way: navigate to /?project=<id>.
-		createProjectMock.mockResolvedValueOnce({ id: 'reused-existing-id' });
+		createProjectMock.mockResolvedValueOnce({
+			status: 'ok' as const,
+			data: { id: 'reused-existing-id' }
+		});
 
 		render(ProjectSelectorDialog, { open: true });
 
@@ -350,7 +347,8 @@ describe('ProjectSelectorDialog', () => {
 		// Project ids are UUIDs so this is mostly belt-and-suspenders, but the
 		// dialog must not blindly concatenate the id into the URL.
 		createProjectMock.mockResolvedValueOnce({
-			id: 'id with spaces & slashes'
+			status: 'ok' as const,
+			data: { id: 'id with spaces & slashes' }
 		});
 
 		render(ProjectSelectorDialog, { open: true });

@@ -1,4 +1,4 @@
-import type { WorktreeWithSessions } from '$lib/types/api';
+import type { WorktreeWithSessions } from '$lib/command';
 
 export type ExpandedWorktree = WorktreeWithSessions & {
 	isExpanded: boolean;

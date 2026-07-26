@@ -1,15 +1,18 @@
-import { getSession } from '$lib/services';
+import { commands, unwrapCommand, type SessionDto, type SessionViewResponse } from '$lib/command';
 import type { PageLoad } from './$types';
-import type { SessionViewData } from '$lib/types/api';
 
 export const ssr = false;
 
-export const load: PageLoad = async ({ params, url, depends }): Promise<SessionViewData> => {
+export type SessionPageData = Omit<SessionViewResponse, 'session'> & {
+	session: SessionDto | null;
+};
+
+export const load: PageLoad = async ({ params, url, depends }): Promise<SessionPageData> => {
 	depends(`session:${params.sessionId}`);
 	const projectId = url.searchParams.get('project') ?? '';
 
 	try {
-		return await getSession(projectId, params.sessionId);
+		return await commands.getSession(projectId, params.sessionId).then(unwrapCommand);
 	} catch {
 		return {
 			session: null,

@@ -39,9 +39,14 @@ vi.mock('$app/navigation', () => ({
 	invalidate: invalidateMock
 }));
 
-vi.mock('$lib/services', () => ({
-	sendMessage: sendMessageMock,
-	updateSessionTitle: vi.fn()
+vi.mock('$lib/bindings', () => ({
+	commands: {
+		sendMessage: sendMessageMock,
+		updateSessionTitle: vi.fn(async () => ({
+			status: 'ok' as const,
+			data: { session: null }
+		}))
+	}
 }));
 
 const baseData = {
@@ -72,7 +77,19 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 		replaceStateMock.mockClear();
 		sendMessageMock.mockClear();
 		invalidateMock.mockClear();
-		sendMessageMock.mockResolvedValue({ messageId: 'msg-1', artifacts: [] });
+		sendMessageMock.mockResolvedValue({
+			status: 'ok' as const,
+			data: {
+				id: 'msg-1',
+				sessionId: 'session-12345678',
+				role: 'user',
+				position: 0,
+				content: 'hello',
+				providerRunId: null,
+				createdAt: '2026-04-10T00:00:00.000Z',
+				parts: []
+			}
+		});
 	});
 
 	it('renders the current session title inside the page content', async () => {
@@ -108,7 +125,9 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 
 		expect(sendMessageMock).toHaveBeenCalledTimes(1);
 		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
-			content: 'Hello world'
+			content: 'Hello world',
+			mentions: null,
+			slashCommand: null
 		});
 		expect(replaceStateMock).toHaveBeenCalled();
 		const replacedState = replaceStateMock.mock.calls[0][1];
@@ -142,7 +161,19 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 
 	it('submits the init prompt and invalidates the session load key', async () => {
 		setInitSessionFields({ prompt: 'Build a login form' });
-		sendMessageMock.mockResolvedValue({ messageId: 'msg-1', artifacts: [] });
+		sendMessageMock.mockResolvedValue({
+			status: 'ok' as const,
+			data: {
+				id: 'msg-1',
+				sessionId: 'session-12345678',
+				role: 'user',
+				position: 0,
+				content: 'Build a login form',
+				providerRunId: null,
+				createdAt: '2026-04-10T00:00:00.000Z',
+				parts: []
+			}
+		});
 
 		render(SessionPage, { data: baseData });
 
@@ -150,7 +181,9 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 		await expect.poll(() => invalidateMock.mock.calls.length).toBeGreaterThan(0);
 
 		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
-			content: 'Build a login form'
+			content: 'Build a login form',
+			mentions: null,
+			slashCommand: null
 		});
 		expect(invalidateMock).toHaveBeenCalledWith('session:session-12345678');
 	});

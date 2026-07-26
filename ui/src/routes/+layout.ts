@@ -1,4 +1,4 @@
-import { getProjects } from '$lib/services';
+import { commands, unwrapCommand } from '$lib/command';
 import { getInitialSidebarStateFromCookieString } from '$components/ui/sidebar';
 import type { LayoutLoad } from './$types';
 import type { SidebarProjectInput } from '$lib/project-tree';
@@ -7,7 +7,10 @@ export const ssr = false;
 
 export const load: LayoutLoad = async ({ depends }) => {
 	depends('projects:list');
-	const projects = await getProjects().catch(() => []);
+	const projects = await commands
+		.listProjects()
+		.then(unwrapCommand)
+		.catch(() => []);
 
 	const projectTree: SidebarProjectInput[] = projects.map((project) => ({
 		path: project.path,

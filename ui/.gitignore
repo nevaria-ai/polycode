@@ -1,9 +1,6 @@
 node_modules
 
 .output
-.vercel
-.netlify
-.wrangler
 .svelte-kit
 build
 
@@ -12,8 +9,9 @@ Thumbs.db
 
 .env
 .env.*
-!.env.example
-!.env.test
 
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# tauri-specta: regenerated on debug desktop_app run
+src/lib/bindings.ts
