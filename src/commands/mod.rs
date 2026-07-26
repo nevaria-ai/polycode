@@ -14,8 +14,8 @@ pub use worktrees::*;
 
 use tauri_specta::{collect_commands, Builder};
 
-/// Shared specta command registration for the desktop bin and bindings export test.
-/// Does not start the Tauri app — window/db wiring stays in `desktop_app`.
+/// Shared specta command registration for the Tauri host and bindings export test.
+/// Does not start the app — host bootstrap lives in [`crate::run`].
 pub fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
         list_projects,
