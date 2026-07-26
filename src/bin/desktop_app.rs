@@ -12,30 +12,15 @@
 
 #[cfg(debug_assertions)]
 use specta_typescript::Typescript;
-use tauri_specta::{collect_commands, Builder};
 
 fn main() {
     tracing_subscriber::fmt::init();
 
     let db = esk_code::db::init_db().expect("db");
 
-    let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
-        esk_code::commands::list_projects,
-        esk_code::commands::create_project,
-        esk_code::commands::close_project,
-        esk_code::commands::create_session,
-        esk_code::commands::get_session,
-        esk_code::commands::update_session_title,
-        esk_code::commands::archive_session,
-        esk_code::commands::delete_session,
-        esk_code::commands::create_worktree,
-        esk_code::commands::delete_worktree,
-        esk_code::commands::rename_worktree_branch,
-        esk_code::commands::update_worktree_expanded_state,
-        esk_code::commands::send_message,
-        esk_code::commands::list_directories,
-    ]);
+    let builder = esk_code::commands::specta_builder();
 
+    // Idiomatic tauri-specta: export bindings on every debug launch (e.g. `just dev`).
     #[cfg(debug_assertions)]
     builder
         .export(Typescript::default(), "ui/src/lib/bindings.ts")
