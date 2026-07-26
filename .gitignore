@@ -10,3 +10,6 @@ Thumbs.db
 
 # Tauri: generated schemas (from tauri-build)
 /gen
+
+# sqlc: regenerated via `just bindings`
+/cgo/internal/db/
