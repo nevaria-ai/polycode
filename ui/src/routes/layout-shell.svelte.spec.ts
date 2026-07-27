@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { render, waitFor } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import type { Snippet } from 'svelte';
 import RootLayout from './+layout.svelte';
 
@@ -15,20 +15,27 @@ function renderLayout(props: { initialSidebarOpen: boolean } = { initialSidebarO
 describe('root layout sidebar shell', () => {
 	beforeEach(() => {
 		localStorage.clear();
-		cleanup();
 	});
 
 	it('keeps the resizable shell mounted after closing the sidebar', async () => {
+		const user = userEvent.setup();
 		renderLayout({ initialSidebarOpen: true });
 
 		const paneGroup = document.querySelector('[data-slot="resizable-pane-group"]');
 		expect(paneGroup).not.toBeNull();
 
-		await page.getByRole('button', { name: 'Hide sidebar' }).nth(1).click();
+		const hideBtn = document.querySelector(
+			'[data-sidebar="header"] [aria-label="Hide sidebar"]'
+		) as HTMLElement | null;
+		expect(hideBtn).not.toBeNull();
+		await user.click(hideBtn!);
 
-		await expect
-			.poll(() => document.querySelector('[data-slot="button"][aria-label="Show sidebar"]'))
-			.not.toBeNull();
+		await waitFor(
+			() => {
+				expect(document.querySelector('[aria-label="Show sidebar"]')).not.toBeNull();
+			},
+			{ timeout: 2000 }
+		);
 		expect(document.querySelector('[data-slot="resizable-pane-group"]')).toBe(paneGroup);
 	});
 
@@ -60,14 +67,24 @@ describe('root layout sidebar shell', () => {
 	});
 
 	it('keeps the content header mounted across open and closed states', async () => {
+		const user = userEvent.setup();
 		renderLayout({ initialSidebarOpen: true });
 
 		const headerBefore = document.querySelector('[data-testid="content-header"]');
 		expect(headerBefore).not.toBeNull();
 
-		await page.getByRole('button', { name: 'Hide sidebar' }).nth(1).click();
+		const hideBtn = document.querySelector(
+			'[data-sidebar="header"] [aria-label="Hide sidebar"]'
+		) as HTMLElement | null;
+		expect(hideBtn).not.toBeNull();
+		await user.click(hideBtn!);
 
-		await expect.poll(() => document.querySelector('[aria-label="Show sidebar"]')).not.toBeNull();
+		await waitFor(
+			() => {
+				expect(document.querySelector('[aria-label="Show sidebar"]')).not.toBeNull();
+			},
+			{ timeout: 2000 }
+		);
 
 		const headerAfter = document.querySelector('[data-testid="content-header"]');
 		expect(headerAfter).not.toBeNull();

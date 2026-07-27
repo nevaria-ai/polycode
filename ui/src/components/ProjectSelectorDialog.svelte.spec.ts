@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { render, screen, waitFor } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 
 const { createProjectMock, listDirectoriesMock, invalidateMock, gotoMock } = vi.hoisted(() => ({
 	createProjectMock: vi.fn(async () => ({
@@ -32,6 +32,8 @@ vi.mock('$app/paths', () => ({
 
 import ProjectSelectorDialog from './ProjectSelectorDialog.svelte';
 
+const PLACEHOLDER = 'e.g. / or ~/Projects/ - add / to list contents';
+
 const manySuggestions = Array.from(
 	{ length: 20 },
 	(_, index) => `/many/project-${index.toString().padStart(2, '0')}`
@@ -54,9 +56,14 @@ async function pressInputKey(key: string) {
 	await new Promise((resolve) => requestAnimationFrame(resolve));
 }
 
+async function fillPath(user: ReturnType<typeof userEvent.setup>, value: string) {
+	const input = screen.getByPlaceholderText(PLACEHOLDER);
+	await user.clear(input);
+	await user.type(input, value);
+}
+
 describe('ProjectSelectorDialog', () => {
 	beforeEach(() => {
-		cleanup();
 		// mockReset (not just mockClear) so any lingering mockResolvedValueOnce /
 		// mockRejectedValueOnce from a prior test are dropped before re-establishing
 		// the default resolved value. Without this, one-shot handlers can leak
@@ -111,104 +118,121 @@ describe('ProjectSelectorDialog', () => {
 	});
 
 	it('keeps Open disabled until the typed path exists on disk', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		const openButton = page.getByRole('button', { name: 'Open' });
+		const openButton = screen.getByRole('button', { name: 'Open' });
 
-		await input.fill('/does-not-exist');
-		await expect.element(openButton).toBeDisabled();
+		await fillPath(user, '/does-not-exist');
+		await waitFor(() => {
+			expect(openButton).toBeDisabled();
+		});
 
-		await input.fill('/workspace');
-		await expect.element(openButton).toBeEnabled();
+		await fillPath(user, '/workspace');
+		await waitFor(() => {
+			expect(openButton).toBeEnabled();
+		});
 	});
 
 	it('clears cached valid-path state when a later lookup fails', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		const openButton = page.getByRole('button', { name: 'Open' });
+		const openButton = screen.getByRole('button', { name: 'Open' });
 
-		await input.fill('/workspace');
-		await expect.element(openButton).toBeEnabled();
+		await fillPath(user, '/workspace');
+		await waitFor(() => {
+			expect(openButton).toBeEnabled();
+		});
 
-		await input.fill('/server-error');
-		await expect.element(openButton).toBeDisabled();
+		await fillPath(user, '/server-error');
+		await waitFor(() => {
+			expect(openButton).toBeDisabled();
+		});
 	});
 
 	it('accepts the highlighted suggestion with Tab and closes the popover', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-
-		await input.fill('/work');
-		await expect.element(page.getByText('/workspace')).toBeVisible();
+		await fillPath(user, '/work');
+		expect(await screen.findByText('/workspace')).toBeVisible();
 
 		await pressInputKey('Tab');
 
-		await expect
-			.poll(() => (document.querySelector('[data-slot="input"]') as HTMLInputElement | null)?.value)
-			.toBe('/workspace');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(
+				(document.querySelector('[data-slot="input"]') as HTMLInputElement | null)?.value
+			).toBe('/workspace');
+		});
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 	});
 
 	it('reopens suggestions when the user edits the accepted path again', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-
-		await input.fill('/work');
-		await expect.element(page.getByText('/workspace')).toBeVisible();
+		await fillPath(user, '/work');
+		expect(await screen.findByText('/workspace')).toBeVisible();
 		await pressInputKey('Tab');
 
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 
-		await input.fill('/workspac');
+		await fillPath(user, '/workspac');
 
-		await expect.element(page.getByText('/workspace')).toBeVisible();
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).not.toBeNull();
+		expect(await screen.findByText('/workspace')).toBeVisible();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).not.toBeNull();
+		});
 	});
 
 	it('clears the picker state when the dialog closes and reopens', async () => {
+		const user = userEvent.setup();
 		const view = render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/work');
-		await expect.element(page.getByText('/workspace')).toBeVisible();
+		await fillPath(user, '/work');
+		expect(await screen.findByText('/workspace')).toBeVisible();
 
 		await view.rerender({ open: false });
 		await view.rerender({ open: true });
 
-		await expect
-			.poll(
-				() =>
-					(document.querySelector('[data-slot="input"]') as HTMLInputElement | null)?.value ?? ''
-			)
-			.toBe('');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
-		await expect.element(page.getByRole('button', { name: 'Open' })).toBeDisabled();
+		await waitFor(() => {
+			expect(
+				(document.querySelector('[data-slot="input"]') as HTMLInputElement | null)?.value ?? ''
+			).toBe('');
+		});
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
+		expect(screen.getByRole('button', { name: 'Open' })).toBeDisabled();
 	});
 
 	it('opens directory contents when the user types a slash after accepting a path with Tab', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/work');
-		await expect.element(page.getByText('/workspace')).toBeVisible();
+		await fillPath(user, '/work');
+		expect(await screen.findByText('/workspace')).toBeVisible();
 
 		await pressInputKey('Tab');
-		await input.fill('/workspace/');
+		await fillPath(user, '/workspace/');
 
-		await expect.element(page.getByText('/workspace/apps')).toBeVisible();
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).not.toBeNull();
+		expect(await screen.findByText('/workspace/apps')).toBeVisible();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).not.toBeNull();
+		});
 	});
 
 	it('keeps only one highlighted row when keyboard navigation takes over from mouse hover', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/work');
-		await expect.element(page.getByText('/workspace')).toBeVisible();
+		await fillPath(user, '/work');
+		expect(await screen.findByText('/workspace')).toBeVisible();
 
 		const items = Array.from(
 			document.querySelectorAll('[data-slot="command-item"]')
@@ -221,32 +245,37 @@ describe('ProjectSelectorDialog', () => {
 	});
 
 	it('requests scrolling as keyboard navigation moves through long suggestion lists', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-
-		await input.fill('/many/');
-		await expect.element(page.getByText('/many/project-00')).toBeVisible();
+		await fillPath(user, '/many/');
+		expect(await screen.findByText('/many/project-00')).toBeVisible();
 
 		for (let index = 0; index < 12; index += 1) {
 			await pressInputKey('ArrowDown');
 		}
 
-		await expect.poll(() => scrollIntoViewMock.mock.calls.length).toBeGreaterThan(0);
+		await waitFor(() => {
+			expect(scrollIntoViewMock.mock.calls.length).toBeGreaterThan(0);
+		});
 	});
 
 	it('submits via Enter when the suggestion popover is closed', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/workspace');
-		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
+		await fillPath(user, '/workspace');
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled();
+		});
 
 		// Popover must be closed so Enter submits rather than selecting a suggestion.
 		// '/workspace' returns exists=true with itself as the only suggestion; accept
 		// it via Tab to collapse the popover.
 		await pressInputKey('Tab');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 
 		// Form.requestSubmit() mirrors how the browser submits a form on Enter in
 		// a text input. Synthetic keydown events don't trigger native submission,
@@ -255,10 +284,11 @@ describe('ProjectSelectorDialog', () => {
 		expect(form).not.toBeNull();
 		form?.requestSubmit();
 
-		await expect.poll(() => createProjectMock.mock.calls.length).toBe(1);
-		expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
-		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
-		expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
+		await waitFor(() => {
+			expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
+			expect(invalidateMock).toHaveBeenCalledWith('projects:list');
+			expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
+		});
 		// invalidate must run before goto so the layout's projectTree refresh
 		// completes before the composer tries to resolve the selected project.
 		expect(invalidateMock.mock.invocationCallOrder[0]).toBeLessThan(
@@ -267,12 +297,14 @@ describe('ProjectSelectorDialog', () => {
 	});
 
 	it('does not submit on Enter when the suggestion popover is open', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/work');
-		await expect.element(page.getByText('/workspace')).toBeVisible();
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).not.toBeNull();
+		await fillPath(user, '/work');
+		expect(await screen.findByText('/workspace')).toBeVisible();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).not.toBeNull();
+		});
 
 		// With the popover open, handleInputKeydown intercepts Enter to select a
 		// suggestion; the form-level submit handler is never reached.
@@ -282,20 +314,25 @@ describe('ProjectSelectorDialog', () => {
 	});
 
 	it('triggers submit when the Open button is clicked', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/workspace');
-		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
+		await fillPath(user, '/workspace');
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled();
+		});
 
 		// Close the popover first so its floating layer doesn't intercept the click.
 		await pressInputKey('Tab');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 
-		await page.getByRole('button', { name: 'Open' }).click();
+		await user.click(screen.getByRole('button', { name: 'Open' }));
 
-		await expect.poll(() => createProjectMock.mock.calls.length).toBe(1);
-		expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
+		await waitFor(() => {
+			expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
+		});
 	});
 
 	it('navigates to a new session for the returned project id on submit (covers create-new and reuse)', async () => {
@@ -307,38 +344,47 @@ describe('ProjectSelectorDialog', () => {
 			data: { id: 'reused-existing-id' }
 		});
 
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/workspace');
-		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
+		await fillPath(user, '/workspace');
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled();
+		});
 
 		await pressInputKey('Tab');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 
 		const form = document.querySelector('#open-project-form') as HTMLFormElement | null;
 		expect(form).not.toBeNull();
 		form?.requestSubmit();
 
-		await expect.poll(() => gotoMock.mock.calls.length).toBe(1);
-		expect(gotoMock).toHaveBeenCalledWith('/?project=reused-existing-id');
-		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
+		await waitFor(() => {
+			expect(gotoMock).toHaveBeenCalledWith('/?project=reused-existing-id');
+			expect(invalidateMock).toHaveBeenCalledWith('projects:list');
+		});
 	});
 
 	it('does not trigger submit when the Cancel button is clicked', async () => {
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/workspace');
+		await fillPath(user, '/workspace');
 		// Wait for the directory fetch so Tab can accept the highlighted suggestion
 		// and close the popover (same race as the Open / Enter submit tests).
-		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled();
+		});
 
 		// Close the popover first so its floating layer doesn't intercept the click.
 		await pressInputKey('Tab');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 
-		await page.getByRole('button', { name: 'Cancel' }).click();
+		await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
 		expect(createProjectMock).not.toHaveBeenCalled();
 	});
@@ -351,19 +397,24 @@ describe('ProjectSelectorDialog', () => {
 			data: { id: 'id with spaces & slashes' }
 		});
 
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/workspace');
-		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
+		await fillPath(user, '/workspace');
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled();
+		});
 		await pressInputKey('Tab');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 
 		const form = document.querySelector('#open-project-form') as HTMLFormElement | null;
 		form?.requestSubmit();
 
-		await expect.poll(() => gotoMock.mock.calls.length).toBe(1);
-		expect(gotoMock).toHaveBeenCalledWith('/?project=id%20with%20spaces%20%26%20slashes');
+		await waitFor(() => {
+			expect(gotoMock).toHaveBeenCalledWith('/?project=id%20with%20spaces%20%26%20slashes');
+		});
 	});
 
 	it('does not navigate when createProject rejects', async () => {
@@ -371,18 +422,22 @@ describe('ProjectSelectorDialog', () => {
 		// open and surface the error rather than navigating to a phantom session.
 		createProjectMock.mockRejectedValueOnce(new Error('permission denied'));
 
+		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
 
-		const input = page.getByPlaceholder('e.g. / or ~/Projects/ - add / to list contents');
-		await input.fill('/workspace');
-		await expect.element(page.getByRole('button', { name: 'Open' })).toBeEnabled();
+		await fillPath(user, '/workspace');
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled();
+		});
 		await pressInputKey('Tab');
-		await expect.poll(() => document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		await waitFor(() => {
+			expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+		});
 
 		const form = document.querySelector('#open-project-form') as HTMLFormElement | null;
 		form?.requestSubmit();
 
-		await expect.element(page.getByText('permission denied')).toBeVisible();
+		expect(await screen.findByText('permission denied')).toBeVisible();
 		expect(gotoMock).not.toHaveBeenCalled();
 		expect(invalidateMock).not.toHaveBeenCalled();
 	});

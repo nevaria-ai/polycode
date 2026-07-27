@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, cleanup } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { render, screen, waitFor } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import SessionPage from './+page.svelte';
 
 const {
@@ -72,7 +72,6 @@ const baseData = {
 
 describe('sessions/[sessionId]/+page.svelte', () => {
 	beforeEach(() => {
-		cleanup();
 		clearInitSessionFields();
 		replaceStateMock.mockClear();
 		sendMessageMock.mockClear();
@@ -92,23 +91,26 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 		});
 	});
 
-	it('renders the current session title inside the page content', async () => {
-		const screen = render(SessionPage, {
+	it('renders the current session title inside the page content', () => {
+		render(SessionPage, {
 			data: baseData
 		});
 
-		expect(screen.getByText('Imported conversation layout')).toBeTruthy();
+		expect(screen.getByText('Imported conversation layout')).toBeInTheDocument();
 	});
 
 	it('focuses the rename input when entering rename mode', async () => {
+		const user = userEvent.setup();
 		render(SessionPage, { data: baseData });
 
-		await page.getByRole('button', { name: 'Rename session' }).click();
+		await user.click(screen.getByRole('button', { name: 'Rename session' }));
 
-		await expect.poll(() => document.activeElement?.getAttribute('type')).toBe('text');
+		await waitFor(() => {
+			expect(document.activeElement?.getAttribute('type')).toBe('text');
+		});
 	});
 
-	it('renders the shared prompt panel for active sessions', async () => {
+	it('renders the shared prompt panel for active sessions', () => {
 		const { container } = render(SessionPage, { data: baseData });
 
 		expect(container.querySelector('[data-testid="prompt-panel"]')).not.toBeNull();
@@ -121,7 +123,9 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 
 		render(SessionPage, { data: baseData });
 
-		await expect.poll(() => sendMessageMock.mock.calls.length).toBeGreaterThan(0);
+		await waitFor(() => {
+			expect(sendMessageMock.mock.calls.length).toBeGreaterThan(0);
+		});
 
 		expect(sendMessageMock).toHaveBeenCalledTimes(1);
 		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
@@ -139,7 +143,8 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 
 		render(SessionPage, { data: baseData });
 
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		// Allow mount effects to flush; assert no submit was queued.
+		await new Promise((resolve) => setTimeout(resolve, 50));
 
 		expect(sendMessageMock).not.toHaveBeenCalled();
 	});
@@ -147,12 +152,12 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 	it('does not resubmit after revisit with no initSessionFields', async () => {
 		clearInitSessionFields();
 
-		render(SessionPage, { data: baseData });
+		const first = render(SessionPage, { data: baseData });
 
 		await new Promise((resolve) => setTimeout(resolve, 50));
 		sendMessageMock.mockClear();
 
-		cleanup();
+		first.unmount();
 		render(SessionPage, { data: baseData });
 
 		await new Promise((resolve) => setTimeout(resolve, 50));
@@ -177,8 +182,12 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 
 		render(SessionPage, { data: baseData });
 
-		await expect.poll(() => sendMessageMock.mock.calls.length).toBeGreaterThan(0);
-		await expect.poll(() => invalidateMock.mock.calls.length).toBeGreaterThan(0);
+		await waitFor(() => {
+			expect(sendMessageMock.mock.calls.length).toBeGreaterThan(0);
+		});
+		await waitFor(() => {
+			expect(invalidateMock.mock.calls.length).toBeGreaterThan(0);
+		});
 
 		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
 			content: 'Build a login form',

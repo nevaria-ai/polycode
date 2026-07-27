@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { page } from 'vitest/browser';
-import { render } from 'vitest-browser-svelte';
+import { render, screen } from '@testing-library/svelte';
 import { SettingsDialog } from './index.js';
 
 describe('SettingsDialog', () => {
-	it('renders the Models section', async () => {
+	it('renders the Models section', () => {
 		render(SettingsDialog, {
 			open: true
 		});
 
-		await expect.element(page.getByRole('heading', { name: 'Models' })).toBeInTheDocument();
-		await expect.element(page.getByText('Model settings are coming soon.')).toBeInTheDocument();
+		expect(screen.getByRole('heading', { name: 'Models' })).toBeInTheDocument();
+		expect(screen.getByText('Model settings are coming soon.')).toBeInTheDocument();
 	});
 });

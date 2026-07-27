@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import HomePage from './+page.svelte';
 import type { ProjectTree } from '$lib/command';
 
@@ -94,7 +94,7 @@ const baseData = {
 };
 
 describe('root homepage', () => {
-	it('renders the homepage composer with selected project controls', async () => {
+	it('renders the homepage composer with selected project controls', () => {
 		const { container } = render(HomePage, { data: baseData });
 		const headerRow = container.querySelector('[data-testid="homepage-header-row"]');
 		const trigger = container.querySelector('[data-slot="dropdown-menu-trigger"]');
@@ -106,7 +106,7 @@ describe('root homepage', () => {
 		expect(container.querySelector('textarea[placeholder="Enter your query!"]')).not.toBeNull();
 	});
 
-	it('renders the homepage header row above the shared prompt panel', async () => {
+	it('renders the homepage header row above the shared prompt panel', () => {
 		const { container } = render(HomePage, { data: baseData });
 
 		const promptPanel = container.querySelector('[data-testid="prompt-panel"]');
@@ -134,16 +134,17 @@ describe('root homepage', () => {
 	});
 
 	it('renders a combined project and worktree dropdown with grouped project rows and separate branches', async () => {
+		const user = userEvent.setup();
 		render(HomePage, { data: baseData });
 
-		await page.getByRole('button', { name: /select project and worktree/i }).click();
+		await user.click(screen.getByRole('button', { name: /select project and worktree/i }));
 
-		await expect
-			.element(page.getByText('Select project and worktree to start agentic session in'))
-			.toBeVisible();
-		await expect.element(page.getByText('feature/auth')).toBeVisible();
-		await expect.element(page.getByText('docs')).toBeVisible();
-		await expect.element(page.getByText('feature/api')).toBeVisible();
+		expect(
+			await screen.findByText('Select project and worktree to start agentic session in')
+		).toBeVisible();
+		expect(screen.getByText('feature/auth')).toBeVisible();
+		expect(screen.getByText('docs')).toBeVisible();
+		expect(screen.getByText('feature/api')).toBeVisible();
 		expect(document.querySelectorAll('[data-testid="composer-project-link"]')).toHaveLength(2);
 		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(4);
 
@@ -176,6 +177,7 @@ describe('root homepage', () => {
 	});
 
 	it('renders a project with no linked worktrees as a single clickable project item', async () => {
+		const user = userEvent.setup();
 		const noWorktreeData = {
 			...baseData,
 			projectTree: baseData.projectTree.map((p) =>
@@ -195,7 +197,9 @@ describe('root homepage', () => {
 		};
 		render(HomePage, { data: noWorktreeData });
 
-		await page.getByRole('button', { name: /select project and worktree/i }).click();
+		await user.click(screen.getByRole('button', { name: /select project and worktree/i }));
+
+		await screen.findByText('Select project and worktree to start agentic session in');
 
 		const projectLink = document.querySelector(
 			'[data-testid="composer-project-link"]'

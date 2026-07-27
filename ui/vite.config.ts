@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
-import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { svelteTesting } from '@testing-library/svelte/vite';
 
 // Load .env file
 dotenv.config();
@@ -13,7 +13,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [tailwindcss(), sveltekit(), svelteTesting({ autoCleanup: false })],
 	// Tauri expects a fixed port; don't clear the screen over rust errors.
 	clearScreen: false,
 	server: {
@@ -38,20 +38,18 @@ export default defineConfig({
 			{
 				extends: './vite.config.ts',
 				test: {
+					name: 'unit',
+					environment: 'node',
+					include: ['src/lib/**/*.{test,spec}.{js,ts}']
+				}
+			},
+			{
+				extends: './vite.config.ts',
+				test: {
 					name: 'client',
-					browser: {
-						enabled: true,
-						provider: process.env.TEST_CHROMIUM_WS_URL
-							? playwright({
-									connectOptions: {
-										wsEndpoint: process.env.TEST_CHROMIUM_WS_URL,
-										exposeNetwork: '<loopback>'
-									}
-								})
-							: playwright(),
-						instances: [{ browser: 'chromium', headless: true }]
-					},
-					include: ['src/**/*.svelte.{test,spec}.{js,ts}']
+					environment: 'happy-dom',
+					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+					setupFiles: ['./src/vitest-setup.ts']
 				}
 			}
 		]

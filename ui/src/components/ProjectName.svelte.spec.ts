@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, cleanup } from 'vitest-browser-svelte';
+import { render } from '@testing-library/svelte';
 import ProjectName, { ownerPrefix } from './ProjectName.svelte';
 
 describe('ProjectName', () => {
@@ -35,7 +35,6 @@ describe('ProjectName', () => {
 			});
 			expect(getByText('radch-ai/')).toHaveClass('opacity-65');
 			expect(getByText('esk-code')).toHaveClass('opacity-100');
-			cleanup();
 		});
 
 		it('renders displayName plainly when demoted by collision', () => {
@@ -45,7 +44,6 @@ describe('ProjectName', () => {
 			});
 			expect(container.querySelectorAll('.opacity-65')).toHaveLength(0);
 			expect(getByText('work/esk-code')).toBeInTheDocument();
-			cleanup();
 		});
 
 		it('renders displayName plainly for non-git folder', () => {
@@ -55,7 +53,6 @@ describe('ProjectName', () => {
 			});
 			expect(container.querySelectorAll('.opacity-65')).toHaveLength(0);
 			expect(getByText('my-folder')).toBeInTheDocument();
-			cleanup();
 		});
 
 		it('passes through class to the outer span', () => {
@@ -65,7 +62,6 @@ describe('ProjectName', () => {
 				class: 'truncate'
 			});
 			expect(container.querySelector('span.truncate')).not.toBeNull();
-			cleanup();
 		});
 	});
 });

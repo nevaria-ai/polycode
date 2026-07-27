@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { render, screen, waitFor } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 
 const { deleteWorktreeMock, invalidateMock } = vi.hoisted(() => ({
 	deleteWorktreeMock: vi.fn(async () => ({ status: 'ok' as const, data: null })),
@@ -27,78 +27,85 @@ const target = {
 
 describe('DeleteWorktreeDialog', () => {
 	beforeEach(() => {
-		cleanup();
 		deleteWorktreeMock.mockReset();
 		deleteWorktreeMock.mockResolvedValue({ status: 'ok' as const, data: null });
 		invalidateMock.mockReset();
 		invalidateMock.mockResolvedValue(undefined);
 	});
 
-	it('renders confirmation for the target branch', async () => {
+	it('renders confirmation for the target branch', () => {
 		render(DeleteWorktreeDialog, { info: target });
 
-		await expect.element(page.getByText('Delete Worktree')).toBeInTheDocument();
-		await expect.element(page.getByText('feature-x')).toBeInTheDocument();
-		await expect
-			.element(page.getByText(/dirty or the branch is not fully merged/))
-			.toBeInTheDocument();
+		expect(screen.getByText('Delete Worktree')).toBeInTheDocument();
+		expect(screen.getByText('feature-x')).toBeInTheDocument();
+		expect(screen.getByText(/dirty or the branch is not fully merged/)).toBeInTheDocument();
 	});
 
 	it('shows command error and keeps dialog open on delete failure', async () => {
+		const user = userEvent.setup();
 		deleteWorktreeMock.mockRejectedValueOnce(
 			new Error("git branch -d failed: the branch 'feature-x' is not fully merged")
 		);
 		render(DeleteWorktreeDialog, { info: target });
 
-		await page.getByRole('button', { name: 'Delete' }).click();
+		await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-		await expect
-			.element(page.getByText("git branch -d failed: the branch 'feature-x' is not fully merged"))
-			.toBeInTheDocument();
-		await expect.element(page.getByText('Delete Worktree')).toBeInTheDocument();
+		expect(
+			await screen.findByText("git branch -d failed: the branch 'feature-x' is not fully merged")
+		).toBeInTheDocument();
+		expect(screen.getByText('Delete Worktree')).toBeInTheDocument();
 		expect(invalidateMock).not.toHaveBeenCalled();
 	});
 
 	it('clears error on cancel so reopen does not show a stale message', async () => {
+		const user = userEvent.setup();
 		deleteWorktreeMock.mockRejectedValueOnce(
 			new Error('remove worktree failed: contains modified or untracked files, use --force')
 		);
-		const screen = render(DeleteWorktreeDialog, { info: target });
+		const view = render(DeleteWorktreeDialog, { info: target });
 
-		await page.getByRole('button', { name: 'Delete' }).click();
-		await expect
-			.element(
-				page.getByText('remove worktree failed: contains modified or untracked files, use --force')
+		await user.click(screen.getByRole('button', { name: 'Delete' }));
+		expect(
+			await screen.findByText(
+				'remove worktree failed: contains modified or untracked files, use --force'
 			)
-			.toBeInTheDocument();
+		).toBeInTheDocument();
 
-		await page.getByRole('button', { name: 'Cancel' }).click();
-		await expect.element(page.getByText('Delete Worktree')).not.toBeInTheDocument();
+		await user.click(screen.getByRole('button', { name: 'Cancel' }));
+		await waitFor(() => {
+			expect(screen.queryByText('Delete Worktree')).not.toBeInTheDocument();
+		});
 
-		await screen.rerender({ info: { ...target, branch: 'feature-y' } });
-		await expect.element(page.getByText('Delete Worktree')).toBeInTheDocument();
-		await expect.element(page.getByText('feature-y')).toBeInTheDocument();
+		await view.rerender({ info: { ...target, branch: 'feature-y' } });
+		expect(await screen.findByText('Delete Worktree')).toBeInTheDocument();
+		expect(screen.getByText('feature-y')).toBeInTheDocument();
 		expect(document.body.textContent).not.toContain('remove worktree failed');
 	});
 
 	it('closes and invalidates projects:list on successful delete', async () => {
+		const user = userEvent.setup();
 		render(DeleteWorktreeDialog, { info: target });
 
-		await page.getByRole('button', { name: 'Delete' }).click();
+		await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-		await expect.poll(() => invalidateMock.mock.calls.length).toBe(1);
+		await waitFor(() => {
+			expect(invalidateMock).toHaveBeenCalledTimes(1);
+		});
 		expect(deleteWorktreeMock).toHaveBeenCalledWith('proj-1', 'wt-1');
 		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
-		await expect.element(page.getByText('Delete Worktree')).not.toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.queryByText('Delete Worktree')).not.toBeInTheDocument();
+		});
 	});
 
 	it('uses fallback message when thrown value is not an Error', async () => {
+		const user = userEvent.setup();
 		deleteWorktreeMock.mockRejectedValueOnce('boom');
 		render(DeleteWorktreeDialog, { info: target });
 
-		await page.getByRole('button', { name: 'Delete' }).click();
+		await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-		await expect.element(page.getByText('Failed to delete worktree or branch')).toBeInTheDocument();
+		expect(await screen.findByText('Failed to delete worktree or branch')).toBeInTheDocument();
 		expect(invalidateMock).not.toHaveBeenCalled();
 	});
 });
