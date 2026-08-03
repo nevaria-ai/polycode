@@ -6,7 +6,7 @@ import type { SidebarProjectInput } from '$lib/project-tree';
 export const ssr = false;
 
 export const load: LayoutLoad = async ({ depends }) => {
-	depends('projects:list');
+	depends('project:tree');
 	const projects = await commands
 		.listProjects()
 		.then(unwrapCommand)

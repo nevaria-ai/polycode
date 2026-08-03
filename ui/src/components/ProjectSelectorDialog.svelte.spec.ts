@@ -286,7 +286,7 @@ describe('ProjectSelectorDialog', () => {
 
 		await waitFor(() => {
 			expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
-			expect(invalidateMock).toHaveBeenCalledWith('projects:list');
+			expect(invalidateMock).toHaveBeenCalledWith('project:tree');
 			expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
 		});
 		// invalidate must run before goto so the layout's projectTree refresh
@@ -363,7 +363,7 @@ describe('ProjectSelectorDialog', () => {
 
 		await waitFor(() => {
 			expect(gotoMock).toHaveBeenCalledWith('/?project=reused-existing-id');
-			expect(invalidateMock).toHaveBeenCalledWith('projects:list');
+			expect(invalidateMock).toHaveBeenCalledWith('project:tree');
 		});
 	});
 

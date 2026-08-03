@@ -136,7 +136,7 @@ describe('AppSidebar', () => {
 		expect(groups[1]?.textContent).toContain('Open Project');
 	});
 
-	it('toggles expansion via updateWorktreeExpandedState without invalidating projects:list', async () => {
+	it('toggles expansion via updateWorktreeExpandedState without invalidating project:tree', async () => {
 		const user = userEvent.setup();
 		render(AppSidebarTestWrapper, { projectTree: [baseProject()] });
 
@@ -363,7 +363,7 @@ describe('AppSidebar', () => {
 			expect(closeProjectMock).toHaveBeenCalledTimes(1);
 		});
 		expect(closeProjectMock).toHaveBeenCalledWith('repo-id');
-		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
+		expect(invalidateMock).toHaveBeenCalledWith('project:tree');
 	});
 
 	it('create worktree opens branch name dialog without native form', async () => {

@@ -82,7 +82,7 @@ describe('DeleteWorktreeDialog', () => {
 		expect(document.body.textContent).not.toContain('remove worktree failed');
 	});
 
-	it('closes and invalidates projects:list on successful delete', async () => {
+	it('closes and invalidates project:tree on successful delete', async () => {
 		const user = userEvent.setup();
 		render(DeleteWorktreeDialog, { info: target });
 
@@ -92,7 +92,7 @@ describe('DeleteWorktreeDialog', () => {
 			expect(invalidateMock).toHaveBeenCalledTimes(1);
 		});
 		expect(deleteWorktreeMock).toHaveBeenCalledWith('proj-1', 'wt-1');
-		expect(invalidateMock).toHaveBeenCalledWith('projects:list');
+		expect(invalidateMock).toHaveBeenCalledWith('project:tree');
 		await waitFor(() => {
 			expect(screen.queryByText('Delete Worktree')).not.toBeInTheDocument();
 		});

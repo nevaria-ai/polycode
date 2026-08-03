@@ -172,7 +172,7 @@
 			// is present in the layout data, then navigate. Navigating before
 			// invalidating would leave the composer with stale data and the
 			// selected project would not resolve.
-			await invalidate('projects:list');
+			await invalidate('project:tree');
 			await goto(resolve(`/?project=${encodeURIComponent(id)}`));
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to create project';

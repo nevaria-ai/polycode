@@ -98,7 +98,7 @@
 		);
 
 		// Refresh all load functions so the new session appears in the sidebar immediately
-		await invalidate('projects:list');
+		await invalidate('project:tree');
 
 		promptText = '';
 	}

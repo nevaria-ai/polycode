@@ -28,7 +28,7 @@
 		try {
 			await commands.deleteWorktree(info.projectId, info.worktreeId).then(unwrapCommand);
 			closeDialog();
-			await invalidate('projects:list');
+			await invalidate('project:tree');
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to delete worktree or branch';
 		} finally {

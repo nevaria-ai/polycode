@@ -43,7 +43,7 @@
 					.then(unwrapCommand);
 			}
 			branchDialogState = null;
-			await invalidate('projects:list');
+			await invalidate('project:tree');
 		} catch (e) {
 			error = e instanceof Error ? e.message : `Failed to ${branchDialogState?.mode} branch`;
 		} finally {

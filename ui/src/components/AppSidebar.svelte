@@ -126,7 +126,7 @@
 		actionError = null;
 		try {
 			await commands.closeProject(projectId).then(unwrapCommand);
-			await invalidate('projects:list');
+			await invalidate('project:tree');
 		} catch (e) {
 			actionError = e instanceof Error ? e.message : 'Failed to close project';
 		}

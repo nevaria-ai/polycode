@@ -92,7 +92,7 @@
 				.then(unwrapCommand);
 			isEditingTitle = false;
 			await invalidate(`session:${session.id}`);
-			await invalidate('projects:list');
+			await invalidate('project:tree');
 		} catch (err: unknown) {
 			renameError = err instanceof Error ? err.message : 'Failed to rename session';
 		}
