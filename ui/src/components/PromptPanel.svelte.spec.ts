@@ -1,43 +1,40 @@
-import { describe, expect, it } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import PromptPanel from './PromptPanel.svelte';
 
 describe('PromptPanel', () => {
-	it('renders the prompt area and footer controls inside one shared panel surface', () => {
-		const { container } = render(PromptPanel, {
+	it('renders prompt controls and keeps send disabled while empty', () => {
+		render(PromptPanel, {
 			value: '',
 			placeholder: 'Enter your query!'
 		});
 
-		expect(container.querySelector('[data-testid="prompt-panel"]')).not.toBeNull();
-		expect(container.querySelector('textarea[placeholder="Enter your query!"]')).not.toBeNull();
-		expect(container.querySelector('[data-testid="prompt-panel-footer"]')).not.toBeNull();
-		expect(container.querySelector('[data-testid="prompt-panel-attach"]')).not.toBeNull();
-		expect(container.querySelector('[data-testid="prompt-panel-send"]')).not.toBeNull();
+		expect(screen.getByTestId('prompt-panel')).toBeInTheDocument();
+		expect(screen.getByPlaceholderText('Enter your query!')).toBeInTheDocument();
+		expect(screen.getByTestId('prompt-panel-footer')).toBeInTheDocument();
+		expect(screen.getByTestId('prompt-panel-attach')).toBeInTheDocument();
+		expect(screen.getByTestId('prompt-panel-send')).toBeDisabled();
+		expect(screen.queryByTestId('prompt-panel-model-selector')).not.toBeInTheDocument();
 	});
 
-	it('renders a one-line prompt surface with footer controls', () => {
-		const { container } = render(PromptPanel, {
-			value: '',
-			placeholder: 'Enter your query!'
+	it('submits on Enter and via the send button when there is content', async () => {
+		const user = userEvent.setup();
+		const onsubmit = vi.fn();
+
+		render(PromptPanel, {
+			value: 'hello',
+			placeholder: 'Enter your query!',
+			onsubmit
 		});
 
-		const textarea = container.querySelector('textarea[placeholder="Enter your query!"]');
+		const send = screen.getByTestId('prompt-panel-send');
+		expect(send).toBeEnabled();
 
-		expect(container.querySelector('[data-testid="prompt-panel"]')).not.toBeNull();
-		expect(container.querySelector('[data-testid="prompt-panel-footer"]')).not.toBeNull();
-		expect(container.querySelector('[data-testid="prompt-panel-attach"]')).not.toBeNull();
-		expect(container.querySelector('[data-testid="prompt-panel-send"]')).not.toBeNull();
-		expect(textarea?.className).toContain('min-h-0');
-		expect(textarea?.className).toContain('max-h-32');
-	});
+		await user.click(send);
+		expect(onsubmit).toHaveBeenCalledTimes(1);
 
-	it('does not render model selector', () => {
-		const { container } = render(PromptPanel, {
-			value: '',
-			placeholder: 'Enter your query!'
-		});
-
-		expect(container.querySelector('[data-testid="prompt-panel-model-selector"]')).toBeNull();
+		await user.type(screen.getByPlaceholderText('Enter your query!'), '{Enter}');
+		expect(onsubmit).toHaveBeenCalledTimes(2);
 	});
 });

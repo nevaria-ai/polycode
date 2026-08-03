@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, waitFor } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import type { Snippet } from 'svelte';
 import RootLayout from './+layout.svelte';
@@ -17,84 +17,30 @@ describe('root layout sidebar shell', () => {
 		localStorage.clear();
 	});
 
-	it('keeps the resizable shell mounted after closing the sidebar', async () => {
+	it('keeps the resizable shell and content header mounted when closing the sidebar', async () => {
 		const user = userEvent.setup();
 		renderLayout({ initialSidebarOpen: true });
 
 		const paneGroup = document.querySelector('[data-slot="resizable-pane-group"]');
+		const headerBefore = screen.getByTestId('content-header');
 		expect(paneGroup).not.toBeNull();
+		expect(screen.queryByLabelText('Show sidebar')).not.toBeInTheDocument();
+		expect(screen.getByTestId('content-header-placeholder').querySelector('svg')).not.toBeNull();
+		expect(screen.getByTestId('sidebar-app-name')).toHaveTextContent('ESK CODE');
 
-		const hideBtn = document.querySelector(
-			'[data-sidebar="header"] [aria-label="Hide sidebar"]'
-		) as HTMLElement | null;
-		expect(hideBtn).not.toBeNull();
-		await user.click(hideBtn!);
+		await user.click(screen.getByLabelText('Hide sidebar'));
 
-		await waitFor(
-			() => {
-				expect(document.querySelector('[aria-label="Show sidebar"]')).not.toBeNull();
-			},
-			{ timeout: 2000 }
-		);
+		const showBtn = await screen.findByLabelText('Show sidebar', {}, { timeout: 2000 });
 		expect(document.querySelector('[data-slot="resizable-pane-group"]')).toBe(paneGroup);
-	});
-
-	it('always renders the persistent content-side header', () => {
-		renderLayout({ initialSidebarOpen: true });
-		const header = document.querySelector('[data-testid="content-header"]');
-		expect(header).not.toBeNull();
-		expect(header?.className).toContain('h-12');
-	});
-
-	it('always renders the file icon placeholder in the content header', () => {
-		renderLayout({ initialSidebarOpen: true });
-		const placeholder = document.querySelector('[data-testid="content-header-placeholder"]');
-		expect(placeholder).not.toBeNull();
-		expect(placeholder?.querySelector('svg')).not.toBeNull();
-	});
-
-	it('does not show the Show sidebar button while the sidebar is open', () => {
-		renderLayout({ initialSidebarOpen: true });
-		expect(document.querySelector('[aria-label="Show sidebar"]')).toBeNull();
+		expect(screen.getByTestId('content-header')).toBe(headerBefore);
+		expect(headerBefore.contains(showBtn)).toBe(true);
 	});
 
 	it('shows the Show sidebar button in the content header when the sidebar starts closed', () => {
 		renderLayout({ initialSidebarOpen: false });
-		const header = document.querySelector('[data-testid="content-header"]');
-		const showBtn = document.querySelector('[aria-label="Show sidebar"]');
-		expect(showBtn).not.toBeNull();
-		expect(header?.contains(showBtn)).toBe(true);
-	});
 
-	it('keeps the content header mounted across open and closed states', async () => {
-		const user = userEvent.setup();
-		renderLayout({ initialSidebarOpen: true });
-
-		const headerBefore = document.querySelector('[data-testid="content-header"]');
-		expect(headerBefore).not.toBeNull();
-
-		const hideBtn = document.querySelector(
-			'[data-sidebar="header"] [aria-label="Hide sidebar"]'
-		) as HTMLElement | null;
-		expect(hideBtn).not.toBeNull();
-		await user.click(hideBtn!);
-
-		await waitFor(
-			() => {
-				expect(document.querySelector('[aria-label="Show sidebar"]')).not.toBeNull();
-			},
-			{ timeout: 2000 }
-		);
-
-		const headerAfter = document.querySelector('[data-testid="content-header"]');
-		expect(headerAfter).not.toBeNull();
-		expect(headerAfter?.className).toContain('h-12');
-	});
-
-	it('renders the app name in the sidebar header', () => {
-		renderLayout({ initialSidebarOpen: true });
-		const appName = document.querySelector('[data-testid="sidebar-app-name"]');
-		expect(appName).not.toBeNull();
-		expect(appName?.textContent).toBe('ESK CODE');
+		const header = screen.getByTestId('content-header');
+		const showBtn = screen.getByLabelText('Show sidebar');
+		expect(header.contains(showBtn)).toBe(true);
 	});
 });

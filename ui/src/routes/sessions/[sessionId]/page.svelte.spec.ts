@@ -70,25 +70,28 @@ const baseData = {
 	providerRuns: []
 };
 
+const okSendResponse = {
+	status: 'ok' as const,
+	data: {
+		id: 'msg-1',
+		sessionId: 'session-12345678',
+		role: 'user',
+		position: 0,
+		content: 'hello',
+		providerRunId: null,
+		createdAt: '2026-04-10T00:00:00.000Z',
+		parts: []
+	}
+};
+
 describe('sessions/[sessionId]/+page.svelte', () => {
 	beforeEach(() => {
 		clearInitSessionFields();
-		replaceStateMock.mockClear();
-		sendMessageMock.mockClear();
-		invalidateMock.mockClear();
-		sendMessageMock.mockResolvedValue({
-			status: 'ok' as const,
-			data: {
-				id: 'msg-1',
-				sessionId: 'session-12345678',
-				role: 'user',
-				position: 0,
-				content: 'hello',
-				providerRunId: null,
-				createdAt: '2026-04-10T00:00:00.000Z',
-				parts: []
-			}
-		});
+		replaceStateMock.mockReset();
+		sendMessageMock.mockReset();
+		invalidateMock.mockReset();
+		invalidateMock.mockResolvedValue(undefined);
+		sendMessageMock.mockResolvedValue(okSendResponse);
 	});
 
 	it('renders the current session title inside the page content', () => {
@@ -111,23 +114,25 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 	});
 
 	it('renders the shared prompt panel for active sessions', () => {
-		const { container } = render(SessionPage, { data: baseData });
+		render(SessionPage, { data: baseData });
 
-		expect(container.querySelector('[data-testid="prompt-panel"]')).not.toBeNull();
-		expect(container.querySelector('textarea[placeholder="Type a message..."]')).not.toBeNull();
-		expect(container.querySelector('[data-testid="prompt-panel-send"]')).not.toBeNull();
+		expect(screen.getByTestId('prompt-panel')).toBeInTheDocument();
+		expect(screen.getByPlaceholderText('Type a message...')).toBeInTheDocument();
+		expect(screen.getByTestId('prompt-panel-send')).toBeInTheDocument();
 	});
 
-	it('consumes initSessionFields and submits the initial prompt on mount', async () => {
+	it('consumes initSessionFields, submits the prompt, and invalidates the session load key', async () => {
 		setInitSessionFields({ prompt: 'Hello world' });
 
 		render(SessionPage, { data: baseData });
 
 		await waitFor(() => {
-			expect(sendMessageMock.mock.calls.length).toBeGreaterThan(0);
+			expect(sendMessageMock).toHaveBeenCalledTimes(1);
+		});
+		await waitFor(() => {
+			expect(invalidateMock).toHaveBeenCalledWith('session:session-12345678');
 		});
 
-		expect(sendMessageMock).toHaveBeenCalledTimes(1);
 		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
 			content: 'Hello world',
 			mentions: null,
@@ -143,9 +148,9 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 
 		render(SessionPage, { data: baseData });
 
-		// Allow mount effects to flush; assert no submit was queued.
-		await new Promise((resolve) => setTimeout(resolve, 50));
-
+		await waitFor(() => {
+			expect(screen.getByTestId('prompt-panel')).toBeInTheDocument();
+		});
 		expect(sendMessageMock).not.toHaveBeenCalled();
 	});
 
@@ -154,46 +159,17 @@ describe('sessions/[sessionId]/+page.svelte', () => {
 
 		const first = render(SessionPage, { data: baseData });
 
-		await new Promise((resolve) => setTimeout(resolve, 50));
+		await waitFor(() => {
+			expect(screen.getByTestId('prompt-panel')).toBeInTheDocument();
+		});
 		sendMessageMock.mockClear();
 
 		first.unmount();
 		render(SessionPage, { data: baseData });
 
-		await new Promise((resolve) => setTimeout(resolve, 50));
+		await waitFor(() => {
+			expect(screen.getByTestId('prompt-panel')).toBeInTheDocument();
+		});
 		expect(sendMessageMock).not.toHaveBeenCalled();
-	});
-
-	it('submits the init prompt and invalidates the session load key', async () => {
-		setInitSessionFields({ prompt: 'Build a login form' });
-		sendMessageMock.mockResolvedValue({
-			status: 'ok' as const,
-			data: {
-				id: 'msg-1',
-				sessionId: 'session-12345678',
-				role: 'user',
-				position: 0,
-				content: 'Build a login form',
-				providerRunId: null,
-				createdAt: '2026-04-10T00:00:00.000Z',
-				parts: []
-			}
-		});
-
-		render(SessionPage, { data: baseData });
-
-		await waitFor(() => {
-			expect(sendMessageMock.mock.calls.length).toBeGreaterThan(0);
-		});
-		await waitFor(() => {
-			expect(invalidateMock.mock.calls.length).toBeGreaterThan(0);
-		});
-
-		expect(sendMessageMock).toHaveBeenCalledWith('project-1', 'session-12345678', {
-			content: 'Build a login form',
-			mentions: null,
-			slashCommand: null
-		});
-		expect(invalidateMock).toHaveBeenCalledWith('session:session-12345678');
 	});
 });
