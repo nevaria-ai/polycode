@@ -64,7 +64,6 @@ const baseData = {
 	selectedProjectId: eskCodeProjectId,
 	selectedProjectName: 'esk-code',
 	selectedWorktreeId: unlinkedWorktreeId,
-	firstSessionUnderWorktree: true,
 	worktrees: [
 		{
 			id: unlinkedWorktreeId,

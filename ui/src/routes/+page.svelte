@@ -9,6 +9,7 @@
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
 	import { commands, unwrapCommand, type ProjectDto } from '$lib/command';
 	import { getUnlinkedWorktree } from '$lib/project';
+	import { getSessionsForWorktree } from '$lib/worktree';
 	import type { PageData } from './$types';
 
 	type HomepageHref = `/?${string}`;
@@ -69,10 +70,15 @@
 
 		let createResult;
 		try {
+			const firstSessionUnderWorktree =
+				getSessionsForWorktree(
+					selectedProject?.worktrees ?? [],
+					data.selectedWorktreeId
+				).length === 0;
 			createResult = await commands
 				.createSession(data.selectedProjectId, {
 					worktreeId: data.selectedWorktreeId,
-					firstSessionUnderWorktree: data.firstSessionUnderWorktree,
+					firstSessionUnderWorktree,
 					title: null
 				})
 				.then(unwrapCommand);

@@ -1,5 +1,4 @@
 import type { PageLoad } from './$types';
-import { getSessionsForWorktree } from '$lib/worktree';
 
 export const ssr = false;
 
@@ -28,15 +27,10 @@ export const load: PageLoad = async ({ url, parent }) => {
 		worktrees[0] ??
 		null;
 
-	const firstSessionUnderWorktree = selectedProject
-		? getSessionsForWorktree(selectedProject.worktrees, selectedWorktree?.id ?? null).length === 0
-		: true;
-
 	return {
 		selectedProjectId: selectedProject?.id ?? null,
 		selectedProjectName: selectedProject?.displayName ?? null,
 		selectedWorktreeId: selectedWorktree?.id ?? null,
-		firstSessionUnderWorktree,
 		worktrees,
 		projects
 	};
