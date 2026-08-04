@@ -1,4 +1,3 @@
-import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
@@ -6,10 +5,8 @@ import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
 
-// Load .env file
-dotenv.config();
-
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Optional: set via shell or root just dotenv-load (e.g. TAURI_DEV_HOST=0.0.0.0)
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
