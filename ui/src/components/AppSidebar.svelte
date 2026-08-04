@@ -111,10 +111,6 @@
 		return page.url.pathname === '/';
 	}
 
-	function newProjectSession(projectId: string) {
-		goto(resolve(`/?project=${encodeURIComponent(projectId)}`));
-	}
-
 	function newWorktreeSession(projectId: string, worktreeId: string) {
 		goto(
 			resolve(
@@ -252,7 +248,9 @@
 												aria-label="New session"
 												onclick={(event) => {
 													event.stopPropagation();
-													newProjectSession(project.id);
+													if (unlinkedWorktree) {
+														newWorktreeSession(project.id, unlinkedWorktree.id);
+													}
 												}}
 											>
 												<Plus class="size-3.5" />
