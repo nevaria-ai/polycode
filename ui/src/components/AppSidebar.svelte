@@ -34,15 +34,11 @@
 		title: 'No agent session yet'
 	};
 
-	function getProjectDisplaySessions(project: ProjectDto): SidebarSessionEntry[] {
-		const sessions = getUnlinkedWorktree(project)?.sessions ?? [];
+	function getDisplaySessions(
+		sessions: WorktreeDto['sessions']
+	): SidebarSessionEntry[] {
 		if (sessions.length === 0) return [NOTREAL_SESSION];
 		return sessions;
-	}
-
-	function getWorktreeDisplaySessions(worktree: WorktreeDto): SidebarSessionEntry[] {
-		if (worktree.sessions.length === 0) return [NOTREAL_SESSION];
-		return worktree.sessions;
 	}
 
 	let {
@@ -273,10 +269,10 @@
 											:{unlinkedWorktree.branch}
 										</div>
 									{/if}
-									<!-- Project-level sessions (default branch or non-git) -->
+									<!-- unlinkedWorktree sessions (default branch or non-git) -->
 									<div class="p-0">
 										<SidebarSessionList
-											sessions={getProjectDisplaySessions(project)}
+											sessions={getDisplaySessions(unlinkedWorktree?.sessions ?? [])}
 											sessionHref={(id) => getSessionHref(id, project.id)}
 											{isSessionActive}
 										/>
@@ -372,7 +368,7 @@
 														<Collapsible.Content>
 															<div class="p-0">
 																<SidebarSessionList
-																	sessions={getWorktreeDisplaySessions(worktree)}
+																	sessions={getDisplaySessions(worktree.sessions)}
 																	sessionHref={(id) => getSessionHref(id, project.id)}
 																	{isSessionActive}
 																/>
