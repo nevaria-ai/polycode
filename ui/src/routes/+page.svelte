@@ -8,7 +8,7 @@
 	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
 	import { commands, unwrapCommand, type ProjectDto } from '$lib/command';
-	import { getUnlinkedWorktree } from '$lib/project';
+	import { getLinkedWorktrees, getUnlinkedWorktree } from '$lib/project';
 	import { getSessionsForWorktree } from '$lib/worktree';
 	import type { PageData } from './$types';
 
@@ -129,6 +129,7 @@
 
 					{#each data.projects as project (project.id)}
 						{@const unlinkedWorktree = getUnlinkedWorktree(project)}
+						{@const linkedWorktrees = getLinkedWorktrees(project)}
 						<DropdownMenu.Group class="pt-1">
 							<DropdownMenu.Item
 								data-testid="composer-project-link"
@@ -157,24 +158,22 @@
 								{/if}
 							</DropdownMenu.Item>
 
-							{#if project.worktrees.length > 0}
-								{#each project.worktrees as worktree (worktree.id)}
-									<DropdownMenu.Item
-										data-testid="composer-worktree-link"
-										data-value={`/?workspace=${worktree.id}`}
-										class="ml-3 flex items-center gap-2 text-foreground/60"
-										onclick={(e) => {
-											const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
-											if (href) navigateTo(href);
-										}}
-									>
-										<GitBranch class="size-3 shrink-0 text-muted-foreground" />
-										<span data-testid="composer-worktree-item" class="truncate text-xs">
-											{worktree.branch ?? 'detached'}
-										</span>
-									</DropdownMenu.Item>
-								{/each}
-							{/if}
+							{#each linkedWorktrees as worktree (worktree.id)}
+								<DropdownMenu.Item
+									data-testid="composer-worktree-link"
+									data-value={`/?workspace=${worktree.id}`}
+									class="ml-3 flex items-center gap-2 text-foreground/60"
+									onclick={(e) => {
+										const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
+										if (href) navigateTo(href);
+									}}
+								>
+									<GitBranch class="size-3 shrink-0 text-muted-foreground" />
+									<span data-testid="composer-worktree-item" class="truncate text-xs">
+										{worktree.branch ?? 'detached'}
+									</span>
+								</DropdownMenu.Item>
+							{/each}
 						</DropdownMenu.Group>
 					{/each}
 				</DropdownMenu.Content>

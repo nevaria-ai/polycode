@@ -118,7 +118,8 @@ describe('root homepage', () => {
 		expect(screen.getByText('docs')).toBeVisible();
 		expect(screen.getByText('feature/api')).toBeVisible();
 		expect(document.querySelectorAll('[data-testid="composer-project-link"]')).toHaveLength(2);
-		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(4);
+		// Nested rows are linked worktrees only; unlinked is the project row.
+		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(2);
 
 		const projectDefaultBranch = document.querySelector(
 			'[data-testid="composer-project-default-branch"]'
@@ -141,7 +142,7 @@ describe('root homepage', () => {
 			'[data-testid="composer-worktree-item"]'
 		) as HTMLElement | null;
 		expect(nestedWorktreeItem?.className).toContain('text-xs');
-		expect(worktreeLink?.getAttribute('data-value')).toBe(`/?workspace=main-wt-id`);
+		expect(worktreeLink?.getAttribute('data-value')).toBe(`/?workspace=test-wt-id`);
 	});
 
 	it('renders a project with no linked worktrees as a single clickable project item', async () => {
@@ -166,7 +167,8 @@ describe('root homepage', () => {
 		const projectLink = document.querySelector(
 			'[data-testid="composer-project-link"]'
 		) as HTMLElement | null;
-		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(3);
+		// esk-code has no linked rows; docs still contributes one linked worktree.
+		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(1);
 		expect(projectLink?.getAttribute('data-value')).toBe(`/?workspace=${unlinkedWorktreeId}`);
 	});
 });
