@@ -61,19 +61,8 @@ const unlinkedWorktreeId = 'main-wt-id';
 const baseData = {
 	projects: baseProjects,
 	initialSidebarOpen: true,
-	selectedProjectId: eskCodeProjectId,
-	selectedProjectName: 'esk-code',
-	selectedWorktreeId: unlinkedWorktreeId,
-	worktrees: [
-		{
-			id: unlinkedWorktreeId,
-			branch: 'main'
-		},
-		{
-			id: 'test-wt-id',
-			branch: 'feature/auth'
-		}
-	]
+	selectedProject: baseProjects[0],
+	selectedWorktree: baseProjects[0].worktrees[0]
 };
 
 describe('root homepage', () => {
@@ -166,13 +155,7 @@ describe('root homepage', () => {
 							worktrees: p.worktrees.filter((worktree) => !worktree.isLinkedWorktree)
 						}
 					: p
-			),
-			worktrees: [
-				{
-					id: unlinkedWorktreeId,
-					branch: 'main'
-				}
-			]
+			)
 		};
 		render(HomePage, { data: noWorktreeData });
 
