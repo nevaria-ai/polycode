@@ -35,7 +35,6 @@ export const load: PageLoad = async ({ url, parent }) => {
 	return {
 		selectedProjectId: selectedProject?.id ?? null,
 		selectedProjectName: selectedProject?.displayName ?? null,
-		selectedWorktreeLabel: selectedWorktree?.branch ?? null,
 		selectedWorktreeId: selectedWorktree?.id ?? null,
 		firstSessionUnderWorktree,
 		worktrees,

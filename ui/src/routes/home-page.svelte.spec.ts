@@ -63,7 +63,6 @@ const baseData = {
 	initialSidebarOpen: true,
 	selectedProjectId: eskCodeProjectId,
 	selectedProjectName: 'esk-code',
-	selectedWorktreeLabel: 'main',
 	selectedWorktreeId: unlinkedWorktreeId,
 	firstSessionUnderWorktree: true,
 	worktrees: [
