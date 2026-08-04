@@ -4,6 +4,7 @@ import {
 	encodeProjectId,
 	getLinkedWorktrees,
 	getUnlinkedWorktree,
+	isGitProject,
 	normalizeProjectPath
 } from './project';
 import type { ProjectDto } from '$lib/command';
@@ -64,5 +65,48 @@ describe('project worktree helpers', () => {
 
 	it('lists linked worktrees', () => {
 		expect(getLinkedWorktrees(project).map((worktree) => worktree.id)).toEqual(['feature-wt']);
+	});
+
+	it('treats a branched unlinked worktree as git', () => {
+		expect(isGitProject(project)).toBe(true);
+	});
+
+	it('treats a non-git synthetic worktree as a folder', () => {
+		const nonGit: ProjectDto = {
+			...project,
+			worktrees: [
+				{
+					id: 'folder-wt',
+					branch: null,
+					isLinkedWorktree: false,
+					expandedState: false,
+					sessions: []
+				}
+			]
+		};
+		expect(isGitProject(nonGit)).toBe(false);
+	});
+
+	it('treats detached HEAD with linked worktrees as git', () => {
+		const detachedWithLinked: ProjectDto = {
+			...project,
+			worktrees: [
+				{
+					id: 'main-wt',
+					branch: null,
+					isLinkedWorktree: false,
+					expandedState: false,
+					sessions: []
+				},
+				{
+					id: 'feature-wt',
+					branch: 'feature/x',
+					isLinkedWorktree: true,
+					expandedState: false,
+					sessions: []
+				}
+			]
+		};
+		expect(isGitProject(detachedWithLinked)).toBe(true);
 	});
 });

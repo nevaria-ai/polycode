@@ -7,8 +7,8 @@
 	import PromptPanel from '$components/PromptPanel.svelte';
 	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
-	import { commands, unwrapCommand, type ProjectDto } from '$lib/command';
-	import { getLinkedWorktrees, getUnlinkedWorktree } from '$lib/project';
+	import { commands, unwrapCommand } from '$lib/command';
+	import { getLinkedWorktrees, getUnlinkedWorktree, isGitProject } from '$lib/project';
 	import { getSessionsForWorktree } from '$lib/worktree';
 	import type { PageData } from './$types';
 
@@ -20,10 +20,6 @@
 	let sessionAsWorktree = $state(true);
 	let submitting = $state(false);
 	let submitError = $state<string | null>(null);
-
-	function isGitProject(project: ProjectDto | null) {
-		return Boolean(project && project.worktrees.length > 0);
-	}
 
 	function navigateTo(href: HomepageHref) {
 		void goto(resolve(href));
