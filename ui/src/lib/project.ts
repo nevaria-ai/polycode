@@ -1,4 +1,5 @@
 import path from 'node:path';
+import type { ProjectDto, WorktreeDto } from '$lib/command';
 
 export function normalizeProjectPath(input: string): string {
 	return path.normalize(path.resolve(input)).replace(/\/$/, '') || '/';
@@ -24,4 +25,12 @@ export function decodeProjectId(projectId: string): string {
 		utf8Bytes[i] = binaryString.charCodeAt(i);
 	}
 	return new TextDecoder().decode(utf8Bytes);
+}
+
+export function getUnlinkedWorktree(project: ProjectDto): WorktreeDto | null {
+	return project.worktrees.find((worktree) => !worktree.isLinkedWorktree) ?? null;
+}
+
+export function getLinkedWorktrees(project: ProjectDto): WorktreeDto[] {
+	return project.worktrees.filter((worktree) => worktree.isLinkedWorktree);
 }

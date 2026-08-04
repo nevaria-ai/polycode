@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::db::DbHandle;
 use crate::error::AppError;
 use crate::features::projects::model::{CreateProject, Project};
-use crate::features::projects::tree::ProjectTreeBuilder;
+use crate::features::projects::tree::ProjectsBuilder;
 use crate::features::projects::{compute_display_names, derive_base_labels_parallel};
 use crate::features::types::ProjectDto;
 use crate::git::worktree::GitOps;
@@ -25,12 +25,12 @@ impl Service {
             .map_err(AppError::from)
     }
 
-    /// Sidebar project tree: projects with nested worktrees and session metadata.
+    /// Projects for the sidebar: nested worktrees and session metadata.
     pub async fn list_trees(&self) -> Result<Vec<ProjectDto>, AppError> {
         let projects = self.list().await?;
         let labels = derive_base_labels_parallel(&projects).await;
         let display_names = compute_display_names(&projects, &labels);
-        ProjectTreeBuilder::new(self.db.clone())
+        ProjectsBuilder::new(self.db.clone())
             .build_all(projects, &labels, &display_names)
             .await
     }

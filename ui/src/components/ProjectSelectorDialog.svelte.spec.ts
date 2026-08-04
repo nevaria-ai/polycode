@@ -289,7 +289,7 @@ describe('ProjectSelectorDialog', () => {
 			expect(invalidateMock).toHaveBeenCalledWith('project:tree');
 			expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
 		});
-		// invalidate must run before goto so the layout's projectTree refresh
+		// invalidate must run before goto so the layout's projects refresh
 		// completes before the composer tries to resolve the selected project.
 		expect(invalidateMock.mock.invocationCallOrder[0]).toBeLessThan(
 			gotoMock.mock.invocationCallOrder[0]

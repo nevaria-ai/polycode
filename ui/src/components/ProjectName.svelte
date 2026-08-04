@@ -5,7 +5,7 @@
 	 * Returns null for plain folders or display names demoted by collision
 	 * (e.g. `parent/folder` — owner is set but displayName no longer matches).
 	 */
-	export function ownerPrefix(owner: string | null, displayName: string): string | null {
+	export function getOwnerPrefix(owner: string | null, displayName: string): string | null {
 		if (owner === null) return null;
 		const prefix = `${owner}/`;
 		return displayName.startsWith(prefix) ? prefix : null;
@@ -22,7 +22,7 @@
 	let { displayName, owner = null, class: className }: Props = $props();
 
 	// Lazily compute the muted prefix; null means "render plainly".
-	let prefix = $derived(ownerPrefix(owner, displayName));
+	let prefix = $derived(getOwnerPrefix(owner, displayName));
 	let repo = $derived(prefix ? displayName.slice(prefix.length) : null);
 </script>
 

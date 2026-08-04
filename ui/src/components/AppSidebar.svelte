@@ -9,21 +9,14 @@
 		Plus,
 		Settings
 	} from '@lucide/svelte';
-	import { untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { Button } from '$components/ui/button';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
 	import * as Sidebar from '$components/ui/sidebar';
 	import * as Tooltip from '$components/ui/tooltip';
-	import {
-		materializeProjectTree,
-		linkedWorktrees,
-		unlinkedWorktree,
-		type SidebarProject,
-		type SidebarProjectInput,
-		type ExpandedWorktree
-	} from '$lib/project-tree';
+	import { commands, unwrapCommand, type ProjectDto, type WorktreeDto } from '$lib/command';
+	import { getLinkedWorktrees, getUnlinkedWorktree } from '$lib/project';
 	import { APP_NAME } from '$lib/constants';
 	import ProjectSelectorDialog from '$components/ProjectSelectorDialog.svelte';
 	import ProjectName from '$components/ProjectName.svelte';
@@ -33,40 +26,32 @@
 	import SidebarSessionList, {
 		type SidebarSessionEntry
 	} from '$components/SidebarSessionList.svelte';
-	import { commands, unwrapCommand } from '$lib/command';
 	import { goto, invalidate } from '$app/navigation';
+	import { worktreeExpanded } from '$lib/worktree-expanded.svelte';
 
 	const NOTREAL_SESSION: SidebarSessionEntry = {
 		id: '__notreal__',
 		title: 'No agent session yet'
 	};
 
-	function projectDisplaySessions(project: SidebarProject): SidebarSessionEntry[] {
-		const sessions = unlinkedWorktree(project)?.sessions ?? [];
+	function getProjectDisplaySessions(project: ProjectDto): SidebarSessionEntry[] {
+		const sessions = getUnlinkedWorktree(project)?.sessions ?? [];
 		if (sessions.length === 0) return [NOTREAL_SESSION];
 		return sessions;
 	}
 
-	function worktreeDisplaySessions(worktree: ExpandedWorktree): SidebarSessionEntry[] {
+	function getWorktreeDisplaySessions(worktree: WorktreeDto): SidebarSessionEntry[] {
 		if (worktree.sessions.length === 0) return [NOTREAL_SESSION];
 		return worktree.sessions;
 	}
 
 	let {
-		projectTree = []
+		projects = []
 	}: {
-		projectTree?: SidebarProjectInput[];
+		projects?: ProjectDto[];
 	} = $props();
 
 	const sidebar = Sidebar.useSidebar();
-	let tree = $state<SidebarProject[]>([]);
-
-	$effect(() => {
-		tree = materializeProjectTree(
-			projectTree,
-			untrack(() => tree)
-		);
-	});
 
 	let openProjectSelector = $state(false);
 
@@ -81,43 +66,19 @@
 	let openSettings = $state(false);
 	let actionError = $state<string | null>(null);
 
-	async function toggleProject(projectId: string) {
-		const project = tree.find((item) => item.projectId === projectId);
-		const worktree = project ? unlinkedWorktree(project) : null;
-		if (!project || !worktree) return;
-
-		const next = !project.isExpanded;
-		project.isExpanded = next;
-		worktree.isExpanded = next;
-		actionError = null;
-		try {
-			await commands.updateWorktreeExpandedState(projectId, worktree.id, next).then(unwrapCommand);
-		} catch (e) {
-			project.isExpanded = !next;
-			worktree.isExpanded = !next;
-			actionError = e instanceof Error ? e.message : 'Failed to update worktree';
-		}
-	}
-
-	async function toggleWorktree(projectId: string, worktreeId: string) {
-		const project = tree.find((item) => item.projectId === projectId);
-		const worktree = project?.worktrees.find((item) => item.id === worktreeId);
+	async function toggleWorktreeExpanded(projectId: string, worktreeId: string) {
+		const worktree = projects
+			.find((item) => item.id === projectId)
+			?.worktrees.find((item) => item.id === worktreeId);
 		if (!worktree) return;
 
-		const next = !worktree.isExpanded;
-		worktree.isExpanded = next;
-		const unlinked = project ? unlinkedWorktree(project) : null;
-		if (unlinked?.id === worktreeId && project) {
-			project.isExpanded = next;
-		}
+		const next = !worktreeExpanded.get(worktree);
+		worktreeExpanded.set(worktreeId, next);
 		actionError = null;
 		try {
 			await commands.updateWorktreeExpandedState(projectId, worktreeId, next).then(unwrapCommand);
 		} catch (e) {
-			worktree.isExpanded = !next;
-			if (unlinked?.id === worktreeId && project) {
-				project.isExpanded = !next;
-			}
+			worktreeExpanded.set(worktreeId, !next);
 			actionError = e instanceof Error ? e.message : 'Failed to update worktree';
 		}
 	}
@@ -138,7 +99,7 @@
 		}
 	}
 
-	function sessionHref(sessionId: string, projectId?: string) {
+	function getSessionHref(sessionId: string, projectId?: string) {
 		const base = resolve('/sessions/[sessionId]', { sessionId });
 		if (projectId) {
 			return `${base}?project=${encodeURIComponent(projectId)}`;
@@ -147,7 +108,7 @@
 	}
 
 	function isSessionActive(sessionId: string) {
-		return page.url.pathname === sessionHref(sessionId);
+		return page.url.pathname === getSessionHref(sessionId);
 	}
 
 	function isNewSessionActive() {
@@ -216,14 +177,21 @@
 							<span>Open Project</span>
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					{#each tree as project (project.path)}
+					{#each projects as project (project.path)}
+						{@const unlinkedWorktree = getUnlinkedWorktree(project)}
+						{@const linkedWorktrees = getLinkedWorktrees(project)}
 						<Sidebar.MenuItem class="group/menu-item text-[12px] text-sidebar-foreground/70">
-							<Collapsible.Root bind:open={project.isExpanded} class="group/collapsible">
+							<Collapsible.Root
+								open={unlinkedWorktree ? worktreeExpanded.get(unlinkedWorktree) : false}
+								class="group/collapsible"
+							>
 								<Sidebar.MenuButton
 									class="h-auto w-full py-0 text-[12px] hover:bg-transparent active:bg-transparent"
 									aria-label={`Expand ${project.displayName}`}
 									onclick={(event) => {
-										toggleProject(project.projectId);
+										if (unlinkedWorktree) {
+											toggleWorktreeExpanded(project.id, unlinkedWorktree.id);
+										}
 										blurMouseClickTarget(event);
 									}}
 								>
@@ -271,12 +239,12 @@
 														onclick={() =>
 															(branchDialogState = {
 																mode: 'create',
-																projectId: project.projectId
+																projectId: project.id
 															})}>Create permanent worktree</DropdownMenu.Item
 													>
 													<DropdownMenu.Item
 														class="text-[11px] text-destructive"
-														onclick={() => removeProject(project.projectId)}
+														onclick={() => removeProject(project.id)}
 														>Remove Project From workspace</DropdownMenu.Item
 													>
 												</DropdownMenu.Content>
@@ -288,7 +256,7 @@
 												aria-label="New session"
 												onclick={(event) => {
 													event.stopPropagation();
-													newProjectSession(project.projectId);
+													newProjectSession(project.id);
 												}}
 											>
 												<Plus class="size-3.5" />
@@ -298,26 +266,26 @@
 								</Sidebar.MenuButton>
 
 								<Collapsible.Content>
-									{#if unlinkedWorktree(project)?.branch}
+									{#if unlinkedWorktree?.branch}
 										<div
 											class="project-default-branch mb-1 ml-[13px] text-[11px] text-sidebar-foreground/90"
 										>
-											:{unlinkedWorktree(project)?.branch}
+											:{unlinkedWorktree.branch}
 										</div>
 									{/if}
 									<!-- Project-level sessions (default branch or non-git) -->
 									<div class="p-0">
 										<SidebarSessionList
-											sessions={projectDisplaySessions(project)}
-											sessionHref={(id) => sessionHref(id, project.projectId)}
+											sessions={getProjectDisplaySessions(project)}
+											sessionHref={(id) => getSessionHref(id, project.id)}
 											{isSessionActive}
 										/>
 									</div>
-									{#if linkedWorktrees(project).length > 0}
+									{#if linkedWorktrees.length > 0}
 										<Sidebar.MenuSub class="my-2 mr-0 ml-[13px] pr-0 pl-1.5">
-											{#each linkedWorktrees(project) as worktree (worktree.id)}
+											{#each linkedWorktrees as worktree (worktree.id)}
 												<Collapsible.Root
-													bind:open={worktree.isExpanded}
+													open={worktreeExpanded.get(worktree)}
 													class="group/worktree-collapsible"
 												>
 													<Sidebar.MenuSubItem class="group/worktree">
@@ -326,7 +294,7 @@
 															class="w-full text-xs text-sidebar-foreground/90 group-has-[.worktree-actions_[data-state=open]]/worktree:bg-sidebar-accent"
 															aria-label={`Expand ${worktree.branch} branch`}
 															onclick={(event) => {
-																toggleWorktree(project.projectId, worktree.id);
+																toggleWorktreeExpanded(project.id, worktree.id);
 																blurMouseClickTarget(event);
 															}}
 														>
@@ -370,7 +338,7 @@
 																				onclick={() =>
 																					(branchDialogState = {
 																						mode: 'rename',
-																						projectId: project.projectId,
+																						projectId: project.id,
 																						worktreeId: worktree.id
 																					})}>Rename branch</DropdownMenu.Item
 																			>
@@ -378,7 +346,7 @@
 																				class="text-destructive"
 																				onclick={() =>
 																					(deleteWorktreeInfo = {
-																						projectId: project.projectId,
+																						projectId: project.id,
 																						worktreeId: worktree.id,
 																						branch: worktree.branch ?? ''
 																					})}>Delete</DropdownMenu.Item
@@ -392,7 +360,7 @@
 																		aria-label="New session"
 																		onclick={(event) => {
 																			event.stopPropagation();
-																			newWorktreeSession(project.projectId, worktree.id);
+																			newWorktreeSession(project.id, worktree.id);
 																		}}
 																	>
 																		<Plus class="size-3.5" />
@@ -404,8 +372,8 @@
 														<Collapsible.Content>
 															<div class="p-0">
 																<SidebarSessionList
-																	sessions={worktreeDisplaySessions(worktree)}
-																	sessionHref={(id) => sessionHref(id, project.projectId)}
+																	sessions={getWorktreeDisplaySessions(worktree)}
+																	sessionHref={(id) => getSessionHref(id, project.id)}
 																	{isSessionActive}
 																/>
 															</div>

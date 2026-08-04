@@ -7,7 +7,7 @@ import RootLayout from './+layout.svelte';
 function renderLayout(props: { initialSidebarOpen: boolean } = { initialSidebarOpen: true }) {
 	const children = (() => '') as unknown as Snippet;
 	return render(RootLayout, {
-		data: { initialSidebarOpen: props.initialSidebarOpen, projectTree: [] },
+		data: { initialSidebarOpen: props.initialSidebarOpen, projects: [] },
 		children
 	});
 }

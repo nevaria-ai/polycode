@@ -9,11 +9,11 @@ use crate::features::types::*;
 use crate::features::worktrees::{Service as WorktreeService, WorktreeRow};
 use crate::git::worktree::{GitOps, WorktreeInfo};
 
-pub struct ProjectTreeBuilder {
+pub struct ProjectsBuilder {
     db: DbHandle,
 }
 
-impl ProjectTreeBuilder {
+impl ProjectsBuilder {
     pub fn new(db: DbHandle) -> Self {
         Self { db }
     }
@@ -154,16 +154,16 @@ mod tests {
         let labels = HashMap::from([("p1".to_string(), ("not-git".to_string(), None))]);
         let display_names = HashMap::from([("p1".to_string(), "not-git".to_string())]);
 
-        let tree = ProjectTreeBuilder::new(db)
+        let project = ProjectsBuilder::new(db)
             .build_one(project, &labels, &display_names, &sessions)
             .await
             .unwrap();
 
-        assert_eq!(tree.worktrees.len(), 1);
-        assert!(!tree.worktrees[0].is_linked_worktree);
-        assert_eq!(tree.worktrees[0].sessions.len(), 1);
+        assert_eq!(project.worktrees.len(), 1);
+        assert!(!project.worktrees[0].is_linked_worktree);
+        assert_eq!(project.worktrees[0].sessions.len(), 1);
         assert_eq!(
-            tree.worktrees[0].sessions[0].title.as_deref(),
+            project.worktrees[0].sessions[0].title.as_deref(),
             Some("Folder session")
         );
     }

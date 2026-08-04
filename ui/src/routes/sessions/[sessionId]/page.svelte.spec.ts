@@ -50,7 +50,7 @@ vi.mock('$lib/bindings', () => ({
 }));
 
 const baseData = {
-	projectTree: [],
+	projects: [],
 	initialSidebarOpen: true,
 	session: {
 		id: 'session-12345678',

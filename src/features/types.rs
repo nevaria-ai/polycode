@@ -30,7 +30,7 @@ pub struct WorktreeDto {
     pub sessions: Vec<SessionSummaryDto>,
 }
 
-/// Project with nested worktrees and session metadata for the sidebar.
+/// Project with nested worktrees and session metadata.
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectDto {

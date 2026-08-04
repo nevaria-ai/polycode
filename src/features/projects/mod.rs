@@ -4,7 +4,7 @@ mod tree;
 
 pub use model::{CreateProject, Project};
 pub use service::Service;
-pub use tree::ProjectTreeBuilder;
+pub use tree::ProjectsBuilder;
 
 use std::collections::HashMap;
 use std::path::Path;

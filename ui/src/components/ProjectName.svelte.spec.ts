@@ -1,29 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/svelte';
-import ProjectName, { ownerPrefix } from './ProjectName.svelte';
+import ProjectName, { getOwnerPrefix } from './ProjectName.svelte';
 
 describe('ProjectName', () => {
-	describe('ownerPrefix', () => {
+	describe('getOwnerPrefix', () => {
 		it('returns the owner/ prefix when displayName starts with it', () => {
-			expect(ownerPrefix('radch-ai', 'radch-ai/esk-code')).toBe('radch-ai/');
+			expect(getOwnerPrefix('radch-ai', 'radch-ai/esk-code')).toBe('radch-ai/');
 		});
 
 		it('returns null when owner is null (plain folder)', () => {
-			expect(ownerPrefix(null, 'esk-code')).toBeNull();
+			expect(getOwnerPrefix(null, 'esk-code')).toBeNull();
 		});
 
 		it('returns null when displayName was demoted by collision', () => {
 			// owner is set but displayName is now parent/folder, not owner/repo
-			expect(ownerPrefix('radch-ai', 'work/esk-code')).toBeNull();
+			expect(getOwnerPrefix('radch-ai', 'work/esk-code')).toBeNull();
 		});
 
 		it('returns null when owner matches but displayName has no suffix', () => {
 			// edge case: displayName is exactly "radch-ai/" with empty repo
-			expect(ownerPrefix('radch-ai', 'radch-ai/')).toBe('radch-ai/');
+			expect(getOwnerPrefix('radch-ai', 'radch-ai/')).toBe('radch-ai/');
 		});
 
 		it('does not partial-match owner (avoids "radch" matching "radch-ai/x")', () => {
-			expect(ownerPrefix('radch', 'radch-ai/esk-code')).toBeNull();
+			expect(getOwnerPrefix('radch', 'radch-ai/esk-code')).toBeNull();
 		});
 	});
 

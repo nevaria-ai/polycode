@@ -168,7 +168,7 @@
 		try {
 			const { id } = await commands.createProject({ path: searchQuery.trim() }).then(unwrapCommand);
 			open = false;
-			// Refresh the cached projectTree first so the new (or reused) project
+			// Refresh the cached projects first so the new (or reused) project
 			// is present in the layout data, then navigate. Navigating before
 			// invalidating would leave the composer with stale data and the
 			// selected project would not resolve.

@@ -18,7 +18,7 @@ pub struct Session {
     pub last_active_at: i64,
 }
 
-/// Columns needed to nest sessions under worktrees in the project tree.
+/// Columns needed to nest sessions under worktrees in the projects list.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionMetadata {
     pub id: String,

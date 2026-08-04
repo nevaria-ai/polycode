@@ -7,8 +7,8 @@
 	import PromptPanel from '$components/PromptPanel.svelte';
 	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
-	import { commands, unwrapCommand } from '$lib/command';
-	import { unlinkedWorktree } from '$lib/project-tree';
+	import { commands, unwrapCommand, type ProjectDto } from '$lib/command';
+	import { getUnlinkedWorktree } from '$lib/project';
 	import type { PageData } from './$types';
 
 	type HomepageHref = `/?${string}`;
@@ -21,19 +21,19 @@
 	let submitError = $state<string | null>(null);
 
 	let selectedProject = $derived(
-		data.projectTree.find(
-			(project: PageData['projectTree'][number]) => project.projectId === data.selectedProjectId
+		data.projects.find(
+			(project: PageData['projects'][number]) => project.id === data.selectedProjectId
 		) ?? null
 	);
 	let selectedWorktreeBranch = $derived(
 		data.worktrees.find(
 			(worktree: PageData['worktrees'][number]) => worktree.id === data.selectedWorktreeId
 		)?.branch ??
-			unlinkedWorktree(selectedProject ?? { worktrees: [] })?.branch ??
+			(selectedProject ? getUnlinkedWorktree(selectedProject)?.branch : null) ??
 			null
 	);
 
-	function isGitProject(project: PageData['projectTree'][number] | null) {
+	function isGitProject(project: ProjectDto | null) {
 		return Boolean(project && project.worktrees.length > 0);
 	}
 
@@ -151,11 +151,11 @@
 						Select project and worktree to start agentic session in
 					</DropdownMenu.Label>
 
-					{#each data.projectTree as project (project.projectId)}
+					{#each data.projects as project (project.id)}
 						<DropdownMenu.Group class="pt-1">
 							<DropdownMenu.Item
 								data-testid="composer-project-link"
-								data-value={getProjectHref(project.projectId)}
+								data-value={getProjectHref(project.id)}
 								class="flex items-center gap-2"
 								onclick={(e) => {
 									const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
@@ -170,12 +170,12 @@
 								<span data-testid="composer-project-item" class="text-xs font-medium">
 									<ProjectName displayName={project.displayName} owner={project.owner} />
 								</span>
-								{#if unlinkedWorktree(project)?.branch}
+								{#if getUnlinkedWorktree(project)?.branch}
 									<span
 										data-testid="composer-project-default-branch"
 										class="text-[10px] text-muted-foreground"
 									>
-										:{unlinkedWorktree(project)?.branch}
+										:{getUnlinkedWorktree(project)?.branch}
 									</span>
 								{/if}
 							</DropdownMenu.Item>
@@ -184,7 +184,7 @@
 								{#each project.worktrees as worktree (worktree.id)}
 									<DropdownMenu.Item
 										data-testid="composer-worktree-link"
-										data-value={getWorktreeHref(project.projectId, worktree.id)}
+										data-value={getWorktreeHref(project.id, worktree.id)}
 										class="ml-3 flex items-center gap-2 text-foreground/60"
 										onclick={(e) => {
 											const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;

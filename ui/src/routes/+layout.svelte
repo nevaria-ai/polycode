@@ -116,7 +116,7 @@
 				class:hidden={!showSidebarContent}
 				class={`h-svh ${showSidebarContent ? 'translate-x-0 opacity-100' : 'pointer-events-none opacity-0'}`}
 			>
-				<AppSidebar projectTree={data.projectTree} />
+				<AppSidebar projects={data.projects} />
 			</div>
 		</Resizable.Pane>
 		{#if showResizeHandle}

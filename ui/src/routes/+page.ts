@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types';
-import { sessionsForWorktree } from '$lib/project-tree';
+import { getSessionsForWorktree } from '$lib/worktree';
 
 export const ssr = false;
 
@@ -9,12 +9,12 @@ type WorktreeOption = {
 };
 
 export const load: PageLoad = async ({ url, parent }) => {
-	const { projectTree } = await parent();
+	const { projects } = await parent();
 
 	const selectedProjectId = url.searchParams.get('project');
 	const selectedWorktreeIdParam = url.searchParams.get('worktreeId');
 
-	const selectedProject = projectTree.find((p) => p.projectId === selectedProjectId) ?? null;
+	const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
 
 	const worktrees: WorktreeOption[] = selectedProject
 		? selectedProject.worktrees.map((worktree) => ({
@@ -29,16 +29,16 @@ export const load: PageLoad = async ({ url, parent }) => {
 		null;
 
 	const firstSessionUnderWorktree = selectedProject
-		? sessionsForWorktree(selectedProject, selectedWorktree?.id ?? null).length === 0
+		? getSessionsForWorktree(selectedProject.worktrees, selectedWorktree?.id ?? null).length === 0
 		: true;
 
 	return {
-		selectedProjectId: selectedProject?.projectId ?? null,
+		selectedProjectId: selectedProject?.id ?? null,
 		selectedProjectName: selectedProject?.displayName ?? null,
 		selectedWorktreeLabel: selectedWorktree?.branch ?? null,
 		selectedWorktreeId: selectedWorktree?.id ?? null,
 		firstSessionUnderWorktree,
 		worktrees,
-		projectTree
+		projects
 	};
 };

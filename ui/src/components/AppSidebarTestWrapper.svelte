@@ -1,15 +1,15 @@
 <script lang="ts">
 	import AppSidebar from './AppSidebar.svelte';
 	import { SidebarProvider } from '$components/ui/sidebar';
-	import type { SidebarProjectInput } from '$lib/project-tree';
+	import type { ProjectDto } from '$lib/command';
 
 	let {
-		projectTree = []
+		projects = []
 	}: {
-		projectTree?: SidebarProjectInput[];
+		projects?: ProjectDto[];
 	} = $props();
 </script>
 
 <SidebarProvider open={true}>
-	<AppSidebar {projectTree} />
+	<AppSidebar {projects} />
 </SidebarProvider>
