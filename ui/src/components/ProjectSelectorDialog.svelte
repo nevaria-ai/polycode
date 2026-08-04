@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { commands, unwrapCommand } from '$lib/command';
+	import { getUnlinkedWorktree } from '$lib/project';
 	import { goto, invalidate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { Button } from '$components/ui/button';
 	import * as Command from '$components/ui/command';
@@ -173,7 +175,13 @@
 			// invalidating would leave the composer with stale data and the
 			// selected project would not resolve.
 			await invalidate('project:tree');
-			await goto(resolve(`/?project=${encodeURIComponent(id)}`));
+			const project = page.data.projects.find((item) => item.id === id);
+			const unlinkedWorktree = project ? getUnlinkedWorktree(project) : null;
+			if (!unlinkedWorktree) {
+				error = 'Failed to resolve project worktree';
+				return;
+			}
+			await goto(resolve(`/?workspace=${unlinkedWorktree.id}`));
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to create project';
 		} finally {

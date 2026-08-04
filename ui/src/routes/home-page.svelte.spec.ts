@@ -146,17 +146,13 @@ describe('root homepage', () => {
 
 		expect(projectDefaultBranch?.className).toContain('text-[10px]');
 		expect(projectItem?.className).toContain('text-xs');
-		expect(projectLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(eskCodeProjectId)}`
-		);
+		expect(projectLink?.getAttribute('data-value')).toBe(`/?workspace=${unlinkedWorktreeId}`);
 
 		const nestedWorktreeItem = document.querySelector(
 			'[data-testid="composer-worktree-item"]'
 		) as HTMLElement | null;
 		expect(nestedWorktreeItem?.className).toContain('text-xs');
-		expect(worktreeLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(eskCodeProjectId)}&worktreeId=${encodeURIComponent('main-wt-id')}`
-		);
+		expect(worktreeLink?.getAttribute('data-value')).toBe(`/?workspace=main-wt-id`);
 	});
 
 	it('renders a project with no linked worktrees as a single clickable project item', async () => {
@@ -188,8 +184,6 @@ describe('root homepage', () => {
 			'[data-testid="composer-project-link"]'
 		) as HTMLElement | null;
 		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(3);
-		expect(projectLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(eskCodeProjectId)}`
-		);
+		expect(projectLink?.getAttribute('data-value')).toBe(`/?workspace=${unlinkedWorktreeId}`);
 	});
 });

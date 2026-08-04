@@ -34,9 +34,7 @@
 		title: 'No agent session yet'
 	};
 
-	function getDisplaySessions(
-		sessions: WorktreeDto['sessions']
-	): SidebarSessionEntry[] {
+	function getDisplaySessions(sessions: WorktreeDto['sessions']): SidebarSessionEntry[] {
 		if (sessions.length === 0) return [NOTREAL_SESSION];
 		return sessions;
 	}
@@ -95,28 +93,12 @@
 		}
 	}
 
-	function getSessionHref(sessionId: string, projectId?: string) {
-		const base = resolve('/sessions/[sessionId]', { sessionId });
-		if (projectId) {
-			return `${base}?project=${encodeURIComponent(projectId)}`;
-		}
-		return base;
-	}
-
-	function isSessionActive(sessionId: string) {
-		return page.url.pathname === getSessionHref(sessionId);
-	}
-
 	function isNewSessionActive() {
 		return page.url.pathname === '/';
 	}
 
-	function newWorktreeSession(projectId: string, worktreeId: string) {
-		goto(
-			resolve(
-				`/?project=${encodeURIComponent(projectId)}&worktreeId=${encodeURIComponent(worktreeId)}`
-			)
-		);
+	function selectWorkspaceForNewSession(worktreeId: string) {
+		goto(resolve(`/?workspace=${worktreeId}`));
 	}
 </script>
 
@@ -249,7 +231,7 @@
 												onclick={(event) => {
 													event.stopPropagation();
 													if (unlinkedWorktree) {
-														newWorktreeSession(project.id, unlinkedWorktree.id);
+														selectWorkspaceForNewSession(unlinkedWorktree.id);
 													}
 												}}
 											>
@@ -271,8 +253,6 @@
 									<div class="p-0">
 										<SidebarSessionList
 											sessions={getDisplaySessions(unlinkedWorktree?.sessions ?? [])}
-											sessionHref={(id) => getSessionHref(id, project.id)}
-											{isSessionActive}
 										/>
 									</div>
 									{#if linkedWorktrees.length > 0}
@@ -354,7 +334,7 @@
 																		aria-label="New session"
 																		onclick={(event) => {
 																			event.stopPropagation();
-																			newWorktreeSession(project.id, worktree.id);
+																			selectWorkspaceForNewSession(worktree.id);
 																		}}
 																	>
 																		<Plus class="size-3.5" />
@@ -367,8 +347,6 @@
 															<div class="p-0">
 																<SidebarSessionList
 																	sessions={getDisplaySessions(worktree.sessions)}
-																	sessionHref={(id) => getSessionHref(id, project.id)}
-																	{isSessionActive}
 																/>
 															</div>
 														</Collapsible.Content>

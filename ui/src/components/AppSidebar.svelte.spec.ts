@@ -568,14 +568,11 @@ describe('AppSidebar', () => {
 
 		await user.click(screen.getByRole('button', { name: /repo/i }));
 
-		// Session links include the project id as a query param so the session
-		// page knows which project context to load. Match the real href shape.
+		// Session links are path-only; workspace lives on the session row in DB.
 		await waitFor(() => {
-			expect(
-				container.querySelector('a[href="/sessions/session-1?project=repo-id"]')
-			).toBeInTheDocument();
+			expect(container.querySelector('a[href="/sessions/session-1"]')).toBeInTheDocument();
 		});
-		const sessionLink = container.querySelector('a[href="/sessions/session-1?project=repo-id"]');
+		const sessionLink = container.querySelector('a[href="/sessions/session-1"]');
 		expect(sessionLink?.closest('[data-active="true"]')).toBeInTheDocument();
 	});
 
@@ -771,13 +768,11 @@ describe('AppSidebar', () => {
 
 		await user.click(screen.getByRole('button', { name: /repo/i }));
 
-		// Session links include the project id as a query param (see getSessionHref).
+		// Session links are path-only.
 		await waitFor(() => {
-			expect(
-				container.querySelector('a[href="/sessions/session-1?project=repo-id"]')
-			).toBeInTheDocument();
+			expect(container.querySelector('a[href="/sessions/session-1"]')).toBeInTheDocument();
 		});
-		const sessionLink = container.querySelector('a[href="/sessions/session-1?project=repo-id"]');
+		const sessionLink = container.querySelector('a[href="/sessions/session-1"]');
 		expect(sessionLink?.closest('[data-active="true"]')).toBeNull();
 	});
 });

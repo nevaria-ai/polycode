@@ -12,7 +12,7 @@
 	import { getSessionsForWorktree } from '$lib/worktree';
 	import type { PageData } from './$types';
 
-	type HomepageHref = `/?${string}`;
+	type HomepageHref = `/?workspace=${string}`;
 
 	let { data } = $props<{ data: PageData }>();
 
@@ -36,14 +36,6 @@
 
 	function isGitProject(project: ProjectDto | null) {
 		return Boolean(project && project.worktrees.length > 0);
-	}
-
-	function getProjectHref(projectId: string): HomepageHref {
-		return `/?project=${encodeURIComponent(projectId)}`;
-	}
-
-	function getWorktreeHref(projectId: string, worktreeId: string): HomepageHref {
-		return `/?project=${encodeURIComponent(projectId)}&worktreeId=${encodeURIComponent(worktreeId)}`;
 	}
 
 	function navigateTo(href: HomepageHref) {
@@ -71,10 +63,8 @@
 		let createResult;
 		try {
 			const firstSessionUnderWorktree =
-				getSessionsForWorktree(
-					selectedProject?.worktrees ?? [],
-					data.selectedWorktreeId
-				).length === 0;
+				getSessionsForWorktree(selectedProject?.worktrees ?? [], data.selectedWorktreeId).length ===
+				0;
 			createResult = await commands
 				.createSession(data.selectedProjectId, {
 					worktreeId: data.selectedWorktreeId,
@@ -90,18 +80,13 @@
 
 		// Redirect to session page with initial prompt state.
 		// Session page will consume initSessionFields and submit the first message.
-		await goto(
-			resolve(
-				`/sessions/${createResult.session.id}?project=${encodeURIComponent(createResult.session.projectId)}`
-			),
-			{
-				state: {
-					initSessionFields: {
-						prompt: promptText.trim()
-					}
+		await goto(resolve(`/sessions/${createResult.session.id}`), {
+			state: {
+				initSessionFields: {
+					prompt: promptText.trim()
 				}
 			}
-		);
+		});
 
 		// Refresh all load functions so the new session appears in the sidebar immediately
 		await invalidate('project:tree');
@@ -158,10 +143,11 @@
 					</DropdownMenu.Label>
 
 					{#each data.projects as project (project.id)}
+						{@const unlinkedWorktree = getUnlinkedWorktree(project)}
 						<DropdownMenu.Group class="pt-1">
 							<DropdownMenu.Item
 								data-testid="composer-project-link"
-								data-value={getProjectHref(project.id)}
+								data-value={unlinkedWorktree ? `/?workspace=${unlinkedWorktree.id}` : undefined}
 								class="flex items-center gap-2"
 								onclick={(e) => {
 									const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
@@ -190,7 +176,7 @@
 								{#each project.worktrees as worktree (worktree.id)}
 									<DropdownMenu.Item
 										data-testid="composer-worktree-link"
-										data-value={getWorktreeHref(project.id, worktree.id)}
+										data-value={`/?workspace=${worktree.id}`}
 										class="ml-3 flex items-center gap-2 text-foreground/60"
 										onclick={(e) => {
 											const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;

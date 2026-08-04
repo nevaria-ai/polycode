@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import * as Sidebar from '$components/ui/sidebar';
 
 	export type SidebarSessionEntry = {
@@ -7,13 +8,9 @@
 	};
 
 	let {
-		sessions = [],
-		sessionHref,
-		isSessionActive
+		sessions = []
 	}: {
 		sessions: SidebarSessionEntry[];
-		sessionHref: (id: string) => string;
-		isSessionActive: (id: string) => boolean;
 	} = $props();
 
 	const NOTREAL_ID = '__notreal__';
@@ -31,8 +28,8 @@
 				</span>
 			{:else}
 				<Sidebar.MenuSubButton
-					href={sessionHref(session.id)}
-					isActive={isSessionActive(session.id)}
+					href={`/sessions/${session.id}`}
+					isActive={page.url.pathname === `/sessions/${session.id}`}
 					class="sidebar-session-link ml-5 h-auto items-start gap-1"
 				>
 					<span class="sidebar-session-status" aria-hidden="true">•</span>

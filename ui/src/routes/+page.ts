@@ -10,10 +10,13 @@ type WorktreeOption = {
 export const load: PageLoad = async ({ url, parent }) => {
 	const { projects } = await parent();
 
-	const selectedProjectId = url.searchParams.get('project');
-	const selectedWorktreeIdParam = url.searchParams.get('worktreeId');
+	const selectedWorktreeIdParam = url.searchParams.get('workspace');
 
-	const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
+	const selectedProject = selectedWorktreeIdParam
+		? (projects.find((project) =>
+				project.worktrees.some((worktree) => worktree.id === selectedWorktreeIdParam)
+			) ?? null)
+		: null;
 
 	const worktrees: WorktreeOption[] = selectedProject
 		? selectedProject.worktrees.map((worktree) => ({
@@ -22,10 +25,9 @@ export const load: PageLoad = async ({ url, parent }) => {
 			}))
 		: [];
 
-	const selectedWorktree =
-		(selectedWorktreeIdParam ? worktrees.find((wt) => wt.id === selectedWorktreeIdParam) : null) ??
-		worktrees[0] ??
-		null;
+	const selectedWorktree = selectedWorktreeIdParam
+		? (worktrees.find((wt) => wt.id === selectedWorktreeIdParam) ?? null)
+		: null;
 
 	return {
 		selectedProjectId: selectedProject?.id ?? null,
