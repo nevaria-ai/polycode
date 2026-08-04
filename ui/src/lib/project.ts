@@ -34,3 +34,9 @@ export function getUnlinkedWorktree(project: ProjectDto): WorktreeDto | null {
 export function getLinkedWorktrees(project: ProjectDto): WorktreeDto[] {
 	return project.worktrees.filter((worktree) => worktree.isLinkedWorktree);
 }
+
+/** True when the project looks like a git checkout (branch and/or linked worktrees). */
+export function isGitProject(project: ProjectDto | null): boolean {
+	if (!project) return false;
+	return getUnlinkedWorktree(project)?.branch != null || getLinkedWorktrees(project).length > 0;
+}

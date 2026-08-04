@@ -34,15 +34,9 @@
 		title: 'No agent session yet'
 	};
 
-	function getProjectDisplaySessions(project: ProjectDto): SidebarSessionEntry[] {
-		const sessions = getUnlinkedWorktree(project)?.sessions ?? [];
+	function getDisplaySessions(sessions: WorktreeDto['sessions']): SidebarSessionEntry[] {
 		if (sessions.length === 0) return [NOTREAL_SESSION];
 		return sessions;
-	}
-
-	function getWorktreeDisplaySessions(worktree: WorktreeDto): SidebarSessionEntry[] {
-		if (worktree.sessions.length === 0) return [NOTREAL_SESSION];
-		return worktree.sessions;
 	}
 
 	let {
@@ -99,32 +93,12 @@
 		}
 	}
 
-	function getSessionHref(sessionId: string, projectId?: string) {
-		const base = resolve('/sessions/[sessionId]', { sessionId });
-		if (projectId) {
-			return `${base}?project=${encodeURIComponent(projectId)}`;
-		}
-		return base;
-	}
-
-	function isSessionActive(sessionId: string) {
-		return page.url.pathname === getSessionHref(sessionId);
-	}
-
 	function isNewSessionActive() {
 		return page.url.pathname === '/';
 	}
 
-	function newProjectSession(projectId: string) {
-		goto(resolve(`/?project=${encodeURIComponent(projectId)}`));
-	}
-
-	function newWorktreeSession(projectId: string, worktreeId: string) {
-		goto(
-			resolve(
-				`/?project=${encodeURIComponent(projectId)}&worktreeId=${encodeURIComponent(worktreeId)}`
-			)
-		);
+	function selectWorkspaceForNewSession(worktreeId: string) {
+		goto(resolve(`/?workspace=${worktreeId}`));
 	}
 </script>
 
@@ -256,7 +230,9 @@
 												aria-label="New session"
 												onclick={(event) => {
 													event.stopPropagation();
-													newProjectSession(project.id);
+													if (unlinkedWorktree) {
+														selectWorkspaceForNewSession(unlinkedWorktree.id);
+													}
 												}}
 											>
 												<Plus class="size-3.5" />
@@ -273,12 +249,10 @@
 											:{unlinkedWorktree.branch}
 										</div>
 									{/if}
-									<!-- Project-level sessions (default branch or non-git) -->
+									<!-- unlinkedWorktree sessions (default branch or non-git) -->
 									<div class="p-0">
 										<SidebarSessionList
-											sessions={getProjectDisplaySessions(project)}
-											sessionHref={(id) => getSessionHref(id, project.id)}
-											{isSessionActive}
+											sessions={getDisplaySessions(unlinkedWorktree?.sessions ?? [])}
 										/>
 									</div>
 									{#if linkedWorktrees.length > 0}
@@ -360,7 +334,7 @@
 																		aria-label="New session"
 																		onclick={(event) => {
 																			event.stopPropagation();
-																			newWorktreeSession(project.id, worktree.id);
+																			selectWorkspaceForNewSession(worktree.id);
 																		}}
 																	>
 																		<Plus class="size-3.5" />
@@ -372,9 +346,7 @@
 														<Collapsible.Content>
 															<div class="p-0">
 																<SidebarSessionList
-																	sessions={getWorktreeDisplaySessions(worktree)}
-																	sessionHref={(id) => getSessionHref(id, project.id)}
-																	{isSessionActive}
+																	sessions={getDisplaySessions(worktree.sessions)}
 																/>
 															</div>
 														</Collapsible.Content>

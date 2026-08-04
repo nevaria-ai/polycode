@@ -7,12 +7,11 @@ export type SessionPageData = Omit<SessionViewResponse, 'session'> & {
 	session: SessionDto | null;
 };
 
-export const load: PageLoad = async ({ params, url, depends }): Promise<SessionPageData> => {
+export const load: PageLoad = async ({ params, depends }): Promise<SessionPageData> => {
 	depends(`session:${params.sessionId}`);
-	const projectId = url.searchParams.get('project') ?? '';
 
 	try {
-		return await commands.getSession(projectId, params.sessionId).then(unwrapCommand);
+		return await commands.getSession(params.sessionId).then(unwrapCommand);
 	} catch {
 		return {
 			session: null,

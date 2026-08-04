@@ -2,15 +2,35 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 
-const { createProjectMock, listDirectoriesMock, invalidateMock, gotoMock } = vi.hoisted(() => ({
-	createProjectMock: vi.fn(async () => ({
-		status: 'ok' as const,
-		data: { id: 'test-project-id' }
-	})),
-	listDirectoriesMock: vi.fn(),
-	invalidateMock: vi.fn(async () => {}),
-	gotoMock: vi.fn(async () => {})
-}));
+const { createProjectMock, listDirectoriesMock, invalidateMock, gotoMock, pageState } = vi.hoisted(
+	() => ({
+		createProjectMock: vi.fn(async () => ({
+			status: 'ok' as const,
+			data: { id: 'test-project-id' }
+		})),
+		listDirectoriesMock: vi.fn(),
+		invalidateMock: vi.fn(async () => {}),
+		gotoMock: vi.fn(async () => {}),
+		pageState: {
+			data: {
+				projects: [] as Array<{
+					id: string;
+					path: string;
+					createdAt: string;
+					displayName: string;
+					owner: string | null;
+					worktrees: Array<{
+						id: string;
+						branch: string | null;
+						isLinkedWorktree: boolean;
+						expandedState: boolean;
+						sessions: [];
+					}>;
+				}>
+			}
+		}
+	})
+);
 
 vi.mock('$lib/bindings', () => ({
 	commands: {
@@ -28,6 +48,10 @@ vi.mock('$app/paths', () => ({
 	// In tests, resolve() is the identity function — the app uses relative paths
 	// that already start with '/', so no real base-path resolution is needed.
 	resolve: (path: string) => path
+}));
+
+vi.mock('$app/state', () => ({
+	page: pageState
 }));
 
 import ProjectSelectorDialog from './ProjectSelectorDialog.svelte';
@@ -73,6 +97,24 @@ describe('ProjectSelectorDialog', () => {
 			status: 'ok' as const,
 			data: { id: 'test-project-id' }
 		});
+		pageState.data.projects = [
+			{
+				id: 'test-project-id',
+				path: '/workspace',
+				createdAt: '2026-04-09T10:00:00.000Z',
+				displayName: 'workspace',
+				owner: null,
+				worktrees: [
+					{
+						id: 'main-wt-id',
+						branch: 'main',
+						isLinkedWorktree: false,
+						expandedState: false,
+						sessions: []
+					}
+				]
+			}
+		];
 		invalidateMock.mockReset();
 		invalidateMock.mockResolvedValue();
 		gotoMock.mockReset();
@@ -287,7 +329,7 @@ describe('ProjectSelectorDialog', () => {
 		await waitFor(() => {
 			expect(createProjectMock).toHaveBeenCalledWith({ path: '/workspace' });
 			expect(invalidateMock).toHaveBeenCalledWith('project:tree');
-			expect(gotoMock).toHaveBeenCalledWith('/?project=test-project-id');
+			expect(gotoMock).toHaveBeenCalledWith('/?workspace=main-wt-id');
 		});
 		// invalidate must run before goto so the layout's projects refresh
 		// completes before the composer tries to resolve the selected project.
@@ -338,11 +380,29 @@ describe('ProjectSelectorDialog', () => {
 	it('navigates to a new session for the returned project id on submit (covers create-new and reuse)', async () => {
 		// The backend returns the existing project when the path is already added;
 		// since the response shape is identical to a fresh create, the frontend
-		// treats both cases the same way: navigate to /?project=<id>.
+		// treats both cases the same way: navigate with workspace= for unlinked worktree.
 		createProjectMock.mockResolvedValueOnce({
 			status: 'ok' as const,
 			data: { id: 'reused-existing-id' }
 		});
+		pageState.data.projects = [
+			{
+				id: 'reused-existing-id',
+				path: '/workspace',
+				createdAt: '2026-04-09T10:00:00.000Z',
+				displayName: 'workspace',
+				owner: null,
+				worktrees: [
+					{
+						id: 'reused-wt-id',
+						branch: 'main',
+						isLinkedWorktree: false,
+						expandedState: false,
+						sessions: []
+					}
+				]
+			}
+		];
 
 		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
@@ -362,7 +422,7 @@ describe('ProjectSelectorDialog', () => {
 		form?.requestSubmit();
 
 		await waitFor(() => {
-			expect(gotoMock).toHaveBeenCalledWith('/?project=reused-existing-id');
+			expect(gotoMock).toHaveBeenCalledWith('/?workspace=reused-wt-id');
 			expect(invalidateMock).toHaveBeenCalledWith('project:tree');
 		});
 	});
@@ -392,10 +452,29 @@ describe('ProjectSelectorDialog', () => {
 	it('URL-encodes the project id when navigating', async () => {
 		// Project ids are UUIDs so this is mostly belt-and-suspenders, but the
 		// dialog must not blindly concatenate the id into the URL.
+		const projectId = 'id with spaces & slashes';
 		createProjectMock.mockResolvedValueOnce({
 			status: 'ok' as const,
-			data: { id: 'id with spaces & slashes' }
+			data: { id: projectId }
 		});
+		pageState.data.projects = [
+			{
+				id: projectId,
+				path: '/workspace',
+				createdAt: '2026-04-09T10:00:00.000Z',
+				displayName: 'workspace',
+				owner: null,
+				worktrees: [
+					{
+						id: 'encoded-wt-id',
+						branch: 'main',
+						isLinkedWorktree: false,
+						expandedState: false,
+						sessions: []
+					}
+				]
+			}
+		];
 
 		const user = userEvent.setup();
 		render(ProjectSelectorDialog, { open: true });
@@ -413,7 +492,7 @@ describe('ProjectSelectorDialog', () => {
 		form?.requestSubmit();
 
 		await waitFor(() => {
-			expect(gotoMock).toHaveBeenCalledWith('/?project=id%20with%20spaces%20%26%20slashes');
+			expect(gotoMock).toHaveBeenCalledWith('/?workspace=encoded-wt-id');
 		});
 	});
 

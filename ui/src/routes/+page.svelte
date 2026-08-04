@@ -7,11 +7,12 @@
 	import PromptPanel from '$components/PromptPanel.svelte';
 	import ProjectName from '$components/ProjectName.svelte';
 	import * as DropdownMenu from '$components/ui/dropdown-menu';
-	import { commands, unwrapCommand, type ProjectDto } from '$lib/command';
-	import { getUnlinkedWorktree } from '$lib/project';
+	import { commands, unwrapCommand } from '$lib/command';
+	import { getLinkedWorktrees, getUnlinkedWorktree, isGitProject } from '$lib/project';
+	import { getSessionsForWorktree } from '$lib/worktree';
 	import type { PageData } from './$types';
 
-	type HomepageHref = `/?${string}`;
+	type HomepageHref = `/?workspace=${string}`;
 
 	let { data } = $props<{ data: PageData }>();
 
@@ -20,59 +21,37 @@
 	let submitting = $state(false);
 	let submitError = $state<string | null>(null);
 
-	let selectedProject = $derived(
-		data.projects.find(
-			(project: PageData['projects'][number]) => project.id === data.selectedProjectId
-		) ?? null
-	);
-	let selectedWorktreeBranch = $derived(
-		data.worktrees.find(
-			(worktree: PageData['worktrees'][number]) => worktree.id === data.selectedWorktreeId
-		)?.branch ??
-			(selectedProject ? getUnlinkedWorktree(selectedProject)?.branch : null) ??
-			null
-	);
-
-	function isGitProject(project: ProjectDto | null) {
-		return Boolean(project && project.worktrees.length > 0);
-	}
-
-	function getProjectHref(projectId: string): HomepageHref {
-		return `/?project=${encodeURIComponent(projectId)}`;
-	}
-
-	function getWorktreeHref(projectId: string, worktreeId: string): HomepageHref {
-		return `/?project=${encodeURIComponent(projectId)}&worktreeId=${encodeURIComponent(worktreeId)}`;
-	}
-
 	function navigateTo(href: HomepageHref) {
 		void goto(resolve(href));
 	}
 
 	async function handleSubmit() {
-		if (!promptText.trim() || !data.selectedProjectId || !data.selectedWorktreeId) return;
+		if (!promptText.trim() || !data.selectedProject || !data.selectedWorktree) return;
 
 		submitting = true;
 		submitError = null;
 
-		// TODO: When sessionAsWorktree is true, treat data.selectedWorktreePath as the
+		// TODO: When sessionAsWorktree is true, treat selectedWorktree as the
 		// parent/base worktree, create a nested worktree under it before creating the
 		// session, and persist the session against the new child worktree rather than
 		// the selected parent. The session should be created with the child worktree's
 		// worktreeId. Currently this is not implemented - silently ignore
 		// if checkbox is true.
 		if (sessionAsWorktree) {
-			// TODO: Create nested worktree: createWorktree(data.selectedWorktreePath, branchName)
+			// TODO: Create nested worktree under selectedWorktree
 			// TODO: Replace parent worktreeId with the new child worktree values
 			// For now, continue with the selected worktree as-is
 		}
 
 		let createResult;
 		try {
+			const firstSessionUnderWorktree =
+				getSessionsForWorktree(data.selectedProject.worktrees, data.selectedWorktree.id).length ===
+				0;
 			createResult = await commands
-				.createSession(data.selectedProjectId, {
-					worktreeId: data.selectedWorktreeId,
-					firstSessionUnderWorktree: data.firstSessionUnderWorktree,
+				.createSession(data.selectedProject.id, {
+					worktreeId: data.selectedWorktree.id,
+					firstSessionUnderWorktree,
 					title: null
 				})
 				.then(unwrapCommand);
@@ -84,18 +63,13 @@
 
 		// Redirect to session page with initial prompt state.
 		// Session page will consume initSessionFields and submit the first message.
-		await goto(
-			resolve(
-				`/sessions/${createResult.session.id}?project=${encodeURIComponent(createResult.session.projectId)}`
-			),
-			{
-				state: {
-					initSessionFields: {
-						prompt: promptText.trim()
-					}
+		await goto(resolve(`/sessions/${createResult.session.id}`), {
+			state: {
+				initSessionFields: {
+					prompt: promptText.trim()
 				}
 			}
-		);
+		});
 
 		// Refresh all load functions so the new session appears in the sidebar immediately
 		await invalidate('project:tree');
@@ -121,24 +95,22 @@
 							variant="ghost"
 							class="h-auto items-center gap-2 px-2 py-1 text-foreground/90 hover:text-foreground/90"
 						>
-							{#if isGitProject(selectedProject)}
+							{#if isGitProject(data.selectedProject)}
 								<FolderGit2 class="size-4 shrink-0" />
 							{:else}
 								<Folder class="size-4 shrink-0" />
 							{/if}
 							<span class="text-md truncate font-medium">
-								{#if selectedProject}
+								{#if data.selectedProject}
 									<ProjectName
-										displayName={selectedProject.displayName}
-										owner={selectedProject.owner}
+										displayName={data.selectedProject.displayName}
+										owner={data.selectedProject.owner}
 									/>
-								{:else if data.selectedProjectName}
-									{data.selectedProjectName}
 								{:else}
 									Select project
 								{/if}
-								{#if selectedWorktreeBranch}
-									<span class="text-[10px]">:{selectedWorktreeBranch}</span>
+								{#if data.selectedWorktree?.branch}
+									<span class="text-[10px]">:{data.selectedWorktree.branch}</span>
 								{/if}
 							</span>
 							<ChevronDown class="size-3.5 shrink-0" />
@@ -152,10 +124,12 @@
 					</DropdownMenu.Label>
 
 					{#each data.projects as project (project.id)}
+						{@const unlinkedWorktree = getUnlinkedWorktree(project)}
+						{@const linkedWorktrees = getLinkedWorktrees(project)}
 						<DropdownMenu.Group class="pt-1">
 							<DropdownMenu.Item
 								data-testid="composer-project-link"
-								data-value={getProjectHref(project.id)}
+								data-value={unlinkedWorktree ? `/?workspace=${unlinkedWorktree.id}` : undefined}
 								class="flex items-center gap-2"
 								onclick={(e) => {
 									const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
@@ -170,34 +144,32 @@
 								<span data-testid="composer-project-item" class="text-xs font-medium">
 									<ProjectName displayName={project.displayName} owner={project.owner} />
 								</span>
-								{#if getUnlinkedWorktree(project)?.branch}
+								{#if unlinkedWorktree?.branch}
 									<span
 										data-testid="composer-project-default-branch"
 										class="text-[10px] text-muted-foreground"
 									>
-										:{getUnlinkedWorktree(project)?.branch}
+										:{unlinkedWorktree.branch}
 									</span>
 								{/if}
 							</DropdownMenu.Item>
 
-							{#if project.worktrees.length > 0}
-								{#each project.worktrees as worktree (worktree.id)}
-									<DropdownMenu.Item
-										data-testid="composer-worktree-link"
-										data-value={getWorktreeHref(project.id, worktree.id)}
-										class="ml-3 flex items-center gap-2 text-foreground/60"
-										onclick={(e) => {
-											const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
-											if (href) navigateTo(href);
-										}}
-									>
-										<GitBranch class="size-3 shrink-0 text-muted-foreground" />
-										<span data-testid="composer-worktree-item" class="truncate text-xs">
-											{worktree.branch ?? 'detached'}
-										</span>
-									</DropdownMenu.Item>
-								{/each}
-							{/if}
+							{#each linkedWorktrees as worktree (worktree.id)}
+								<DropdownMenu.Item
+									data-testid="composer-worktree-link"
+									data-value={`/?workspace=${worktree.id}`}
+									class="ml-3 flex items-center gap-2 text-foreground/60"
+									onclick={(e) => {
+										const href = (e.currentTarget as HTMLElement).dataset.value as HomepageHref;
+										if (href) navigateTo(href);
+									}}
+								>
+									<GitBranch class="size-3 shrink-0 text-muted-foreground" />
+									<span data-testid="composer-worktree-item" class="truncate text-xs">
+										{worktree.branch ?? 'detached'}
+									</span>
+								</DropdownMenu.Item>
+							{/each}
 						</DropdownMenu.Group>
 					{/each}
 				</DropdownMenu.Content>

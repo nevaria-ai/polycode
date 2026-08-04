@@ -61,21 +61,8 @@ const unlinkedWorktreeId = 'main-wt-id';
 const baseData = {
 	projects: baseProjects,
 	initialSidebarOpen: true,
-	selectedProjectId: eskCodeProjectId,
-	selectedProjectName: 'esk-code',
-	selectedWorktreeLabel: 'main',
-	selectedWorktreeId: unlinkedWorktreeId,
-	firstSessionUnderWorktree: true,
-	worktrees: [
-		{
-			id: unlinkedWorktreeId,
-			branch: 'main'
-		},
-		{
-			id: 'test-wt-id',
-			branch: 'feature/auth'
-		}
-	]
+	selectedProject: baseProjects[0],
+	selectedWorktree: baseProjects[0].worktrees[0]
 };
 
 describe('root homepage', () => {
@@ -131,7 +118,8 @@ describe('root homepage', () => {
 		expect(screen.getByText('docs')).toBeVisible();
 		expect(screen.getByText('feature/api')).toBeVisible();
 		expect(document.querySelectorAll('[data-testid="composer-project-link"]')).toHaveLength(2);
-		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(4);
+		// Nested rows are linked worktrees only; unlinked is the project row.
+		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(2);
 
 		const projectDefaultBranch = document.querySelector(
 			'[data-testid="composer-project-default-branch"]'
@@ -148,17 +136,13 @@ describe('root homepage', () => {
 
 		expect(projectDefaultBranch?.className).toContain('text-[10px]');
 		expect(projectItem?.className).toContain('text-xs');
-		expect(projectLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(eskCodeProjectId)}`
-		);
+		expect(projectLink?.getAttribute('data-value')).toBe(`/?workspace=${unlinkedWorktreeId}`);
 
 		const nestedWorktreeItem = document.querySelector(
 			'[data-testid="composer-worktree-item"]'
 		) as HTMLElement | null;
 		expect(nestedWorktreeItem?.className).toContain('text-xs');
-		expect(worktreeLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(eskCodeProjectId)}&worktreeId=${encodeURIComponent('main-wt-id')}`
-		);
+		expect(worktreeLink?.getAttribute('data-value')).toBe(`/?workspace=test-wt-id`);
 	});
 
 	it('renders a project with no linked worktrees as a single clickable project item', async () => {
@@ -172,13 +156,7 @@ describe('root homepage', () => {
 							worktrees: p.worktrees.filter((worktree) => !worktree.isLinkedWorktree)
 						}
 					: p
-			),
-			worktrees: [
-				{
-					id: unlinkedWorktreeId,
-					branch: 'main'
-				}
-			]
+			)
 		};
 		render(HomePage, { data: noWorktreeData });
 
@@ -189,9 +167,8 @@ describe('root homepage', () => {
 		const projectLink = document.querySelector(
 			'[data-testid="composer-project-link"]'
 		) as HTMLElement | null;
-		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(3);
-		expect(projectLink?.getAttribute('data-value')).toBe(
-			`/?project=${encodeURIComponent(eskCodeProjectId)}`
-		);
+		// esk-code has no linked rows; docs still contributes one linked worktree.
+		expect(document.querySelectorAll('[data-testid="composer-worktree-link"]')).toHaveLength(1);
+		expect(projectLink?.getAttribute('data-value')).toBe(`/?workspace=${unlinkedWorktreeId}`);
 	});
 });

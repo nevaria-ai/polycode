@@ -37,7 +37,6 @@ pub async fn create_session(
 #[specta::specta]
 pub async fn get_session(
     db: State<'_, DbHandle>,
-    _project_id: String,
     session_id: String,
 ) -> Result<SessionViewResponse, AppError> {
     // Stub: full session view (messages / pinned context / provider runs) is out of
