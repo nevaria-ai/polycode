@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import type { SidebarProjectInput } from '$lib/project-tree';
-import type { SessionSummary, WorktreeWithSessions } from '$lib/command';
+import type { SessionSummaryDto, WorktreeDto } from '$lib/command';
 
 const { appPage, setPathname, closeProjectMock, updateWorktreeExpandedStateMock, invalidateMock } =
 	vi.hoisted(() => {
@@ -45,8 +45,8 @@ const SESSION_STAMP = {
 } as const;
 
 function session(
-	partial: Pick<SessionSummary, 'id' | 'title'> & Partial<SessionSummary>
-): SessionSummary {
+	partial: Pick<SessionSummaryDto, 'id' | 'title'> & Partial<SessionSummaryDto>
+): SessionSummaryDto {
 	return {
 		status: 'active',
 		...SESSION_STAMP,
@@ -55,9 +55,8 @@ function session(
 }
 
 function worktree(
-	partial: Pick<WorktreeWithSessions, 'id' | 'branch' | 'isLinkedWorktree'> &
-		Partial<WorktreeWithSessions>
-): WorktreeWithSessions {
+	partial: Pick<WorktreeDto, 'id' | 'branch' | 'isLinkedWorktree'> & Partial<WorktreeDto>
+): WorktreeDto {
 	return {
 		expandedState: false,
 		sessions: [],

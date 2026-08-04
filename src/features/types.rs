@@ -11,7 +11,7 @@ pub fn format_iso8601(epoch_secs: i64) -> String {
 /// Slim session row for sidebar nesting under worktrees.
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct SessionSummary {
+pub struct SessionSummaryDto {
     pub id: String,
     pub title: Option<String>,
     pub status: String,
@@ -22,24 +22,24 @@ pub struct SessionSummary {
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct WorktreeWithSessions {
+pub struct WorktreeDto {
     pub id: String,
     pub branch: Option<String>,
     pub is_linked_worktree: bool,
     pub expanded_state: bool,
-    pub sessions: Vec<SessionSummary>,
+    pub sessions: Vec<SessionSummaryDto>,
 }
 
-/// Project with nested worktrees and session metadata for the sidebar tree.
+/// Project with nested worktrees and session metadata for the sidebar.
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ProjectTree {
+pub struct ProjectDto {
     pub id: String,
     pub path: String,
     pub created_at: String,
     pub display_name: String,
     pub owner: Option<String>,
-    pub worktrees: Vec<WorktreeWithSessions>,
+    pub worktrees: Vec<WorktreeDto>,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -88,7 +88,7 @@ pub struct PartDto {
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct PinnedContext {
+pub struct PinnedContextDto {
     pub id: String,
     pub r#type: String,
     pub source: String,
@@ -100,7 +100,7 @@ pub struct PinnedContext {
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ProviderRun {
+pub struct ProviderRunDto {
     pub id: String,
     pub adapter_type: String,
     pub status: String,
@@ -187,9 +187,9 @@ pub struct UpdateSessionResponse {
 pub struct SessionViewResponse {
     pub session: SessionDto,
     pub messages: Vec<MessageDto>,
-    pub pinned_context: Vec<PinnedContext>,
+    pub pinned_context: Vec<PinnedContextDto>,
     pub has_summary: bool,
-    pub provider_runs: Vec<ProviderRun>,
+    pub provider_runs: Vec<ProviderRunDto>,
 }
 
 #[derive(Debug, Serialize, specta::Type)]
@@ -199,7 +199,7 @@ pub struct DirectoryResponse {
     pub exists: bool,
 }
 
-impl From<&SessionMetadata> for SessionSummary {
+impl From<&SessionMetadata> for SessionSummaryDto {
     fn from(s: &SessionMetadata) -> Self {
         Self {
             id: s.id.clone(),

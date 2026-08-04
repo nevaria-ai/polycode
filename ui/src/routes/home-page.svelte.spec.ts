@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import HomePage from './+page.svelte';
-import type { ProjectTree } from '$lib/command';
+import type { ProjectDto } from '$lib/command';
 import type { SidebarProjectInput } from '$lib/project-tree';
 
 const eskCodeProjectId = 'esk-code-id';
 const docsProjectId = 'docs-id';
 
-const baseProjects: ProjectTree[] = [
+const baseProjects: ProjectDto[] = [
 	{
 		id: eskCodeProjectId,
 		path: '/Projects/esk-code',
@@ -59,7 +59,7 @@ const baseProjects: ProjectTree[] = [
 
 const unlinkedWorktreeId = 'main-wt-id';
 
-function toSidebarProject(project: ProjectTree): SidebarProjectInput {
+function toSidebarProject(project: ProjectDto): SidebarProjectInput {
 	return {
 		path: project.path,
 		projectId: project.id,

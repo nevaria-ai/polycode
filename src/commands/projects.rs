@@ -3,11 +3,11 @@ use tauri::State;
 use crate::db::DbHandle;
 use crate::error::AppError;
 use crate::features::projects::{CreateProject, Service};
-use crate::features::types::{CreateProjectRequest, CreateProjectResponse, ProjectTree};
+use crate::features::types::{CreateProjectRequest, CreateProjectResponse, ProjectDto};
 
 #[tauri::command]
 #[specta::specta]
-pub async fn list_projects(db: State<'_, DbHandle>) -> Result<Vec<ProjectTree>, AppError> {
+pub async fn list_projects(db: State<'_, DbHandle>) -> Result<Vec<ProjectDto>, AppError> {
     Service::new(db.inner().clone()).list_trees().await
 }
 

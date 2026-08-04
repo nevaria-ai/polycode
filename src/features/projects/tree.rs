@@ -23,7 +23,7 @@ impl ProjectTreeBuilder {
         projects: Vec<Project>,
         labels: &HashMap<String, (String, Option<String>)>,
         display_names: &HashMap<String, String>,
-    ) -> Result<Vec<ProjectTree>, AppError> {
+    ) -> Result<Vec<ProjectDto>, AppError> {
         let all_sessions = SessionService::new(self.db.clone()).list_metadata().await?;
         let mut sessions_by_project: HashMap<String, Vec<SessionMetadata>> = HashMap::new();
         for session in all_sessions {
@@ -50,7 +50,7 @@ impl ProjectTreeBuilder {
         labels: &HashMap<String, (String, Option<String>)>,
         display_names: &HashMap<String, String>,
         sessions: &[SessionMetadata],
-    ) -> Result<ProjectTree, AppError> {
+    ) -> Result<ProjectDto, AppError> {
         let (label, owner) = labels.get(&project.id).cloned().unwrap_or_default();
         let display_name = display_names.get(&project.id).cloned().unwrap_or(label);
 
@@ -64,12 +64,12 @@ impl ProjectTreeBuilder {
 
         let git_worktrees = list_git_worktrees(&project.path);
 
-        let mut sessions_by_worktree: HashMap<String, Vec<SessionSummary>> = HashMap::new();
+        let mut sessions_by_worktree: HashMap<String, Vec<SessionSummaryDto>> = HashMap::new();
         for session in sessions {
             sessions_by_worktree
                 .entry(session.worktree_id.clone())
                 .or_default()
-                .push(SessionSummary::from(session));
+                .push(SessionSummaryDto::from(session));
         }
 
         for list in sessions_by_worktree.values_mut() {
@@ -84,7 +84,7 @@ impl ProjectTreeBuilder {
                     .get(&id)
                     .map(|row| row.expanded_state)
                     .unwrap_or(false);
-                WorktreeWithSessions {
+                WorktreeDto {
                     id: id.clone(),
                     branch: wt.branch,
                     is_linked_worktree: wt.is_linked_worktree,
@@ -94,7 +94,7 @@ impl ProjectTreeBuilder {
             })
             .collect();
 
-        Ok(ProjectTree {
+        Ok(ProjectDto {
             id: project.id,
             path: project.path,
             created_at: format_iso8601(project.created_at),
