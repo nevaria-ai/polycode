@@ -1,0 +1,3 @@
+# Dev loads the UI from Vite (devUrl); Rust rebuild on ui/ changes is wasted (~30s).
+# Regenerate bindings via `just bindings` when IPC commands change.
+ui/

@@ -13,7 +13,6 @@ bindings:
 ## --- desktop (Tauri) ---
 
 # Vite (ui, port 5173) + desktop_app via Tauri CLI
-# Needs sqlc output before tauri/cgo compile; debug launch then re-exports bindings.ts
 [default]
 dev: bindings
     {{ tauri_cli }} dev --config {{ tauri_config }}
