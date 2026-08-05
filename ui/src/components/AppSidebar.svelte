@@ -65,6 +65,7 @@
 			.find((item) => item.id === projectId)
 			?.worktrees.find((item) => item.id === worktreeId);
 		if (!worktree) return;
+		if (!worktreeExpanded.tryBegin(worktreeId)) return;
 
 		const next = !worktreeExpanded.get(worktree);
 		worktreeExpanded.set(worktreeId, next);
@@ -74,6 +75,8 @@
 		} catch (e) {
 			worktreeExpanded.set(worktreeId, !next);
 			actionError = e instanceof Error ? e.message : 'Failed to update worktree';
+		} finally {
+			worktreeExpanded.end(worktreeId);
 		}
 	}
 

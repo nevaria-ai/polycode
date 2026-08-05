@@ -7,11 +7,12 @@ export const ssr = false;
 
 export const load: LayoutLoad = async ({ depends }) => {
 	depends('project:tree');
-	worktreeExpanded.clear();
 	const projects = await commands
 		.listProjects()
 		.then(unwrapCommand)
 		.catch(() => []);
+	// Clear after fetch so overlay still wins while IPC is in flight (avoids collapse flash).
+	worktreeExpanded.clear();
 
 	return {
 		initialSidebarOpen: getInitialSidebarStateFromCookieString(

@@ -108,6 +108,56 @@ describe('AppSidebar', () => {
 		expect(invalidate).not.toHaveBeenCalled();
 	});
 
+	it('ignores overlapping expand clicks for the same worktree', async () => {
+		const user = userEvent.setup();
+		let resolveUpdate!: (value: { status: 'ok'; data: null }) => void;
+		vi.mocked(commands.updateWorktreeExpandedState).mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					resolveUpdate = resolve;
+				})
+		);
+
+		render(AppSidebarTestWrapper, {
+			projects: [
+				{
+					displayName: 'acme/repo',
+					owner: 'acme',
+					path: '/repo',
+					id: 'repo-id',
+					createdAt: '2026-04-09T10:00:00.000Z',
+					worktrees: [
+						{
+							id: 'test-wt-id',
+							branch: 'main',
+							isLinkedWorktree: false,
+							expandedState: false,
+							sessions: []
+						}
+					]
+				}
+			]
+		});
+
+		const row = screen.getByRole('button', { name: /repo/i });
+		await user.click(row);
+		await user.click(row);
+
+		expect(commands.updateWorktreeExpandedState).toHaveBeenCalledTimes(1);
+
+		resolveUpdate({ status: 'ok', data: null });
+		await waitFor(() => {
+			// Pending lock released in finally after the mock resolves.
+			expect(worktreeExpanded.tryBegin('test-wt-id')).toBe(true);
+		});
+		worktreeExpanded.end('test-wt-id');
+
+		await user.click(row);
+		await waitFor(() => {
+			expect(commands.updateWorktreeExpandedState).toHaveBeenCalledTimes(2);
+		});
+	});
+
 	it('does not leave the project row focused after a mouse click', async () => {
 		const user = userEvent.setup();
 		render(AppSidebarTestWrapper, {

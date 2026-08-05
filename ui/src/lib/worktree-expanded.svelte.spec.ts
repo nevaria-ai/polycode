@@ -26,4 +26,19 @@ describe('worktree expand overlay', () => {
 		worktreeExpanded.clear();
 		expect(worktreeExpanded.get({ ...worktree, expandedState: false })).toBe(false);
 	});
+
+	it('tryBegin allows one in-flight toggle per worktree id', () => {
+		expect(worktreeExpanded.tryBegin('wt-1')).toBe(true);
+		expect(worktreeExpanded.tryBegin('wt-1')).toBe(false);
+		expect(worktreeExpanded.tryBegin('wt-2')).toBe(true);
+
+		worktreeExpanded.end('wt-1');
+		expect(worktreeExpanded.tryBegin('wt-1')).toBe(true);
+	});
+
+	it('clear drops pending locks', () => {
+		expect(worktreeExpanded.tryBegin('wt-1')).toBe(true);
+		worktreeExpanded.clear();
+		expect(worktreeExpanded.tryBegin('wt-1')).toBe(true);
+	});
 });
