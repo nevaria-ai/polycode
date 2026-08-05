@@ -14,10 +14,10 @@ path = "src/bin/desktop_app.rs"
 
 [dependencies]
 # Tauri + typesafe IPC bindings
-tauri = { version = "2" }
+tauri = { version = "2", features = [] }
 specta = "=2.0.0-rc.25"
 specta-typescript = "0.0.12"
-tauri-specta = { version = "=2.0.0-rc.25", features = ["javascript", "typescript"] }
+tauri-specta = { version = "=2.0.0-rc.25", features = ["typescript"] }
 thiserror = "2"
 
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
@@ -25,12 +25,12 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"
 dirs = "6"
-gix = { version = "0.81", features = ["worktree-mutation"] }
+gix = { version = "0.81", default-features = false, features = ["sha1"] }
 ffi = { git = "ssh://git@github.com/codeignus/ffi.git", branch = "main" }
 
 [build-dependencies]
